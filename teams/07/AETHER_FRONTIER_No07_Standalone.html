@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#091e2a">
+<title>AETHER FRONTIER | No.07 星脈の大地</title>
+<style>
+:root{color-scheme:dark;--ink:#e2f5ef;--muted:#92b8b6;--edge:rgba(176,244,232,.21);--glass:rgba(6,27,37,.75);--accent:#9df2d8;font-family:Inter,-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif}
+*{box-sizing:border-box}html,body{height:100%;width:100%;margin:0;overflow:hidden;background:#101f2a;color:var(--ink);-webkit-user-select:none;user-select:none}button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}#viewport,#game-canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}#viewport:after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(1,17,27,.36),transparent 22%,transparent 67%,rgba(3,17,23,.45));z-index:1}
+.ui{position:fixed;z-index:4;pointer-events:none}.ui button{pointer-events:auto}.glass{background:var(--glass);border:1px solid var(--edge);backdrop-filter:blur(19px);-webkit-backdrop-filter:blur(19px);box-shadow:0 12px 36px rgba(1,8,16,.2)}.tag{font-size:9px;text-transform:uppercase;letter-spacing:3px;color:#88c6c4;font-weight:700}
+#identity{top:30px;left:32px;max-width:390px}.lockup{display:flex;align-items:center;gap:13px}.logo{width:37px;height:37px;display:grid;place-items:center;border:1px solid rgba(144,246,222,.67);transform:rotate(45deg);font-size:18px;color:#cdfbf2;flex:none}.logo span{transform:rotate(-45deg)}#identity h1{font-size:19px;letter-spacing:3px;font-weight:650;margin:0 0 3px}#identity h1 span{font-weight:300;color:#c2f3ea}#identity .subtitle{color:#92bfbd;font-size:11px;letter-spacing:2.2px}
+#quest{margin-top:25px;max-width:340px;padding:17px 17px 16px;border-radius:12px;position:relative;overflow:hidden}#quest:before{content:'';height:2px;width:100%;position:absolute;left:0;top:0;background:linear-gradient(90deg,#69e6ce,transparent)}.questTop{display:flex;justify-content:space-between;align-items:center;gap:10px}.questTitle{font-weight:650;font-size:14px;letter-spacing:1px}.questCount{color:#b7fff1;font-size:15px;font-variant-numeric:tabular-nums}.objective{font-size:11px;line-height:1.75;color:#bdd2d1;margin:9px 0 12px}.progressTrack{height:3px;border-radius:4px;background:rgba(167,241,219,.18);overflow:hidden}.progressFill{height:100%;width:0%;background:linear-gradient(90deg,#4d9c9d,#a3ffdf);transition:width .5s}
+#toolbar{top:28px;right:30px;display:flex;gap:7px;align-items:center}button.tool{border:1px solid var(--edge);background:rgba(7,31,41,.7);padding:11px 14px;border-radius:7px;font-size:11px;letter-spacing:.7px;transition:background .2s}button.tool:hover{background:rgba(28,72,81,.92)}.tool b{font-size:13px;color:#a9f1dc;letter-spacing:0}.toolSep{height:18px;border-left:1px solid rgba(166,233,217,.3);margin:0 2px}
+#mini{right:30px;top:92px;width:220px;min-height:262px;border-radius:15px;padding:13px;display:flex;flex-direction:column;align-items:center;gap:4px}#miniTitle{align-self:stretch;display:flex;align-items:center;justify-content:space-between;font-size:10px;letter-spacing:2px;color:#a5d9d3}#miniTitle small{font-size:10px;color:#b1faf0}#miniCanvas{width:194px;height:194px;max-width:100%}.targetLine{align-self:stretch;display:flex;justify-content:space-between;align-items:center;gap:5px;min-height:22px}.targetLine .targetName{font-size:11px;color:#ddf3ef}.targetLine .targetDist{font-size:12px;color:#b0f6db;white-space:nowrap}
+#reticle{left:50%;top:50%;width:17px;height:17px;transform:translate(-50%,-50%);opacity:.8}#reticle:before,#reticle:after{content:'';position:absolute;background:rgba(235,255,250,.88);box-shadow:0 0 3px #0d3540}#reticle:before{height:1px;width:17px;top:8px}#reticle:after{width:1px;height:17px;left:8px}
+#compass{top:40px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:9px;font-size:10px;letter-spacing:2.3px;color:#c1efe7;text-shadow:0 1px 5px #142830}#compassArrow{display:inline-flex;transform-origin:center;transition:transform .1s ease-out;font-size:17px;color:#ecf5b0}
+#interactPrompt{left:50%;bottom:20%;transform:translateX(-50%) translateY(10px);padding:10px 17px;display:flex;align-items:center;gap:10px;opacity:0;transition:opacity .22s,transform .22s;white-space:nowrap;border-radius:7px;font-size:12px;pointer-events:none}#interactPrompt.visible{opacity:1;transform:translateX(-50%) translateY(0)}.key{min-width:25px;height:25px;border-radius:5px;display:inline-grid;place-items:center;border:1px solid rgba(222,254,251,.4);background:rgba(200,247,226,.1);font-size:11px;color:#e8fff7}
+#bottomInfo{bottom:25px;left:32px;display:flex;align-items:center;gap:17px;font-size:10px;color:#a9cdc9;letter-spacing:.8px}.tinyDot{display:inline-block;height:5px;width:5px;border-radius:50%;margin-right:7px;background:#78eed0;box-shadow:0 0 11px #5cffe1}#bottomInfo span{white-space:nowrap}#bottomInfo .bordered{border-left:1px solid rgba(190,240,224,.2);padding-left:16px}
+#desktopHelp{bottom:30px;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:.8px;white-space:nowrap;color:rgba(222,248,237,.88);text-align:center;text-shadow:0 1px 4px #000}#desktopHelp.hide{display:none}#desktopHelp kbd{font-family:inherit;border:1px solid rgba(216,250,241,.5);padding:3px 5px;border-radius:4px;margin:0 3px}#hintPointer{display:block;margin-top:12px;font-size:9px;color:#92b9b3;letter-spacing:1px}
+#toast{left:50%;top:17%;width:min(540px,calc(100vw - 26px));transform:translate(-50%,-8px);border-radius:9px;padding:15px 19px;pointer-events:none;text-align:center;color:#e9fff8;font-size:13px;line-height:1.6;opacity:0;transition:opacity .3s,transform .3s;border:1px solid rgba(172,255,229,.33);background:rgba(4,27,37,.84)}#toast.show{opacity:1;transform:translate(-50%,0)}
+#mapDialog{display:none;position:fixed;z-index:12;inset:0;background:rgba(0,13,20,.61);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:16px}#mapDialog.visible{display:flex}.mapPanel{width:min(450px,100%);border:1px solid rgba(178,243,227,.37);border-radius:16px;background:linear-gradient(150deg,rgba(12,42,52,.98),rgba(6,26,36,.97));padding:24px;max-height:min(760px,90vh);overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.5)}.mapHeading{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:23px}.mapHeading h2{font-size:22px;letter-spacing:2px;margin:5px 0 0;font-weight:650}.close{border:1px solid var(--edge);background:rgba(255,255,255,.06);width:32px;height:32px;border-radius:7px;font-size:17px}.mapText{color:#abc8c7;line-height:1.75;font-size:12px;margin:0 0 17px}#locations{display:grid;grid-template-columns:1fr 1fr;gap:8px}.location{min-width:0;min-height:70px;display:flex;align-items:center;gap:10px;text-align:left;padding:9px;border-radius:9px;border:1px solid rgba(171,231,221,.15);background:rgba(255,255,255,.03)}.location.selected{border-color:rgba(191,255,218,.79);background:rgba(127,225,199,.12)}.location:hover{background:rgba(122,218,196,.17)}.location-icon{font-size:11px;font-variant-numeric:tabular-nums;border:1px solid var(--edge);border-radius:7px;min-width:28px;height:28px;display:grid;place-items:center;color:#95ead7}.location-text{display:flex;flex-direction:column;min-width:0;gap:5px}.location-text strong{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.location-text small{font-size:10px;color:#a1c4c0}.mapActions{margin-top:18px;display:flex;justify-content:space-between;align-items:center;gap:8px}.mapActions p{font-size:10px;color:#84ada9;margin:0}.reset{border:1px solid rgba(249,179,167,.3);background:rgba(171,67,69,.09);border-radius:6px;padding:8px 12px;color:#f0b6ae;font-size:10px}
+#mobileControls{display:none;position:fixed;inset:0;z-index:6;pointer-events:none}#mobileControls.visible{display:block}.mobileButton{pointer-events:auto;touch-action:none;border:1px solid rgba(195,255,236,.32);background:rgba(10,44,52,.63);backdrop-filter:blur(12px);border-radius:12px;font-size:12px;font-weight:650;color:#d8fff1;box-shadow:0 5px 22px rgba(0,0,0,.2)}.mobileButton.active,.mobileButton.ready{border-color:#a6ffe5;background:rgba(31,115,106,.66)}#joystick{position:absolute;left:max(22px,env(safe-area-inset-left));bottom:max(42px,calc(env(safe-area-inset-bottom) + 25px));width:142px;height:142px;border:1px solid rgba(195,255,236,.34);border-radius:50%;pointer-events:auto;touch-action:none;background:radial-gradient(circle,rgba(64,124,125,.18),rgba(11,38,52,.22));display:grid;place-items:center}#joystick:before,#joystick:after{content:'';position:absolute;opacity:.2}#joystick:before{height:1px;width:85%;background:#ebfff8}#joystick:after{width:1px;height:85%;background:#ebfff8}#knob{height:63px;width:63px;border:1px solid rgba(202,255,235,.75);border-radius:50%;background:rgba(96,197,181,.19);box-shadow:0 0 22px rgba(78,234,202,.12);pointer-events:none}#touchButtons{position:absolute;right:max(16px,env(safe-area-inset-right));bottom:max(26px,calc(env(safe-area-inset-bottom) + 12px));display:grid;grid-template-columns:repeat(3,62px);gap:9px;align-items:center}#touchButtons button{min-height:52px;max-width:65px}#touchButtons #interact{grid-column:2/4;background:rgba(59,151,127,.66)}#touchButtons #up,#touchButtons #down{font-size:16px}#touchButtons #flight{grid-column:1/3}#touchButtons #flight span{font-size:11px}
+#victory{display:none;position:fixed;inset:0;z-index:20;background:rgba(3,17,25,.7);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:20px}#victory.visible{display:flex}.victoryPanel{max-width:460px;padding:35px;border:1px solid rgba(161,255,228,.4);border-radius:16px;text-align:center;background:linear-gradient(145deg,rgba(19,63,68,.95),rgba(8,27,39,.96));box-shadow:0 30px 80px #0008}.victoryPanel h2{font-size:30px;letter-spacing:3px;font-weight:500}.victoryPanel p{line-height:2;color:#b2d9d5;font-size:13px}.victoryPanel button{margin-top:18px;border:1px solid rgba(179,250,225,.62);background:rgba(89,184,156,.24);padding:12px 24px;border-radius:7px}
+@media(max-width:900px){#identity{left:17px;top:18px}#identity h1{font-size:14px;letter-spacing:1.5px}#identity .subtitle{font-size:9px;letter-spacing:1px}#identity .logo{height:29px;width:29px;font-size:14px}#quest{margin-top:16px;max-width:258px;padding:12px}#quest .questTitle{font-size:12px}#quest .objective{font-size:10px;margin:6px 0 9px}#toolbar{top:15px;right:13px;gap:4px}button.tool{padding:9px 10px;font-size:10px}#mini{right:12px;top:70px;width:153px;min-height:185px;padding:7px}#miniCanvas{width:137px;height:137px}#miniTitle{font-size:8px}#miniTitle small{font-size:9px}.targetLine .targetName,.targetLine .targetDist{font-size:10px}#compass{display:none}#bottomInfo{display:none}#desktopHelp{bottom:14px;font-size:9px}}
+@media(max-width:650px){#identity{top:max(15px,env(safe-area-inset-top));left:13px;max-width:225px}#identity h1{font-size:13px}#identity .subtitle{font-size:8px}#quest{margin-top:14px;max-width:226px}#quest .questTitle{font-size:11px}.questCount{font-size:12px}#toolbar{top:max(15px,env(safe-area-inset-top));right:12px}#toolbar .toolSep{display:none}#toolbar button.tool{padding:7px 8px;font-size:9px}#toolbar #view{display:none}#mini{width:139px;right:9px;top:56px;min-height:157px;gap:0}#miniCanvas{height:119px;width:119px}#miniTitle{font-size:7px;letter-spacing:1px}.targetLine .targetName,.targetLine .targetDist{font-size:9px}#interactPrompt{bottom:29%;font-size:10px;padding:8px 10px}#joystick{width:125px;height:125px;bottom:max(29px,calc(env(safe-area-inset-bottom) + 19px))}#knob{width:54px;height:54px}#touchButtons{grid-template-columns:repeat(3,55px);gap:7px}#touchButtons button{min-height:48px}#toast{top:26%;font-size:11px;padding:10px}.mapPanel{padding:18px}}
+@media(max-width:430px){#identity .logo{display:none}#quest{max-width:190px}#quest .objective{font-size:9px}#mini{top:52px;width:121px}#miniCanvas{height:105px;width:105px}#toolbar #quality{font-size:8px}#locations{grid-template-columns:1fr}}
+@media(max-height:560px){#quest{display:none}#mini{top:52px}#identity{top:12px}#toolbar{top:10px}#joystick{bottom:8px!important;width:105px;height:105px}#touchButtons{bottom:6px}#touchButtons button{min-height:40px}#toast{top:18%}}
+</style>
+</head>
+<body>
+<div id="viewport"></div>
+<div id="identity" class="ui"><div class="lockup"><div class="logo"><span>◇</span></div><div><h1>AETHER <span>FRONTIER</span></h1><div class="subtitle">NO.07 &nbsp; / &nbsp; STARVEIN WILDS</div></div></div>
+<section id="quest" class="glass"><div class="questTop"><span class="questTitle">星脈の記憶</span><strong id="progressValue" class="questCount">0 / 5</strong></div><p id="objective" class="objective">五つの古代記憶を見つけ、石環を目覚めさせよ。</p><div class="progressTrack"><div class="progressFill" id="progressFill"></div></div></section></div>
+<div id="toolbar" class="ui"><button type="button" class="tool" id="quality">軽量</button><button type="button" class="tool" id="view">TPS</button><span class="toolSep"></span><button type="button" class="tool" id="mapBtn">探索図 <b>◇</b></button></div>
+<aside id="mini" class="ui glass"><div id="miniTitle">AREA SCAN <small id="modeLabel">WALK</small></div><canvas id="miniCanvas" width="220" height="220"></canvas><div class="targetLine"><span class="targetName" id="targetName">湖畔の音叉</span><strong class="targetDist" id="targetDist">— m</strong></div></aside>
+<div id="compass" class="ui"><span id="compassArrow">▲</span> WAYPOINT</div>
+<div id="reticle" class="ui"></div>
+<div id="interactPrompt" class="ui glass"><span class="key">E</span> <span id="nearName">共鳴装置</span>を調べる</div>
+<div id="toast" class="ui" role="status" aria-live="polite"></div>
+<div id="bottomInfo" class="ui"><span><i class="tinyDot"></i> NO.07 / WILDS</span><span class="bordered" id="position">X 0 Z 23 高度 0m</span><span class="bordered">MODE <span id="viewLabel">TPS</span></span><span class="bordered" id="fps">— fps</span></div>
+<div id="desktopHelp" class="ui hide"><kbd>WASD</kbd> 移動 &nbsp; <kbd>SHIFT</kbd> 走る &nbsp; <kbd>SPACE</kbd> ジャンプ / 上昇 &nbsp; <kbd>C</kbd> 下降 &nbsp; <kbd>E</kbd> 調べる &nbsp; <kbd>F</kbd> 飛行 &nbsp; <kbd>V</kbd> 視点 &nbsp; <kbd>M</kbd> 地図<span id="hintPointer">画面をクリックして視点操作</span></div>
+<div id="mobileControls"><div id="joystick" role="group" aria-label="移動スティック"><div id="knob"></div></div><div id="touchButtons"><button type="button" id="up" class="mobileButton" aria-label="飛行中に上昇">↑</button><button type="button" id="jump" class="mobileButton">跳ぶ</button><button type="button" id="down" class="mobileButton" aria-label="飛行中に下降">↓</button><button type="button" id="flight" class="mobileButton">✧ <span>飛行</span></button><button type="button" id="viewMobile" class="mobileButton" onclick="document.getElementById('view').click()">視点</button><button type="button" id="interact" class="mobileButton">調べる</button></div></div>
+<div id="mapDialog" role="dialog" aria-modal="true" aria-label="探索図"><div class="mapPanel"><div class="mapHeading"><div><div class="tag">EXPEDITION RECORD</div><h2>星脈の探索図</h2></div><button type="button" class="close" id="closeMap" aria-label="閉じる">×</button></div><p class="mapText">行き先を選ぶと、右上の小地図と方角表示が更新される。湖・森・峡谷・晶洞・観測塔の記憶を集めたら、石環へ向かおう。</p><div id="locations"></div><div class="mapActions"><p>発見記録はこのブラウザに自動保存される。</p><button type="button" id="resetBtn" class="reset">記録を初期化</button></div></div></div>
+<div id="victory" aria-hidden="true"><div class="victoryPanel"><div class="tag">ZONE STORY COMPLETE</div><h2>星脈、再起動。</h2><p>大地に散らばる五つの古代記憶が再び巡り始めた。<br>湖も森も、峡谷も、ひとつの生命線につながっている。<br>この地表世界は、まだ探索できる。</p><button type="button" id="victoryClose">探索を続ける</button></div></div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+/**
+ * AETHER FRONTIER / No.07  |  STARVEIN WILDS : 星脈の大地
+ * Three.js r160 / Y-up, forward -Z, 1 unit ~= 1 metre.
+ * Independent of camera, renderer, scene and input. No build or assets required.
+ *
+ *   import { createAetherModule } from './aether-nature.js';
+ *   const zone = createAetherModule(THREE, { quality: 'low' });
+ *   scene.add(zone.root);
+ *   zone.update(dt, { playerPosition: player.position });
+ *   zone.setQuality('high');
+ *   zone.dispose();
+ */
+function createAetherModule(THREE, options = {}) {
+  const root = new THREE.Group();
+  root.name = 'AF07_STARVEIN_WILDS';
+  root.userData.moduleId = '07';
+  root.userData.zoneName = '星脈の大地';
+  const size = 720, half = size / 2;
+  const qualityDefault = options.quality === 'high' ? 'high' : 'low';
+  let quality = qualityDefault, clock = 0, disposed = false;
+  const disposables = new Set();
+  const mats = new Set();
+  const geo = g => (disposables.add(g), g);
+  const mat = m => (mats.add(m), m);
+  const seed=(options.seed ?? 73017) >>> 0;
+  const seeded = offset => { let s=(seed+offset)>>>0;return () => ((s = (1664525 * s + 1013904223) >>> 0) / 4294967296); };
+  const rnd=seeded(0);
+  const smooth = (a,b,x) => { const t=Math.max(0,Math.min(1,(x-a)/(b-a))); return t*t*(3-2*t); };
+  const mix = (a,b,t) => a + (b-a)*t;
+  const hash = (x,z) => { let n=Math.imul(x, 374761393)+Math.imul(z,668265263)+1013904223; n=Math.imul(n ^ (n>>>13),1274126177); return ((n^(n>>>16))>>>0)/4294967295; };
+  function noise(x,z) { const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz; const u=fx*fx*(3-2*fx),v=fz*fz*(3-2*fz); return mix(mix(hash(ix,iz),hash(ix+1,iz),u),mix(hash(ix,iz+1),hash(ix+1,iz+1),u),v)*2-1; }
+  function fbm(x,z) { return 0.53*noise(x,z) + 0.28*noise(x*2.03,z*2.03) + 0.14*noise(x*4.07,z*4.07) + 0.05*noise(x*8.01,z*8.01); }
+  const canyonX = z => 27 + 20*Math.sin(z*.010);
+  function terrainHeight(x,z) {
+    const n = 5.3*fbm(x*.009,z*.009)+2.2*fbm(x*.032,z*.032);
+    const edge = smooth(232,351,Math.max(Math.abs(x),Math.abs(z)));
+    const mountains = 33*edge*(.72+.28*noise(x*.014,z*.014));
+    const hill = 8.0*Math.exp(-(((x-175)/135)**2 + ((z-78)/130)**2))* (.58+.42*noise(x*.028,z*.028));
+    const lakeD = Math.hypot((x+148)/103,(z+80)/89);
+    const lake = -16.0*(1-smooth(.50,1.18,lakeD));
+    const canyonLength = 1-smooth(-95,-32,z); // 1 north of -95, 0 south of -32
+    const canyonWidth = Math.abs(x-canyonX(z));
+    const ravine = -27*(1-smooth(13,39,canyonWidth))*canyonLength;
+    const walls = 6.5*(smooth(13,41,canyonWidth)-smooth(43,78,canyonWidth))*canyonLength;
+    const bridgeApproach = Math.exp(-(((z+164)/13)**2)) * smooth(27,48,canyonWidth);
+    const base = n + mountains + hill + lake + ravine + walls;
+    return mix(base,4.8,bridgeApproach*.92);
+  }
+  function surfaceHeight(x,z) {
+    let h=terrainHeight(x,z);
+    const d=Math.hypot((x+148)/103,(z+80)/89);
+    if (d<.84) h=Math.max(h,-2.05);
+    if (Math.abs(z+164)<5.5 && x>-44 && x<93) h=Math.max(h,5.12);
+    return h;
+  }
+  function groundColor(x,z,h) {
+    const forest = smooth(0,115,x)*(.6+.4*(1-smooth(80,240,z)));
+    const desert = (1-smooth(-140,-65,z))*(1-smooth(-30,160,Math.abs(x-25)));
+    const rockiness = Math.max(smooth(13,35,h),desert*.7);
+    const grass = new THREE.Color(0x365f56).lerp(new THREE.Color(0x619276),Math.min(.8,.32+.3*noise(x*.035,z*.035)));
+    grass.lerp(new THREE.Color(0x1f594f),forest*.63);
+    grass.lerp(new THREE.Color(0x997c6e),desert*.8);
+    grass.lerp(new THREE.Color(0x888d91),rockiness*.8);
+    if(h>30) grass.lerp(new THREE.Color(0xc0c6c3),smooth(30,47,h)*.65);
+    const lakeD=Math.hypot((x+148)/103,(z+80)/89);
+    if(lakeD<1.2) grass.lerp(new THREE.Color(0x687b77),.36*(1-smooth(.86,1.2,lakeD)));
+    grass.multiplyScalar(.89+.20*noise(x*.09,z*.09));
+    return grass;
+  }
+  // Both resolutions remain local to this module and are switched without recreating the world.
+  const terrainLayers = new THREE.Group(); terrainLayers.name='Ground LODs'; root.add(terrainLayers);
+  const terrainMat=mat(new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,metalness:.03,flatShading:false,side:THREE.DoubleSide}));
+  function createTerrain(segments) {
+    const g=geo(new THREE.PlaneGeometry(size,size,segments,segments)); g.rotateX(-Math.PI/2);
+    const p=g.attributes.position, colors=new Float32Array(p.count*3);
+    const col = new THREE.Color();
+    for(let i=0;i<p.count;i++) {
+      const x=p.getX(i),z=p.getZ(i),h=terrainHeight(x,z); p.setY(i,h);
+      col.copy(groundColor(x,z,h)); colors[i*3]=col.r;colors[i*3+1]=col.g;colors[i*3+2]=col.b;
+    }
+    g.setAttribute('color',new THREE.BufferAttribute(colors,3)); g.computeVertexNormals();
+    const m=new THREE.Mesh(g,terrainMat); m.name='Terrain '+segments; m.receiveShadow=true;
+    return m;
+  }
+  const groundLow=createTerrain(124), groundHigh=createTerrain(224); terrainLayers.add(groundLow,groundHigh);
+  // Shared rock, crystal, metal and wood palette.
+  const rockMat=mat(new THREE.MeshStandardMaterial({color:0x6b777c,roughness:.91,metalness:.06,flatShading:true}));
+  const darkRockMat=mat(new THREE.MeshStandardMaterial({color:0x344e5b,roughness:.96,flatShading:true}));
+  const stoneMat=mat(new THREE.MeshStandardMaterial({color:0x697f83,roughness:.83,metalness:.16,flatShading:true}));
+  const oldGold=mat(new THREE.MeshStandardMaterial({color:0xab9474,metalness:.74,roughness:.37}));
+  const bronze=mat(new THREE.MeshStandardMaterial({color:0x263d47,metalness:.77,roughness:.31}));
+  const glow=mat(new THREE.MeshBasicMaterial({color:0x65f4e2,toneMapped:false}));
+  const glowBlue=mat(new THREE.MeshBasicMaterial({color:0x59bfff,toneMapped:false}));
+  const glowAmber=mat(new THREE.MeshBasicMaterial({color:0xffd18d,toneMapped:false}));
+  const crystalMat=mat(new THREE.MeshStandardMaterial({color:0x74e6ef,emissive:0x138e9d,emissiveIntensity:1.65,roughness:.18,metalness:.23,flatShading:true}));
+  const stumpMat=mat(new THREE.MeshStandardMaterial({color:0x3a3a3e,roughness:1}));
+  const leafMat=mat(new THREE.MeshStandardMaterial({color:0x32695c,roughness:1,flatShading:true}));
+  const leafLight=mat(new THREE.MeshStandardMaterial({color:0x519381,roughness:1,flatShading:true}));
+  const leafDark=mat(new THREE.MeshStandardMaterial({color:0x214b54,roughness:1,flatShading:true}));
+  function mesh(geometry,material,parent=root, name) { const m=new THREE.Mesh(geometry,material);if(name)m.name=name;parent.add(m);return m; }
+  const cylinder = geo(new THREE.CylinderGeometry(1,1,1,8));
+  const cube = geo(new THREE.BoxGeometry(1,1,1));
+  const ico = geo(new THREE.IcosahedronGeometry(1,0));
+  const sphere=geo(new THREE.SphereGeometry(1,12,8));
+  const octa=geo(new THREE.OctahedronGeometry(1,0));
+  const ringGeom=geo(new THREE.TorusGeometry(1,.045,6,64));
+  function beam(parent, a,b,r, material, sides=8) {
+    const p1=new THREE.Vector3(...a),p2=new THREE.Vector3(...b),v=p2.clone().sub(p1);
+    const m=mesh(cylinder,material,parent);m.position.copy(p1).add(p2).multiplyScalar(.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.clone().normalize());m.scale.set(r,v.length(),r);return m;
+  }
+  function block(parent,pos,scale,material,rotation=0) { const m=mesh(cube,material,parent);m.position.set(...pos);m.scale.set(...scale);m.rotation.y=rotation;return m; }
+  function orb(parent,pos,scale,material) {const m=mesh(sphere,material,parent);m.position.set(...pos);m.scale.setScalar(scale);return m;}
+  // Instanced vegetation: a small number of draw calls even in the high detail mode.
+  const lodLow=new THREE.Group(),lodHigh=new THREE.Group();root.add(lodLow,lodHigh);
+  const trunkGeo=geo(new THREE.CylinderGeometry(.24,.42,1,5));
+  const pineGeo=geo(new THREE.ConeGeometry(1,1,7));
+  const crownGeo=geo(new THREE.IcosahedronGeometry(1,1));
+  const tuftsGeo=geo(new THREE.ConeGeometry(1,1,3));
+  const leafVariants=[leafMat,leafLight,leafDark];
+  const helper=new THREE.Object3D();
+  function createInstanceBatch(parent,geom,material,transforms,name) {
+    const inst=new THREE.InstancedMesh(geom,material,transforms.length); inst.name=name;inst.frustumCulled=false;
+    transforms.forEach((t,i)=>{ helper.position.set(t.x,t.y,t.z);helper.rotation.set(0,t.ry||0,0);helper.scale.set(t.sx,t.sy,t.sz);helper.updateMatrix();inst.setMatrixAt(i,helper.matrix); });
+    inst.instanceMatrix.needsUpdate=true; parent.add(inst);return inst;
+  }
+  function canPlant(x,z) {
+    const dLake=Math.hypot((x+148)/103,(z+80)/89);
+    if(dLake<1.16) return false;
+    if(z<-96 && Math.abs(x-canyonX(z))<44) return false;
+    if(Math.hypot(x,z-12)<46) return false;
+    if(Math.hypot(x-87,z-160)<49 || Math.hypot(x-165,z+182)<28) return false;
+    if(Math.hypot(x+175,z-170)<33 || Math.hypot(x-183,z+10)<34) return false;
+    return true;
+  }
+  function makeVegetation(parent, count, grassCount) {
+    const rand=seeded(7007);
+    const trunk=[],cones1=[],cones2=[],crowns=[[],[],[]],grass=[];
+    for(let i=0;i<count;i++) {
+      const x=mix(-317,317,rand()),z=mix(-310,316,rand());
+      const forest=(.4+.6*smooth(-105,155,x))*(.73+.27*smooth(160,-70,z));
+      if(rand()>.36+forest*.55 || !canPlant(x,z)) continue;
+      const y=terrainHeight(x,z),h=(3.4+rand()*6.9)*(1+.27*forest),wide=.77+rand()*.78,ry=rand()*Math.PI*2;
+      if(rand()<.66) {
+        trunk.push({x,y:y+h*.22,z,sx:wide*.29,sy:h*.44,sz:wide*.29,ry});
+        cones1.push({x,y:y+h*.59,z,sx:wide*1.7,sy:h*.77,sz:wide*1.7,ry});
+        cones2.push({x,y:y+h*.85,z,sx:wide*1.10,sy:h*.47,sz:wide*1.10,ry:ry+.24});
+      } else {
+        trunk.push({x,y:y+h*.27,z,sx:wide*.38,sy:h*.54,sz:wide*.38,ry});
+        crowns[Math.floor(rand()*3)].push({x,y:y+h*.79,z,sx:wide*2.25,sy:h*.30,sz:wide*2.3,ry});
+      }
+    }
+    createInstanceBatch(parent,trunkGeo,stumpMat,trunk,'Forest / trunks');
+    createInstanceBatch(parent,pineGeo,leafDark,cones1,'Forest / lower pine crowns');
+    createInstanceBatch(parent,pineGeo,leafLight,cones2,'Forest / upper pine crowns');
+    crowns.forEach((c,i)=>createInstanceBatch(parent,crownGeo,leafVariants[i],c,'Forest / leaf canopy '+i));
+    for(let i=0;i<grassCount;i++) {
+      const x=mix(-325,325,rand()),z=mix(-320,325,rand());if(!canPlant(x,z)||rand()<.1)continue;
+      const y=terrainHeight(x,z), s=.48+rand()*1.1;
+      grass.push({x,y:y+s*.35,z,sx:s*.22,sy:s*.8,sz:s*.22,ry:rand()*6.28});
+    }
+    createInstanceBatch(parent,tuftsGeo,leafLight,grass,'Instanced grass');
+  }
+  makeVegetation(lodLow,1300,3200);
+  makeVegetation(lodHigh,3100,10500);
+  const rockLow=new THREE.Group(),rockHigh=new THREE.Group();root.add(rockLow,rockHigh);
+  function rocks(parent,count) {
+    const rand=seeded(1107);
+    const regular=[],dark=[];
+    for(let i=0;i<count;i++) {
+      const x=mix(-334,334,rand()),z=mix(-332,333,rand()),y=terrainHeight(x,z);
+      if(Math.hypot((x+148)/103,(z+80)/89)<.82)continue;
+      const canyon=z<-75&&Math.abs(x-canyonX(z))<100;
+      const h=(.7+rand()*3.0)*(canyon?1.8:1),r=.65+rand()*2.5;
+      const item={x,y:y+h*.25,z,sx:r,sy:h,sz:r*(.55+rand()*.66),ry:rand()*6.28};
+      (canyon?dark:regular).push(item);
+    }
+    createInstanceBatch(parent,ico,rockMat,regular,'Scattered rock formations');
+    createInstanceBatch(parent,ico,darkRockMat,dark,'Canyon basalt');
+  }
+  rocks(rockLow,230);rocks(rockHigh,700);
+  // The lake's surface is a lightweight moving shader, not a flat blue disc.
+  const waterGeo=geo(new THREE.CircleGeometry(1,110));waterGeo.rotateX(-Math.PI/2);
+  const waterUniforms={uTime:{value:0},uOpacity:{value:0.88}};
+  const waterMat=mat(new THREE.ShaderMaterial({uniforms:waterUniforms,transparent:true,depthWrite:false,side:THREE.DoubleSide,
+    vertexShader:`varying vec2 vUv;varying vec3 vPos;void main(){vUv=uv;vPos=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+    fragmentShader:`uniform float uTime;uniform float uOpacity;varying vec2 vUv;varying vec3 vPos;
+    void main(){vec2 p=vPos.xz;float r=sin(p.x*18.0+uTime*.9+sin(p.y*9.0-uTime*.6));
+    float q=sin((p.x+p.y)*29.0-uTime*1.25);float shimmer=pow(max(0.,r*q),9.)*.33;
+    vec3 deep=vec3(.018,.19,.23),shallow=vec3(.055,.43,.45);
+    float sh=.5+.5*sin(p.y*7.+p.x*3.+uTime*.25);
+    vec3 c=mix(deep,shallow,.48+sh*.18)+vec3(.13,.3,.32)*shimmer;
+    gl_FragColor=vec4(c,uOpacity);}` }));
+  const lake=mesh(waterGeo,waterMat,root,'Lake of mirrored stars');lake.scale.set(95,1,78);lake.position.set(-148,-1.85,-80);lake.renderOrder=3;
+  // Concentric subtle reeds and water-light at the shore.
+  const shoreGroup=new THREE.Group();root.add(shoreGroup);
+  const reedMat=mat(new THREE.MeshBasicMaterial({color:0x91bcb1,transparent:true,opacity:.58,depthWrite:false}));
+  const shoreReeds=[];
+  for(let i=0;i<340;i++) {
+    const angle=rnd()*Math.PI*2,r=1.00+rnd()*.16,x=-148+Math.cos(angle)*99*r,z=-80+Math.sin(angle)*83*r;
+    const y=terrainHeight(x,z),h=.5+rnd()*1.4;
+    shoreReeds.push({x,y:y+h*.5,z,sx:.07,sy:h,sz:.07,ry:rnd()*6.28});
+  }
+  createInstanceBatch(shoreGroup,tuftsGeo,reedMat,shoreReeds,'Lake reeds');
+  // Canyon arch bridge. Collision surface coordinates are returned by surfaceHeight().
+  const bridge=new THREE.Group();bridge.name='Skybreak Canyon crossing';root.add(bridge);
+  const by=5.0,bz=-164;
+  for(let i=0;i<38;i++) {
+    const x=-45+i*3.7;
+    block(bridge,[x,by-.33,bz],[3.61,.58,8.2],i%2?stoneMat:darkRockMat);
+    if(i%3===0) {
+      for(const dz of [-5.25,5.25]) {
+        block(bridge,[x,by+1.2,bz+dz],[.8,2.7,.7],stoneMat);
+        block(bridge,[x,by+2.6,bz+dz],[1.05,.3,1.0],oldGold);
+      }
+    }
+  }
+  for(const dz of [-5.25,5.25])beam(bridge,[-44,by+2.2,bz+dz],[93,by+2.2,bz+dz],.13,oldGold);
+  for(const x of [-40,87]) {
+    const pillarY=terrainHeight(x,bz);
+    block(bridge,[x,(pillarY+by)/2,bz],[9,Math.max(2,by-pillarY),11],darkRockMat);
+  }
+  // Tall cliff needles echo the layered canyon.
+  const cliffNeedles=new THREE.Group();root.add(cliffNeedles);
+  for(let i=0;i<37;i++) {
+    const z=-96-rnd()*205,c=canyonX(z),side=rnd()<.5?-1:1,x=c+side*(42+rnd()*28);
+    const y=terrainHeight(x,z),h=8+rnd()*23;
+    const shard=mesh(geo(new THREE.CylinderGeometry(.25,2.2+rnd()*2.7,1,5)),i%4===0?stoneMat:darkRockMat,cliffNeedles);
+    shard.position.set(x,y+h*.43,z);shard.scale.set(1,h,1);shard.rotation.z=(rnd()-.5)*.2;
+  }
+  // World landmarks: five discoverable memory shards and one final synthesis ring.
+  const nodes=[
+    {id:'lake',name:'湖畔の音叉', subtitle:'鏡湖に眠る水の記憶',x:-246,z:-69,color:0x69edeb,tip:'湖岸の共鳴装置が、失われた水路の記録を映し出す。'},
+    {id:'forest',name:'原生樹の心核',subtitle:'森の奥で鼓動する根脈',x:185,z:8,color:0xa5f2b2,tip:'巨大樹の根元で、自然と機械がつながる信号を発見した。'},
+    {id:'canyon',name:'断層の道標',subtitle:'崩れた峡谷を渡る古橋',x:-31,z:-164,color:0xffc17d,tip:'古い橋の碑文には、星脈を渡る旅人の道が刻まれている。'},
+    {id:'crystal',name:'晶洞の灯火',subtitle:'地表に露出した魔力結晶',x:-174,z:163,color:0x9fa8ff,tip:'結晶群は、遠い都市に向けて微かな光を送っていた。'},
+    {id:'tower',name:'星痕の観測塔',subtitle:'山岳に残された観測装置',x:163,z:-182,color:0xffe2a1,tip:'天球儀が再起動し、かつての大地の姿が浮かび上がった。'},
+    {id:'ring',name:'星脈の石環',subtitle:'五つの記憶が集う古代祭壇',x:87,z:162,color:0x7dffff,tip:'五つの記憶が星脈を循環し、眠っていた大地の門が開いた。',final:true}
+  ];
+  for(const n of nodes)n.y=surfaceHeight(n.x,n.z);
+  const collected=new Set(),activated={ring:false};
+  let lastDiscoveryId=null;
+  const animated=[], emitters=[];
+  function anchoredGroup(x,z,name){ const group=new THREE.Group();group.position.set(x,terrainHeight(x,z),z);group.name=name;root.add(group);return group; }
+  function energyNode(node,parent,y=3.1) {
+    const base=mesh(cylinder,bronze,parent);base.position.y=.55;base.scale.set(3.25,1.15,3.25);
+    for(let j=0;j<3;j++) {
+      const g=mesh(cylinder,j%2?oldGold:stoneMat,parent);g.position.y=1.15+j*.23;g.scale.set(2.6-j*.3,.17,2.6-j*.3);
+    }
+    const core=new THREE.Group();core.position.y=y;parent.add(core);
+    const orbMat=mat(new THREE.MeshStandardMaterial({color:node.color,emissive:node.color,emissiveIntensity:1.6,metalness:.3,roughness:.18}));
+    const main=mesh(octa,orbMat,core);main.scale.set(1.12,2.0,1.12);
+    const inner=mesh(sphere,glow,core);inner.scale.setScalar(.35);
+    const halo=mesh(ringGeom,oldGold,core);halo.scale.set(2.3,2.3,2.3);halo.rotation.x=.55;
+    const halo2=mesh(ringGeom,glow,core);halo2.scale.set(2.7,2.7,2.7);halo2.rotation.set(Math.PI/2,0,0);
+    animated.push({type:'node',group:core,main,halo,halo2,node,baseY:y});
+    node.core=core;node.coreMaterial=orbMat;
+    return core;
+  }
+  // Lake: terraces, wave forks, luminous pier.
+  {
+    const n=nodes[0],g=anchoredGroup(n.x,n.z,'Lake / resonance pier');
+    for(let i=0;i<11;i++) {
+      const x=4+i*2.8,y=terrainHeight(n.x+x,n.z)-g.position.y;
+      block(g,[x,Math.max(-1.5,y)+.3,0],[2.55,.55,5.2],i%2?stoneMat:darkRockMat);
+      for(const s of [-1,1]) if(i%2===0)block(g,[x,.8,s*3.1],[.4,2,.4],oldGold);
+    }
+    energyNode(n,g,3.8);
+    for(const s of [-1,1]) {
+      const m=mesh(geo(new THREE.TorusGeometry(1.6,.13,8,40,Math.PI*1.5)),oldGold,g);
+      m.position.set(-3,4.3,s*2.25);m.rotation.y=Math.PI/2;m.rotation.z=s*.2;
+    }
+  }
+  // Forest: a monumental tree, roots and a veined mechanical heart.
+  {
+    const n=nodes[1],g=anchoredGroup(n.x,n.z,'Forest / ancient heartwood');
+    const bark=mat(new THREE.MeshStandardMaterial({color:0x4e4a48,roughness:.95,flatShading:true}));
+    const crown=mat(new THREE.MeshStandardMaterial({color:0x2c7b68,roughness:1,flatShading:true}));
+    const trunk=mesh(geo(new THREE.CylinderGeometry(3.5,6.8,31,9,5)),bark,g);trunk.position.y=15.5;
+    for(let i=0;i<8;i++) {
+      const a=i*Math.PI*.25;
+      beam(g,[Math.cos(a)*4,2,Math.sin(a)*4],[Math.cos(a)*14,.9,Math.sin(a)*14],1.25,bark);
+      const branch=mesh(ico,crown,g);branch.position.set(Math.cos(a)*12,28+Math.sin(a*4)*2,Math.sin(a)*12);branch.scale.set(9,8,9);
+    }
+    const top=mesh(ico,crown,g);top.position.y=36;top.scale.set(11,10,11);
+    for(let i=0;i<11;i++) {
+      const a=i*2.399,dist=7+rnd()*6,p=mesh(sphere,i%3?glow:glowAmber,g);
+      p.position.set(Math.cos(a)*dist,11+rnd()*21,Math.sin(a)*dist);p.scale.setScalar(.13+rnd()*.19);
+    }
+    energyNode(n,g,3.5);
+  }
+  // Canyon: layered gate columns, direction arrows, chasm silhouettes.
+  {
+    const n=nodes[2],g=anchoredGroup(n.x,n.z,'Canyon / old waymark');
+    for(const s of [-1,1]) {
+      block(g,[s*5,4.3,0],[2.3,8.6,2.4],stoneMat);
+      block(g,[s*5,8.85,0],[3.2,.9,3],oldGold);
+      const cap=mesh(octa,glowAmber,g);cap.position.set(s*5,10.15,0);cap.scale.set(1.0,1.8,1.0);
+    }
+    block(g,[0,8.2,0],[11,1.0,1.6],oldGold);
+    energyNode(n,g,3.4);
+  }
+  // Crystalline grotto exposed on the surface.
+  {
+    const n=nodes[3],g=anchoredGroup(n.x,n.z,'Crystalline hollow');
+    const cavity=mesh(ico,darkRockMat,g);cavity.position.y=-.3;cavity.scale.set(17,5,18);
+    for(let i=0;i<47;i++) {
+      const a=rnd()*6.283,r=Math.sqrt(rnd())*23,x=Math.cos(a)*r,z=Math.sin(a)*r,h=2+rnd()*10;
+      const m=mesh(geo(new THREE.ConeGeometry(.75+rnd()*1.1,1,5)),i%5===0?glowBlue:crystalMat,g);
+      m.position.set(x,terrainHeight(n.x+x,n.z+z)-g.position.y+h*.45,z);m.scale.set(1,h,1);m.rotation.z=(rnd()-.5)*.4;
+    }
+    energyNode(n,g,5.3);
+    for(let i=0;i<4;i++) {
+      const r=mesh(ringGeom,glowBlue,g);r.position.y=4.7+i*1.15;r.rotation.x=Math.PI/2;r.scale.setScalar(5.5+i*2.25);
+      animated.push({type:'ring',group:r,speed:(i%2?-.04:.06)});
+    }
+  }
+  // Observatory: telescope, moving celestial rings, ruined pylons.
+  {
+    const n=nodes[4],g=anchoredGroup(n.x,n.z,'Observatory / astrolabe tower');
+    for(let j=0;j<6;j++) {
+      const m=mesh(cylinder,j%2?darkRockMat:stoneMat,g);
+      m.position.y=j*3+1.7;m.scale.set(8-j*.55,3.5,8-j*.55);
+    }
+    for(let i=0;i<12;i++) {
+      const a=i*6.283/12,x=Math.cos(a)*12,z=Math.sin(a)*12;
+      const pillar=mesh(cylinder,stoneMat,g);pillar.position.set(x,5.3,z);pillar.scale.set(.8,10,.8);
+      const light=mesh(octa,glowAmber,g);light.position.set(x,10.7,z);light.scale.set(.36,.72,.36);
+    }
+    for(let i=0;i<3;i++) {
+      const ring=mesh(geo(new THREE.TorusGeometry(7.5+i*1.55,.15,8,80)),i===1?glowAmber:oldGold,g);
+      ring.position.y=20;ring.rotation.set(i*.7+.4,i*.85,.4);animated.push({type:'astrolabe',group:ring,speed:.13+(i*.12)});
+    }
+    const core=mesh(octa,glowBlue,g);core.position.y=20;core.scale.set(2.1,3,2.1);
+    energyNode(n,g,3.1);
+    const slab=block(g,[0,16,0],[6,.7,6],oldGold);slab.rotation.y=Math.PI/4;
+  }
+  // Final sanctuary: nine tall megaliths surround a floating aperture.
+  {
+    const n=nodes[5],g=anchoredGroup(n.x,n.z,'Ancient / Starvein stone circle');
+    const floor=mesh(geo(new THREE.CylinderGeometry(18,19,1.5,36)),darkRockMat,g);floor.position.y=.2;
+    for(let i=0;i<3;i++) {
+      const ring=mesh(geo(new THREE.TorusGeometry(8+i*4,.11,5,96)),i===2?glow:oldGold,g);
+      ring.rotation.x=Math.PI/2;ring.position.y=1.02;
+    }
+    for(let i=0;i<9;i++) {
+      const a=i*2*Math.PI/9,x=Math.cos(a)*16,z=Math.sin(a)*16;
+      block(g,[x,6.5,z],[2.45,13.0,3.2],stoneMat,-a);
+      const light=mesh(octa,glow,g);light.position.set(x,13.6,z);light.scale.set(.7,1.3,.7);
+      for(let j=0;j<3;j++) {
+        const glyph=block(g,[x*.98,4.5+j*2.6,z*.98],[2.6,.16,.12],glow,-a);
+      }
+    }
+    const portal=new THREE.Group();portal.position.set(0,8,0);g.add(portal);
+    const arch=mesh(geo(new THREE.TorusGeometry(7,.33,10,110)),oldGold,portal);
+    const archLight=mesh(geo(new THREE.TorusGeometry(6.6,.14,7,100)),glow,portal);
+    const disc=mesh(geo(new THREE.CircleGeometry(6.45,64)),mat(new THREE.MeshBasicMaterial({color:0x30c3cd,transparent:true,opacity:.07,depthWrite:false,side:THREE.DoubleSide})),portal);
+    animated.push({type:'portal',group:portal,disc,archLight});
+    energyNode(n,g,3.25);
+    n.portal=portal;n.portalDisc=disc;
+  }
+  // Distant ridges give scale without loading terrain beyond the playable square.
+  const horizonGroup=new THREE.Group();root.add(horizonGroup);
+  const ridgeMat=mat(new THREE.MeshStandardMaterial({color:0x53636b,roughness:1,flatShading:true}));
+  for(let i=0;i<52;i++) {
+    const a=i*2*Math.PI/52,rad=395+rnd()*65,x=Math.cos(a)*rad,z=Math.sin(a)*rad;
+    const h=40+rnd()*56,w=22+rnd()*44;
+    const m=mesh(geo(new THREE.ConeGeometry(w,h,5)),ridgeMat,horizonGroup);
+    m.position.set(x,h*.37-8,z);m.rotation.y=rnd()*Math.PI;
+  }
+  // Slow drifting aurora / pollen in high quality, tiny motes in low.
+  const pollenGroup=new THREE.Group();root.add(pollenGroup);
+  const pollenHigh=[],pollenLow=[];
+  function createPollen(count, material, dst) {
+    const positions=new Float32Array(count*3);
+    for(let i=0;i<count;i++) {
+      const x=mix(-285,285,rnd()),z=mix(-285,285,rnd());
+      positions[i*3]=x;positions[i*3+1]=terrainHeight(x,z)+4+rnd()*25;positions[i*3+2]=z;
+    }
+    const g=geo(new THREE.BufferGeometry());g.setAttribute('position',new THREE.BufferAttribute(positions,3));
+    const points=new THREE.Points(g,material);points.frustumCulled=false;pollenGroup.add(points);dst.push(points);return points;
+  }
+  const pollenMat=mat(new THREE.PointsMaterial({color:0x8df2d0,size:.5,transparent:true,opacity:.68,sizeAttenuation:true,depthWrite:false}));
+  createPollen(125,pollenMat,pollenLow);createPollen(600,pollenMat,pollenHigh);
+  // Optional custom collisions/waypoints for integration; no camera coupling.
+  const markerPositions=nodes.map(n=>({id:n.id,name:n.name,x:n.x,y:n.y,z:n.z,final:!!n.final}));
+  function nearestNode(position, radius=12) {
+    if (!position) return null;
+    const x=position.x,z=position.z;
+    let nearest=null, best=radius;
+    for(const n of nodes){const d=Math.hypot(n.x-x,n.z-z);const dy=Math.abs((n.y+2.5)-(position.y??n.y));if(d<best&&dy<11){best=d;nearest=n;}}
+    return nearest?{id:nearest.id,name:nearest.name,subtitle:nearest.subtitle,distance:best,final:!!nearest.final,done:nearest.final?activated.ring:collected.has(nearest.id)}:null;
+  }
+  function interact(position) {
+    const hit=nearestNode(position,11.5);
+    if(!hit)return {ok:false,reason:'out_of_range'};
+    const n=nodes.find(item=>item.id===hit.id);
+    if(n.final) {
+      if(collected.size<5)return {ok:false,id:n.id,name:n.name,reason:'locked',message:`あと${5-collected.size}個の記憶が必要。石環はまだ静まり返っている。`};
+      if(!activated.ring) {activated.ring=true;return {ok:true,id:n.id,name:n.name,final:true,progress:5,total:5,message:n.tip};}
+      return {ok:true,id:n.id,name:n.name,already:true,final:true,message:'星脈の門は稼働中。大地に青い光が巡っている。'};
+    }
+    if(collected.has(n.id))return {ok:true,id:n.id,name:n.name,already:true,progress:collected.size,total:5,message:'この場所の記憶は回収済み。'};
+    collected.add(n.id);return {ok:true,id:n.id,name:n.name,progress:collected.size,total:5,message:n.tip};
+  }
+  function setQuality(mode) {
+    quality=mode==='high'?'high':'low';
+    groundLow.visible=quality==='low';groundHigh.visible=quality==='high';
+    lodLow.visible=quality==='low';lodHigh.visible=quality==='high';
+    rockLow.visible=quality==='low';rockHigh.visible=quality==='high';
+    for(const p of pollenLow)p.visible=quality==='low';for(const p of pollenHigh)p.visible=quality==='high';
+    waterUniforms.uOpacity.value=quality==='high'?.91:.83;
+    return quality;
+  }
+  setQuality(quality);
+  function update(dt, context={}) {
+    if(disposed)return;
+    const d=Math.min(Math.max(dt||0,0),.1);clock+=d;
+    waterUniforms.uTime.value=clock;
+    for(const a of animated) {
+      if(a.type==='node') {
+        const done=a.node.final?activated.ring:collected.has(a.node.id);
+        a.group.position.y=a.baseY+Math.sin(clock*1.4+a.baseY)*.24;
+        a.main.rotation.y+=d*(done?.28:.55);a.halo.rotation.z+=d*.26;a.halo2.rotation.y+=d*.4;
+        a.group.scale.setScalar(done?.73:1);
+      } else if(a.type==='ring') a.group.rotation.z+=d*a.speed;
+      else if(a.type==='astrolabe'){a.group.rotation.z+=d*a.speed;a.group.rotation.y+=d*a.speed*.38;}
+      else if(a.type==='portal') {
+        a.group.rotation.z+=d*(activated.ring?.34:.08);
+        a.disc.material.opacity=activated.ring?.36+Math.sin(clock*2)*.07:.035;
+        a.archLight.scale.setScalar(activated.ring?1.04+Math.sin(clock*2.5)*.025:.98);
+      }
+    }
+    pollenGroup.position.x=Math.sin(clock*.11)*1.1;
+    pollenGroup.position.z=Math.sin(clock*.08)*1.2;
+    if(context.onDiscovery && typeof context.onDiscovery==='function') {
+      const nearby=nearestNode(context.playerPosition,12);
+      const id=nearby&&!nearby.done?nearby.id:null;
+      if(id&&id!==lastDiscoveryId)context.onDiscovery(nearby);
+      lastDiscoveryId=id;
+    }
+  }
+  function getState() {return {collected:[...collected],total:5,progress:collected.size,portalOpen:activated.ring,quality};}
+  function loadState(state) {
+    collected.clear();for(const id of state?.collected||[])if(nodes.some(n=>n.id===id&&!n.final))collected.add(id);
+    activated.ring=Boolean(state?.portalOpen)&&collected.size===5;
+  }
+  function dispose() {
+    if(disposed)return;disposed=true;
+    root.parent?.remove(root);
+    root.traverse(obj=>{
+      if(obj.isMesh||obj.isPoints||obj.isInstancedMesh){if(obj.geometry)disposables.add(obj.geometry);const ms=Array.isArray(obj.material)?obj.material:[obj.material];for(const mm of ms)if(mm)mats.add(mm);}
+    });
+    for(const g of disposables)g.dispose();for(const m of mats)m.dispose();root.clear();
+  }
+  return {root, update, setQuality, dispose, terrainHeight, surfaceHeight,
+    getHeightAt:terrainHeight, getWalkHeight:surfaceHeight,
+    getNearby:nearestNode, interact, getState, loadState,
+    markers:markerPositions, bounds:{minX:-344,maxX:344,minZ:-344,maxZ:344},
+    metadata:{id:'07',name:'星脈の大地',units:'metres',up:'+Y',forward:'-Z',sizeMetres:size, spawn:{x:0,z:23},qualityModes:['low','high']}
+  };
+}
+
+/** No.07 exploration showcase only. Integration uses aether-nature.js, not this file. */
+
+
+
+const $=id=>document.getElementById(id);
+const mobile=matchMedia('(pointer: coarse)').matches||/iPhone|iPad|Android/i.test(navigator.userAgent);
+const qualitySelect=$('quality'),viewSelect=$('view'),flightBtn=$('flight'),interactBtn=$('interact');
+let quality=mobile?'low':'high',view='third',flight=false,mapOpen=false,menuOpen=false,started=false;
+let fpsSmooth=60, uiTime=0, lastFrame=performance.now(), yaw=-.12,pitch=-.13;
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x91aebc);scene.fog=new THREE.FogExp2(0x829faf,.00125);
+const camera=new THREE.PerspectiveCamera(68,1,.08,1100);
+const renderer=new THREE.WebGLRenderer({antialias:!mobile,alpha:false,powerPreference:'high-performance'});
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.42;
+renderer.shadowMap.enabled=false;
+renderer.setClearColor(0x758d9e,1);
+$('viewport').appendChild(renderer.domElement);
+renderer.domElement.id='game-canvas';
+renderer.domElement.setAttribute('aria-label','星脈の大地 3D探索画面');
+renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+const hemi=new THREE.HemisphereLight(0xcce7fb,0x345d53,2.35);scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xffd6a9,2.4);sun.position.set(-135,220,-210);scene.add(sun);
+const fill=new THREE.DirectionalLight(0x76d7d5,.62);fill.position.set(190,90,120);scene.add(fill);
+
+// High sky sphere, no panoramas, texture downloads, or postprocessing required.
+const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,
+  vertexShader:'varying vec3 dir;void main(){dir=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:`varying vec3 dir;void main(){float h=clamp(dir.y,0.,1.);
+    vec3 a=vec3(.38,.59,.65),b=vec3(.14,.35,.47),c=vec3(.03,.15,.28);
+    vec3 sky=mix(a,b,smoothstep(.04,.45,h));sky=mix(sky,c,smoothstep(.44,1.,h));
+    vec3 s=normalize(vec3(-.5,.32,-.66));float d=max(0.,dot(normalize(dir),s));
+    sky+=vec3(1.,.48,.25)*pow(d,15.)*.23+vec3(1.,.82,.49)*pow(d,280.)*.95;
+    gl_FragColor=vec4(sky,1.);}`});
+const sky=new THREE.Mesh(new THREE.SphereGeometry(850,30,18),skyMat);sky.renderOrder=-1000;scene.add(sky);
+const cloudMat=new THREE.MeshBasicMaterial({color:0xd3ecee,transparent:true,opacity:.13,depthWrite:false});
+for(let i=0;i<24;i++) {
+  const a=i*2.399,r=300+(i%5)*75,cloud=new THREE.Mesh(new THREE.IcosahedronGeometry(1,1),cloudMat);
+  cloud.position.set(Math.cos(a)*r,80+(i*23)%85,Math.sin(a)*r);
+  cloud.scale.set(41+(i%5)*16,4+(i%3)*3,18+(i%4)*9);scene.add(cloud);
+}
+const zone=createAetherModule(THREE,{quality});scene.add(zone.root);
+const MAP_NODES=zone.markers;
+
+// Standalone demonstration glider. The integration team may use No.08's craft instead.
+function createSkiff() {
+ const g=new THREE.Group();g.name='Demo scout skiff / replace with No08';
+ const hull=new THREE.MeshStandardMaterial({color:0x273e49,metalness:.74,roughness:.3});
+ const gold=new THREE.MeshStandardMaterial({color:0xb8a07b,metalness:.72,roughness:.33});
+ const glass=new THREE.MeshStandardMaterial({color:0x36a9bd,metalness:.4,roughness:.14,emissive:0x135a68,emissiveIntensity:.6});
+ const jet=new THREE.MeshBasicMaterial({color:0x71f5de,toneMapped:false});
+ const add=(geo,mat,x,y,z,sx,sy,sz,rotY=0)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.rotation.y=rotY;g.add(m);return m;};
+ const box=new THREE.BoxGeometry(1,1,1),cone=new THREE.ConeGeometry(1,1,6),ico=new THREE.IcosahedronGeometry(1,0),torus=new THREE.TorusGeometry(1,.12,6,24);
+ add(ico,hull,0,0,0,1.4,.48,3.1);
+ add(ico,glass,0,.52,-.22,.85,.49,1.5);
+ for(const s of [-1,1]){
+  add(box,gold,s*2.1,-.18,.3,2.6,.16,1.6,s*.12);
+  add(ico,hull,s*3,-.20,.15,.64,.44,1.65);
+  add(torus,jet,s*3,-.23,1.4,.5,.5,.5);
+  add(cone,gold,s*2,.05,-1.16,.25,.98,.25).rotation.x=-Math.PI/2;
+  add(box,glass,s*2,.09,-1.33,1.0,.10,.35);
+ }
+ add(torus,jet,0,-.33,2.6,.6,.6,.6);
+ const core=add(ico,jet,0,-.45,-.2,.31,.65,.61);
+ g.userData.core=core;
+ return g;
+}
+const skiff=createSkiff();scene.add(skiff);skiff.visible=false;
+
+const player={position:new THREE.Vector3(0,0,23),velocityY:0,grounded:true};
+player.position.y=zone.getWalkHeight(player.position.x,player.position.z);
+const keys=new Set();let pointerLocked=false;
+const touch={lx:0,ly:0,lookId:null,lookX:0,lookY:0};
+let targetId='lake';
+const targetOf=()=>MAP_NODES.find(p=>p.id===targetId)||MAP_NODES[0];
+const safeSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+const safeGet=k=>{try{return localStorage.getItem(k)}catch(e){return null;}};
+try{const s=JSON.parse(safeGet('af07_state_v1')||'null');if(s)zone.loadState(s);}catch(e){}
+
+function setQuality(next){
+ quality=zone.setQuality(next);renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,quality==='high'?(mobile?1.6:1.8):1.15));
+ renderer.toneMappingExposure=quality==='high'?1.42:1.38;
+ qualitySelect.textContent=quality==='high'?'高品質':'軽量';
+ safeSet('af07_quality',quality);
+ resize();toast(quality==='high'?'高品質モード：景観密度を増加':'軽量モード：植生と地形を軽量化',1800);
+}
+function toggleView(){view=view==='third'?'first':'third';viewSelect.textContent=view==='third'?'TPS':'FPS';$('viewLabel').textContent=view==='third'?'TPS':'FPS';}
+function toggleFlight(){
+ flight=!flight;player.velocityY=0;
+ if(flight){player.position.y=Math.max(player.position.y+5,zone.getWalkHeight(player.position.x,player.position.z)+7);toast('偵察用グライダー展開。SPACEで上昇、Cで下降',3300);}
+ else {toast('着陸モード：地表まで降下',1800);}
+ flightBtn.classList.toggle('active',flight);flightBtn.querySelector('span').textContent=flight?'着陸':'飛行';
+ $('modeLabel').textContent=flight?'FLIGHT':'WALK';skiff.visible=flight&&view==='third';
+}
+function interact(){
+ const res=zone.interact(player.position);
+ if(res.reason==='out_of_range'){toast('共鳴装置に近づいてから操作してね',2000);return;}
+ if(res.reason==='locked'){toast(res.message,3000);return;}
+ if(res.ok){
+   toast(res.already?res.message:`${res.name} 起動 | ${res.message}`,res.final?7500:5200);
+   safeSet('af07_state_v1',JSON.stringify(zone.getState()));
+   if(res.final){$('victory').classList.add('visible');$('victory').setAttribute('aria-hidden','false');}
+   updateObjective();
+   const next=MAP_NODES.find(p=>!p.final&&!zone.getState().collected.includes(p.id));
+   if(next)targetId=next.id;else if(!zone.getState().portalOpen)targetId='ring';
+   updateTarget();buildNodes();
+ }
+}
+let toastTimer=0;
+function toast(message,ms=2900){const t=$('toast');t.textContent=message;t.classList.add('show');toastTimer=performance.now()+ms;}
+function chooseTarget(id){targetId=id;buildNodes();updateTarget();$('mapDialog').classList.remove('visible');mapOpen=false;}
+function updateObjective(){
+ const s=zone.getState();$('progressValue').textContent=`${s.progress} / 5`;
+ $('progressFill').style.width=`${s.progress/5*100}%`;
+ $('objective').textContent=s.portalOpen?'全域探索完了。星脈の門が起動した。':s.progress===5?'五つの記憶が揃った。石環を起動せよ。':'五つの古代記憶を見つけ、石環を目覚めさせよ。';
+ if(s.progress===5&&!s.portalOpen)targetId='ring';
+}
+function updateTarget(){const t=targetOf();$('targetName').textContent=t.name;}
+function buildNodes(){
+ const s=zone.getState(),list=$('locations');list.textContent='';
+ MAP_NODES.forEach((p,i)=>{
+  const done=p.final?s.portalOpen:s.collected.includes(p.id),li=document.createElement('button');li.className='location'+(p.id===targetId?' selected':'');
+  const icon=document.createElement('span');icon.className='location-icon';icon.textContent=done?'✓':p.final?'◇':String(i+1).padStart(2,'0');
+  const body=document.createElement('span');body.className='location-text';const title=document.createElement('strong');title.textContent=p.name;
+  const detail=document.createElement('small');detail.textContent=done?'起動済み':p.final?'最後の祭壇':'未発見の記憶';body.append(title,detail);li.append(icon,body);
+  li.addEventListener('click',()=>chooseTarget(p.id));list.appendChild(li);
+ });
+}
+function toggleMap(){mapOpen=!mapOpen;$('mapDialog').classList.toggle('visible',mapOpen);if(mapOpen)buildNodes();}
+$('mapBtn').addEventListener('click',toggleMap);
+$('closeMap').addEventListener('click',toggleMap);
+$('resetBtn').addEventListener('click',()=>{zone.loadState({collected:[],portalOpen:false});safeSet('af07_state_v1',JSON.stringify(zone.getState()));$('victory').classList.remove('visible');$('victory').setAttribute('aria-hidden','true');targetId='lake';updateObjective();buildNodes();toast('探索記録を初期化した',2100);});
+$('victoryClose').addEventListener('click',()=>{$('victory').classList.remove('visible');$('victory').setAttribute('aria-hidden','true');});
+$('flight').addEventListener('click',toggleFlight);
+$('view').addEventListener('click',toggleView);
+$('quality').addEventListener('click',()=>setQuality(quality==='high'?'low':'high'));
+$('interact').addEventListener('click',interact);
+$('jump').addEventListener('click',()=>{if(flight){player.position.y+=1.1;}else if(player.grounded){player.velocityY=9.9;player.grounded=false;}});
+$('up').addEventListener('pointerdown',()=>keys.add('Space'));
+$('up').addEventListener('pointerup',()=>keys.delete('Space'));
+$('up').addEventListener('pointercancel',()=>keys.delete('Space'));
+$('down').addEventListener('pointerdown',()=>keys.add('KeyC'));
+$('down').addEventListener('pointerup',()=>keys.delete('KeyC'));
+$('down').addEventListener('pointercancel',()=>keys.delete('KeyC'));
+
+function keyDown(e){
+ if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();
+ if(e.repeat)return;
+ keys.add(e.code);
+ if(e.code==='KeyE')interact();
+ if(e.code==='KeyF')toggleFlight();
+ if(e.code==='KeyV')toggleView();
+ if(e.code==='KeyM')toggleMap();
+ if(e.code==='Escape'&&mapOpen)toggleMap();
+}
+window.addEventListener('keydown',keyDown,{passive:false});
+window.addEventListener('keyup',e=>keys.delete(e.code));
+window.addEventListener('blur',()=>{keys.clear();touch.lx=touch.ly=0;});
+renderer.domElement.addEventListener('click',()=>{if(!mobile&&document.pointerLockElement!==renderer.domElement)renderer.domElement.requestPointerLock?.();});
+document.addEventListener('pointerlockchange',()=>{pointerLocked=document.pointerLockElement===renderer.domElement;$('hintPointer').textContent=pointerLocked?'ESCでカーソル解放':'画面をクリックして視点操作';});
+document.addEventListener('mousemove',e=>{if(pointerLocked)turn(e.movementX,e.movementY);});
+function turn(dx,dy){yaw-=dx*.0026;pitch=Math.max(-1.19,Math.min(.92,pitch-dy*.0022));}
+renderer.domElement.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;if(touch.lookId!==null)return;if(e.clientX<innerWidth*.39&&e.clientY>innerHeight*.55)return;touch.lookId=e.pointerId;touch.lookX=e.clientX;touch.lookY=e.clientY;renderer.domElement.setPointerCapture?.(e.pointerId);});
+renderer.domElement.addEventListener('pointermove',e=>{if(e.pointerId!==touch.lookId)return;turn((e.clientX-touch.lookX)*1.25,(e.clientY-touch.lookY)*1.25);touch.lookX=e.clientX;touch.lookY=e.clientY;});
+for(const event of ['pointerup','pointercancel'])renderer.domElement.addEventListener(event,e=>{if(e.pointerId===touch.lookId)touch.lookId=null;});
+const joy=$('joystick'),knob=$('knob');let joyId=null;
+function changeJoy(e){const r=joy.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,rx=(e.clientX-cx)/(r.width*.40),ry=(e.clientY-cy)/(r.height*.40);const mag=Math.max(1,Math.hypot(rx,ry));touch.lx=rx/mag;touch.ly=ry/mag;knob.style.transform=`translate(${touch.lx*42}px, ${touch.ly*42}px)`;}
+joy.addEventListener('pointerdown',e=>{joyId=e.pointerId;joy.setPointerCapture(e.pointerId);changeJoy(e);e.preventDefault();});
+joy.addEventListener('pointermove',e=>{if(e.pointerId===joyId)changeJoy(e);});
+for(const ev of ['pointerup','pointercancel','lostpointercapture'])joy.addEventListener(ev,e=>{if(e.pointerId===joyId){joyId=null;touch.lx=touch.ly=0;knob.style.transform='translate(0,0)';}});
+
+function updatePlayer(dt){
+ const xInput=((keys.has('KeyD')||keys.has('ArrowRight'))?1:0)-((keys.has('KeyA')||keys.has('ArrowLeft'))?1:0)+touch.lx;
+ const zInput=((keys.has('KeyW')||keys.has('ArrowUp'))?1:0)-((keys.has('KeyS')||keys.has('ArrowDown'))?1:0)-touch.ly;
+ let mx=xInput,mz=zInput;const inputLen=Math.hypot(mx,mz);if(inputLen>1){mx/=inputLen;mz/=inputLen;}
+ const fast=keys.has('ShiftLeft')||keys.has('ShiftRight');
+ const speed=flight?(fast?48:33):(fast?15:9.5);
+ const sin=Math.sin(yaw),cos=Math.cos(yaw);
+ player.position.x+=(-sin*mz+cos*mx)*speed*dt;
+ player.position.z+=(-cos*mz-sin*mx)*speed*dt;
+ player.position.x=Math.max(-342,Math.min(342,player.position.x));
+ player.position.z=Math.max(-342,Math.min(342,player.position.z));
+ const ground=zone.getWalkHeight(player.position.x,player.position.z);
+ if(flight){
+  const ascent=(keys.has('Space')?1:0)-(keys.has('KeyC')||keys.has('ControlLeft')?1:0);
+  player.position.y+=ascent*18*dt;
+  player.position.y=Math.max(ground+2.9,Math.min(ground+105,player.position.y));
+  skiff.visible=view==='third';
+  skiff.position.copy(player.position);skiff.position.y-=.55;skiff.rotation.set(Math.sin(performance.now()*.0019)*.022,yaw,Math.sin(performance.now()*.0012)*.035);
+  skiff.userData.core.scale.y=.62+Math.sin(performance.now()*.013)*.14;
+ } else {
+  skiff.visible=false;player.velocityY-=27*dt;player.position.y+=player.velocityY*dt;
+  if(player.position.y<=ground){player.position.y=ground;player.velocityY=0;player.grounded=true;}else player.grounded=false;
+  if(keys.has('Space')&&player.grounded){player.velocityY=9.8;player.grounded=false;}
+ }
+ const forward=new THREE.Vector3(-sin,0,-cos);
+ const cameraY=player.position.y+(flight?2.4:1.95);
+ if(view==='first') {
+   camera.position.set(player.position.x,cameraY,player.position.z);
+   camera.rotation.order='YXZ';camera.rotation.y=yaw;camera.rotation.x=pitch;
+ } else {
+   const dist=flight?14:8.4,baseY=flight?5.3:3.7;
+   const camX=player.position.x-forward.x*dist,camZ=player.position.z-forward.z*dist;
+   camera.position.set(camX,Math.max(zone.getWalkHeight(Math.max(-359,Math.min(359,camX)),Math.max(-359,Math.min(359,camZ)))+2.3,player.position.y+baseY-Math.sin(pitch)*4.7),camZ);
+   const aim=player.position.clone().add(new THREE.Vector3(forward.x*16,1.3+pitch*14,forward.z*16));
+   camera.lookAt(aim);
+ }
+ sky.position.copy(camera.position);
+}
+function resize(){const w=window.innerWidth,h=window.innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+window.addEventListener('resize',resize);resize();
+
+// Small navigational chart rendered at ~6Hz; never a per-frame texture upload to WebGL.
+const mapCanvas=$('miniCanvas'),ctx=mapCanvas.getContext('2d');
+const bg=document.createElement('canvas');bg.width=bg.height=164;
+const bgCtx=bg.getContext('2d');const raw=bgCtx.createImageData(164,164);
+for(let py=0;py<164;py++)for(let px=0;px<164;px++){
+ const x=(px/163-.5)*720,z=(py/163-.5)*720,h=zone.terrainHeight(x,z),lake=Math.hypot((x+148)/103,(z+80)/89)<.83;
+ const forest=x>28&&z<110,v=(Math.sin(x*.07+z*.02)+Math.cos(z*.055-x*.028))*7;
+ const c=lake?[36,110,123]:h>24?[112,123,125]:forest?[40,95,77]:z<-95?[91,103,102]:[68,112,94];
+ const j=(py*164+px)*4;raw.data[j]=Math.max(0,c[0]+v);raw.data[j+1]=Math.max(0,c[1]+v);raw.data[j+2]=Math.max(0,c[2]+v);raw.data[j+3]=255;
+}
+bgCtx.putImageData(raw,0,0);
+function drawMap(){
+ const w=220,h=220;mapCanvas.width=w;mapCanvas.height=h;
+ ctx.clearRect(0,0,w,h);ctx.save();ctx.beginPath();ctx.arc(110,110,100,0,Math.PI*2);ctx.clip();
+ // The player's immediate region is enlarged for local navigation.
+ const scale=.53,screenX=x=>110+(x-player.position.x)*scale,screenY=z=>110+(z-player.position.z)*scale;
+ ctx.fillStyle='#183e47';ctx.fillRect(0,0,220,220);
+ const sz=720*scale;ctx.drawImage(bg,110+(-360-player.position.x)*scale,110+(-360-player.position.z)*scale,sz,sz);
+ MAP_NODES.forEach(p=>{
+  const x=screenX(p.x),y=screenY(p.z),state=zone.getState(),done=p.final?state.portalOpen:state.collected.includes(p.id);
+  ctx.save();ctx.fillStyle=done?'#8ce7b7':p.id===targetId?'#ffe1a4':'#cbf7ef';
+  ctx.beginPath();ctx.arc(x,y,p.id===targetId?5.4:3.6,0,Math.PI*2);ctx.fill();
+  if(p.id===targetId){ctx.strokeStyle='#fff1c9';ctx.lineWidth=1.8;ctx.beginPath();ctx.arc(x,y,9,0,Math.PI*2);ctx.stroke();}
+  ctx.restore();
+ });
+ ctx.translate(110,110);ctx.rotate(-yaw);ctx.fillStyle='#ffffff';ctx.strokeStyle='#1a454d';ctx.lineWidth=3;
+ ctx.beginPath();ctx.moveTo(0,-13);ctx.lineTo(-8,9);ctx.lineTo(0,5);ctx.lineTo(8,9);ctx.closePath();ctx.stroke();ctx.fill();
+ ctx.restore();ctx.beginPath();ctx.arc(110,110,100,0,6.283);ctx.strokeStyle='rgba(207,247,235,.37)';ctx.lineWidth=1.5;ctx.stroke();
+ ctx.fillStyle='#e1f7f2';ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.fillText('N',110,15);
+}
+function updateInfo(){
+ const t=targetOf(),dist=Math.hypot(t.x-player.position.x,t.z-player.position.z);
+ $('targetDist').textContent=`${Math.round(dist)} m`;
+ $('position').textContent=`X ${Math.round(player.position.x)}  Z ${Math.round(player.position.z)}  高度 ${Math.round(player.position.y)}m`;
+ const near=zone.getNearby(player.position,12.0);
+ const prompt=$('interactPrompt');prompt.classList.toggle('visible',!!near);
+ if(near){$('nearName').textContent=near.name;interactBtn.classList.add('ready');}else interactBtn.classList.remove('ready');
+ const fwdAngle=Math.atan2(-(t.x-player.position.x),-(t.z-player.position.z));
+ const delta=fwdAngle-yaw;
+ $('compassArrow').style.transform=`rotate(${-delta}rad)`;
+ $('fps').textContent=Math.round(fpsSmooth)+' fps';
+}
+setQuality(quality);updateObjective();updateTarget();buildNodes();
+if(mobile){$('mobileControls').classList.add('visible');$('desktopHelp').classList.add('hide');$('hintPointer').textContent='右側をスワイプして視点操作';}
+else {$('desktopHelp').classList.remove('hide');}
+function tick(now){
+ requestAnimationFrame(tick);
+ const dt=Math.min(.05,(now-lastFrame)/1000||0);lastFrame=now;
+ if(dt>0)fpsSmooth=fpsSmooth*.92+(1/dt)*.08;
+ if(!$('victory').classList.contains('visible'))updatePlayer(dt);
+ zone.update(dt,{playerPosition:player.position});renderer.render(scene,camera);
+ uiTime+=dt;if(uiTime>.155){uiTime=0;updateInfo();drawMap();}
+ if(toastTimer&&now>toastTimer){$('toast').classList.remove('show');toastTimer=0;}
+}
+requestAnimationFrame(tick);
+
+</script>
+</body>
+</html>

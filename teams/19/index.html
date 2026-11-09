@@ -1,0 +1,850 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#07101f">
+  <meta name="description" content="AETHER FRONTIER No.19 Player Controller / playable Three.js FPS-TPS demo">
+  <title>AETHER FRONTIER | No.19 Movement Systems</title>
+  <style>
+    :root{color-scheme:dark;--ice:#a4edff;--cold:#45cde7;--muted:#8caac1;--line:rgba(119,190,226,.24)}
+    *{box-sizing:border-box}
+    html,body{padding:0;margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;background:#040b17;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;touch-action:none}
+    button{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    #game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+    #vignette{position:fixed;inset:0;pointer-events:none;z-index:4;background:radial-gradient(ellipse at 50% 50%,transparent 36%,rgba(2,6,16,.54) 100%)}
+    #grain{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:.15;background-image:repeating-linear-gradient(0deg,transparent 0px,rgba(120,200,255,.025) 1px,transparent 2px,transparent 4px)}
+    .hud{position:fixed;z-index:40;pointer-events:none;color:#e9f9ff;text-shadow:0 1px 4px rgba(0,0,0,.35)}
+    .topbar{left:calc(30px + env(safe-area-inset-left));top:calc(25px + env(safe-area-inset-top));display:flex;align-items:center;gap:14px}
+    .logo{display:grid;place-items:center;width:44px;height:44px;border:1px solid rgba(111,229,255,.72);transform:rotate(45deg);background:rgba(16,76,106,.25);box-shadow:0 0 18px rgba(63,188,221,.14)}
+    .logo span{font-size:18px;color:#c0f4ff;transform:rotate(-45deg);font-weight:900}
+    .brand{display:flex;flex-direction:column;gap:3px}
+    .brand strong{letter-spacing:.17em;font-size:15px;font-weight:800}
+    .brand small{font-size:9px;letter-spacing:.27em;color:#81cbe0}
+    .topright{right:calc(24px + env(safe-area-inset-right));top:calc(22px + env(safe-area-inset-top));display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+    .statline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .tag{font:700 10px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.09em;padding:7px 10px;background:rgba(5,19,38,.54);border:1px solid var(--line);border-radius:5px;backdrop-filter:blur(7px)}
+    .tag b{color:var(--ice)}
+    .btnbar{display:flex;gap:7px;pointer-events:auto}
+    .hudbtn{color:#cbefff;border:1px solid rgba(106,190,219,.4);background:rgba(8,30,51,.65);border-radius:6px;padding:9px 14px;font-size:11px;font-weight:750;letter-spacing:.05em;backdrop-filter:blur(12px)}
+    .hudbtn:hover{background:rgba(23,72,96,.83);border-color:rgba(128,225,242,.75)}
+    .status{left:calc(30px + env(safe-area-inset-left));bottom:calc(29px + env(safe-area-inset-bottom));width:276px}
+    .status .eyebrow{font-size:10px;letter-spacing:.24em;color:#7ee5ff;font-weight:700;margin-bottom:7px}
+    .status .bar{height:2px;background:linear-gradient(90deg,#67dafe 0%,#a277f5 58%,transparent 100%);width:180px;margin-bottom:10px}
+    .status .state{font:700 11px ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.1em;color:#d8efff}
+    .hudmid{left:50%;top:calc(22px + env(safe-area-inset-top));transform:translateX(-50%);font-size:10px;letter-spacing:.24em;color:#9bc4df;text-align:center;opacity:.75}
+    .objective{position:fixed;z-index:40;pointer-events:none;left:50%;bottom:calc(39px + env(safe-area-inset-bottom));transform:translateX(-50%);text-align:center;color:#e2f7ff;min-width:min(93vw,430px);padding:12px 17px;border:1px solid rgba(92,173,209,.22);background:linear-gradient(90deg,transparent,rgba(6,26,42,.52) 20%,rgba(6,26,42,.52) 80%,transparent);backdrop-filter:blur(6px)}
+    .objective .objective-title{display:block;color:#83d7ff;font-size:9px;letter-spacing:.25em;margin-bottom:5px}
+    #tip{font-size:12px}
+    #reticle{position:fixed;z-index:38;pointer-events:none;left:50%;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;opacity:.55}
+    #reticle:before,#reticle:after{content:'';position:absolute;background:rgba(170,243,255,.8);box-shadow:0 0 6px rgba(111,212,244,.35)}
+    #reticle:before{width:1px;height:11px;top:1.5px;left:6.5px}
+    #reticle:after{width:11px;height:1px;left:1.5px;top:6.5px}
+    #reticle.fps{width:20px;height:20px;opacity:.94}
+    #reticle.fps:before{left:9.5px;height:16px;top:2px}
+    #reticle.fps:after{top:9.5px;width:16px;left:2px}
+    #toast{position:fixed;z-index:90;pointer-events:none;left:50%;top:19%;transform:translate(-50%,-14px);padding:13px 20px;border-radius:6px;background:rgba(4,29,48,.87);border:1px solid rgba(110,216,239,.55);color:#e3fbff;box-shadow:0 8px 50px rgba(0,0,0,.38),0 0 32px rgba(38,190,255,.1);opacity:0;transition:opacity .22s,transform .22s;text-align:center;font-size:12px;letter-spacing:.04em;min-width:220px}
+    #toast.visible{opacity:1;transform:translate(-50%,0)}
+    .legend{right:calc(26px + env(safe-area-inset-right));bottom:calc(35px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+    .legend div{font-size:10px;color:#b9d7e5;letter-spacing:.07em}
+    kbd{display:inline-block;font:700 10px ui-monospace,Consolas,monospace;min-width:16px;text-align:center;color:#d9f7ff;border:1px solid rgba(121,194,232,.44);border-radius:3px;padding:2px 5px;margin-left:3px;background:rgba(23,55,78,.52)}
+    #intro[hidden]{display:none}
+    #intro{position:fixed;z-index:80;inset:0;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 50%,rgba(0,13,29,.73),rgba(0,5,17,.89));backdrop-filter:blur(12px);padding:24px}
+    .intro-panel{max-width:580px;width:100%;border:1px solid rgba(87,182,213,.4);border-radius:4px;padding:clamp(20px,5vw,45px);background:linear-gradient(160deg,rgba(12,40,65,.8),rgba(4,12,26,.95));box-shadow:0 20px 80px rgba(0,0,0,.55),0 0 100px rgba(33,122,166,.12);position:relative;overflow:hidden;text-align:left}
+    .intro-panel:before{content:'';position:absolute;top:0;left:0;width:180px;height:2px;background:#98edff;box-shadow:0 0 25px #4cbdf3}
+    .intro-no{letter-spacing:.35em;color:#75d6ec;font-size:10px;font-weight:800}
+    .intro-panel h1{font-size:clamp(24px,5.5vw,44px);letter-spacing:.11em;line-height:1.18;margin:13px 0 9px;color:#f3fcff}
+    .intro-panel h1 span{display:block;color:#85e7ff;font-size:.44em;letter-spacing:.26em;margin-top:12px}
+    .intro-panel p{font-size:13px;line-height:1.85;color:#a9c7d9;margin:21px 0 25px}
+    .intro-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:22px}
+    .intro-grid div{padding:11px;border:1px solid rgba(88,162,192,.22);background:rgba(18,41,65,.32);font-size:11px;color:#d7ecf4}
+    .intro-grid b{display:block;color:#7ddbef;margin-bottom:6px;font-size:9px;letter-spacing:.15em}
+    .begin{padding:15px 23px;background:linear-gradient(100deg,#5bd6f1,#b4edfa);color:#061d31;font-weight:850;font-size:13px;letter-spacing:.16em;border:none;width:100%;border-radius:3px;box-shadow:0 5px 22px rgba(82,199,231,.18)}
+    .intro-foot{display:flex;justify-content:space-between;margin-top:12px;color:#7ca4b9;font-size:9px;letter-spacing:.08em}
+    .linkbtn{border:none;background:none;color:#8bdaf2;padding:0;font-size:9px}
+    @media(pointer:coarse){
+      .status,.legend{display:none}
+      .objective{top:calc(99px + env(safe-area-inset-top));bottom:auto;width:min(90vw,360px);padding:7px 10px;background:rgba(6,26,42,.38)}
+      .objective .objective-title{font-size:8px;margin-bottom:3px}#tip{font-size:10px}
+      .topbar{left:calc(14px + env(safe-area-inset-left));top:calc(16px + env(safe-area-inset-top));gap:8px}
+      .logo{width:32px;height:32px}.logo span{font-size:13px}
+      .brand strong{font-size:11px}.brand small{font-size:7px}
+      .topright{right:calc(12px + env(safe-area-inset-right));top:calc(13px + env(safe-area-inset-top));gap:6px}
+      .tag{font-size:9px;padding:5px 6px}.statline .tag:nth-child(2),.statline .tag:nth-child(3){display:none}
+      .hudbtn{font-size:10px;padding:7px 9px}
+      .hudmid{display:none}
+      #toast{top:23%}
+      .intro-panel p{margin:13px 0 18px;font-size:12px}
+    }
+    @media(max-width:410px){.brand strong{letter-spacing:.08em}.brand small{letter-spacing:.10em}.intro-grid{grid-template-columns:1fr 1fr}.intro-grid div{padding:8px;font-size:10px}}
+  </style>
+</head>
+<body>
+  <canvas id="game" aria-label="3D exploration demo"></canvas>
+  <div id="vignette"></div><div id="grain"></div>
+  <div class="hud topbar">
+    <div class="logo"><span>A</span></div>
+    <div class="brand"><strong>AETHER FRONTIER</strong><small>EXPLORER SYSTEM // NO.19</small></div>
+  </div>
+  <div class="hud hudmid">AETHER FRONTIER · FIELD TEST / 19</div>
+  <div class="hud topright">
+    <div class="statline"><span class="tag">VIEW <b id="modeVal">TPS</b></span><span class="tag">SPEED <b id="speedVal">0.0</b> m/s</span><span class="tag"><b id="fpsVal">-- fps</b></span><span class="tag" id="qualityVal">LIGHT</span></div>
+    <div class="btnbar"><button type="button" id="qualityBtn" class="hudbtn">軽量版</button><button type="button" id="resetBtn" class="hudbtn">リセット</button></div>
+  </div>
+  <div class="hud status"><div class="eyebrow">LIVE CONTROLLER SYSTEM</div><div class="bar"></div><div class="state" id="playerState">EXPLORER / 探索</div></div>
+  <div class="hud legend"><div>移動 <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / 視点 <kbd>マウス</kbd></div><div>走る <kbd>SHIFT</kbd> / ジャンプ <kbd>SPACE</kbd></div><div>視点切替 <kbd>V</kbd> / ダッシュ <kbd>Q</kbd> / 調べる <kbd>E</kbd></div><div>クリックでマウス固定 · ESCで解除</div></div>
+  <div class="objective"><span class="objective-title">FIELD OBJECTIVE · <span id="progressVal">0 / 4</span></span><span id="tip">エーテル端末を4基探して起動しよう</span></div>
+  <div id="reticle"></div><div id="toast" aria-live="polite"></div>
+  <div id="intro">
+    <section class="intro-panel" aria-label="Demo controls">
+      <div class="intro-no">AETHER FRONTIER / TEAM 19 / SYSTEM DEMONSTRATOR</div>
+      <h1>EXPLORER<span>PLAYER CONTROL SYSTEM</span></h1>
+      <p>FPS / TPSを自由に切り替えながら、エーテル都市の外縁を探索する操作テスト。4つのエーテル端末を見つけて起動しよう。</p>
+      <div class="intro-grid">
+        <div><b>PC / KEYBOARD</b>WASD 移動 · Shift 走る<br>Space ジャンプ · Q ダッシュ</div>
+        <div><b>CAMERA / ACTION</b>マウス 視点 · V 視点切替<br>E 調べる · ESC 固定解除</div>
+        <div><b>iPHONE / TOUCH</b>左スティック 移動<br>右エリア スワイプ 視点</div>
+        <div><b>VISUAL MODES</b>軽量版 / 高品質版<br>右上から即時切替</div>
+      </div>
+      <button id="startBtn" class="begin">探索を開始する</button>
+      <div class="intro-foot"><span>THREE.JS r160 · NO BUILD · NO LOGIN</span><button type="button" id="closeIntro" class="linkbtn">案内を閉じる</button></div>
+    </section>
+  </div>
+  <script type="module">
+    /**
+ * AETHER FRONTIER / Team 19
+ * Browser-only, dependency-injected controller for Three.js r160.
+ * World axes: +Y up, forward -Z, 1 world unit = approx. 1 meter.
+ * No renderer, scene, camera, DOM, animation loop or engine singleton is created.
+ * License: MIT (original project code).
+ */
+function createAetherModule(THREE, options = {}) {
+  if (!THREE || !THREE.Group || !THREE.Vector3) throw new Error('Three.js namespace is required');
+  const root = new THREE.Group();
+  root.name = 'AETHER_PLAYER_ROOT';
+  const v3 = (x=0,y=0,z=0) => new THREE.Vector3(x,y,z);
+  const opts = {
+    moveSpeed: options.moveSpeed ?? 4.7,
+    sprintSpeed: options.sprintSpeed ?? 8.1,
+    groundAccel: options.groundAccel ?? 20,
+    airAccel: options.airAccel ?? 6.8,
+    friction: options.friction ?? 18,
+    gravity: options.gravity ?? 23,
+    jumpSpeed: options.jumpSpeed ?? 8.6,
+    coyoteTime: options.coyoteTime ?? 0.115,
+    jumpBuffer: options.jumpBuffer ?? 0.14,
+    radius: options.radius ?? 0.39,
+    height: options.height ?? 1.84,
+    eyeHeight: options.eyeHeight ?? 1.66,
+    orbitDistance: options.orbitDistance ?? 4.65,
+    orbitHeight: options.orbitHeight ?? 1.42,
+    shoulder: options.shoulder ?? 0.46,
+    cameraSmooth: options.cameraSmooth ?? 15,
+    dashSpeed: options.dashSpeed ?? 15.3,
+    dashDuration: options.dashDuration ?? 0.2,
+    dashCooldown: options.dashCooldown ?? 1.15,
+  };
+  const initial = options.position || {x:0,y:0,z:0};
+  root.position.set(initial.x ?? 0, initial.y ?? 0, initial.z ?? 0);
+  let camera = options.camera ?? null;
+  let scene = options.scene ?? null;
+  let avatar = options.avatar ?? null;
+  let ownSceneAttachment = false;
+  if (scene && options.attachToScene !== false) { scene.add(root); ownSceneAttachment = true; }
+  if (avatar) root.add(avatar);
+  let mode = options.mode === 'fps' ? 'fps' : 'tps';
+  let quality = options.quality === 'high' ? 'high' : 'low';
+  let enabled = true;
+  let disposed = false;
+  let yaw = options.yaw ?? 0;
+  let pitch = options.pitch ?? -0.12;
+  let time = 0, coyote = 0, jumpBuffer = 0, dashTimer = 0, dashCooldown = 0;
+  let grounded = false, jumping = false, moving = false, sprinting = false;
+  let bobPhase = 0, landKick = 0, cameraInitialized = false;
+  const velocity = v3(), horizontal = v3(), dashDirection = v3(0,0,-1);
+  const prevPosition = v3(), proposed = v3(), forward = v3(), right = v3(), focus = v3();
+  const desiredCamera = v3(), smoothCamera = v3(), cameraLook = v3();
+  let lastActions = {jump:false, dash:false, action:false, toggleView:false};
+  let inputSource = options.input ?? null;
+  let obstructionTick = 0, rememberedDistance = opts.orbitDistance;
+  const camRayFrom = v3(), camRayTo = v3();
+  const events = new Set();
+
+  function fire(type, detail={}) {
+    const event = {type, ...detail};
+    if (typeof options.onEvent === 'function') options.onEvent(event, api);
+    for (const cb of events) cb(event, api);
+  }
+  function clamp(n,a,b) { return Math.max(a,Math.min(b,n)); }
+  function expFollow(rate,dt) { return 1-Math.exp(-rate*dt); }
+  function getGroundAt(x,z,context) {
+    const cb = context.getGroundHeight || options.getGroundHeight;
+    if (typeof cb === 'function') {
+      const out = cb(x,z,context,api);
+      return Number.isFinite(out) ? out : -Infinity;
+    }
+    return 0;
+  }
+  function readInput(context) {
+    const input = context.input ?? inputSource;
+    const got = typeof input === 'function' ? input() :
+      (input && typeof input.sample === 'function' ? input.sample() : input);
+    return got || {};
+  }
+  function syncAvatar() { if (avatar) avatar.visible = (mode !== 'fps'); }
+  syncAvatar();
+  function setMode(next) {
+    if (next !== 'fps' && next !== 'tps') return mode;
+    if (next !== mode) {
+      mode = next;
+      cameraInitialized = false;
+      syncAvatar();
+      fire('mode', {mode});
+    }
+    return mode;
+  }
+  function setQuality(next) {
+    quality = (next === 'high' || next === 'quality') ? 'high' : 'low';
+    fire('quality', {quality});
+    return quality;
+  }
+  function setCamera(cam) { camera = cam; cameraInitialized = false; }
+  function setAvatar(model) {
+    if (avatar && avatar.parent === root) root.remove(avatar);
+    avatar = model || null;
+    if (avatar) root.add(avatar);
+    syncAvatar();
+  }
+  function teleport(x,y,z,rotationYaw) {
+    root.position.set(x,y,z);
+    if (Number.isFinite(rotationYaw)) yaw = rotationYaw;
+    velocity.set(0,0,0); horizontal.set(0,0,0);
+    grounded = false; cameraInitialized = false;
+    dashTimer = 0; dashCooldown = 0;
+    fire('teleport', {position:getPosition()});
+  }
+  function getPosition() {
+    return {x:root.position.x,y:root.position.y,z:root.position.z};
+  }
+  function getState() {
+    return {position:getPosition(),velocity:{x:velocity.x,y:velocity.y,z:velocity.z},
+      yaw,pitch,mode,quality,grounded,moving,sprinting,jumping,dashing:dashTimer>0,
+      dashReady:dashCooldown<=0,enabled,time};
+  }
+
+  function physicalStep(h, input, context) {
+    const groundBefore = getGroundAt(root.position.x,root.position.z,context);
+    if (root.position.y <= groundBefore + 0.016 && velocity.y <= 0) {
+      root.position.y = groundBefore;
+      if (!grounded) { grounded = true; if (jumping) { landKick = Math.min(0.15,Math.abs(velocity.y)*0.008); fire('land'); } }
+      velocity.y = 0;
+      jumping = false;
+      coyote = opts.coyoteTime;
+    } else { grounded = false; coyote = Math.max(0,coyote-h); }
+
+    if (jumpBuffer > 0 && (grounded || coyote > 0)) {
+      velocity.y = opts.jumpSpeed;
+      grounded = false; jumping = true; coyote = 0; jumpBuffer = 0;
+      fire('jump');
+    }
+    jumpBuffer = Math.max(0,jumpBuffer-h);
+    dashCooldown = Math.max(0,dashCooldown-h);
+    const ix = clamp(Number(input.moveX) || 0,-1,1), iy = clamp(Number(input.moveY) || 0,-1,1);
+    const size = Math.hypot(ix,iy), factor = size>1 ? 1/size : 1;
+    const sx = ix*factor, sy = iy*factor;
+    forward.set(Math.sin(yaw),0,-Math.cos(yaw));
+    right.set(Math.cos(yaw),0,Math.sin(yaw));
+    let dirX = right.x*sx + forward.x*sy;
+    let dirZ = right.z*sx + forward.z*sy;
+    moving = size>0.07;
+    sprinting = Boolean(input.sprint) && moving;
+    const desiredSpeed = sprinting ? opts.sprintSpeed : opts.moveSpeed;
+    const responsiveness = grounded ? opts.groundAccel : opts.airAccel;
+    const smooth = expFollow(moving ? responsiveness : opts.friction,h);
+    horizontal.x += (dirX*desiredSpeed-horizontal.x)*smooth;
+    horizontal.z += (dirZ*desiredSpeed-horizontal.z)*smooth;
+    if (dashTimer > 0) {
+      dashTimer = Math.max(0,dashTimer-h);
+      const dashFactor = 0.45+0.55*(dashTimer/opts.dashDuration);
+      horizontal.x = dashDirection.x*opts.dashSpeed*dashFactor;
+      horizontal.z = dashDirection.z*opts.dashSpeed*dashFactor;
+    }
+    velocity.x = horizontal.x;
+    velocity.z = horizontal.z;
+    velocity.y -= opts.gravity*h;
+    // Variable jump height: release jump early to shorten the ascent.
+    if (!input.jump && jumping && velocity.y > 0) velocity.y -= opts.gravity*0.95*h;
+    prevPosition.copy(root.position);
+    proposed.set(root.position.x + velocity.x*h,root.position.y + velocity.y*h,
+      root.position.z + velocity.z*h);
+    const resolve = context.resolveMovement || options.resolveMovement;
+    if (typeof resolve === 'function') {
+      const out = resolve({previous:prevPosition.clone(),proposed:proposed.clone(),
+        velocity:velocity.clone(),radius:opts.radius,height:opts.height,
+        dt:h,grounded,context,controller:api});
+      const point = out && out.position ? out.position : out;
+      if (point && Number.isFinite(point.x) && Number.isFinite(point.y) && Number.isFinite(point.z)) {
+        proposed.copy(point);
+        if (out && out.velocity) velocity.copy(out.velocity);
+        if (out && typeof out.grounded === 'boolean') grounded = out.grounded;
+      }
+    }
+    root.position.copy(proposed);
+    const groundAfter = getGroundAt(root.position.x,root.position.z,context);
+    if (root.position.y <= groundAfter && velocity.y<=0) {
+      root.position.y = groundAfter;
+      if (!grounded) { if (jumping) {landKick=Math.min(0.16,Math.abs(velocity.y)*0.01);fire('land');} }
+      grounded = true; jumping = false; velocity.y = 0;
+      coyote = opts.coyoteTime;
+    }
+    root.rotation.y = yaw;
+    if (moving && grounded) bobPhase += h*Math.hypot(horizontal.x,horizontal.z)*1.65;
+  }
+
+  function updateCamera(dt,context) {
+    const cam = context.camera || camera;
+    if (!cam) return;
+    const bobAmp = (moving && grounded) ? Math.min(0.035,Math.hypot(horizontal.x,horizontal.z)*0.0045) : 0;
+    landKick *= Math.exp(-12*dt);
+    const bob = Math.sin(bobPhase)*bobAmp - landKick;
+    if (mode === 'fps') {
+      desiredCamera.set(root.position.x,root.position.y + opts.eyeHeight + bob,root.position.z);
+      // Snap FPS view to player. Do not allow camera lag while turning in tight spaces.
+      cam.position.copy(desiredCamera);
+      cam.rotation.order = 'YXZ';
+      cam.rotation.set(pitch,yaw,0,'YXZ');
+      cameraInitialized = true;
+      return;
+    }
+    forward.set(Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch));
+    right.set(Math.cos(yaw),0,Math.sin(yaw));
+    focus.set(root.position.x,root.position.y + opts.orbitHeight + bob,root.position.z);
+    const shoulder = opts.shoulder;
+    cameraLook.copy(focus).addScaledVector(right,shoulder*0.24);
+    desiredCamera.copy(focus).addScaledVector(forward,-opts.orbitDistance).addScaledVector(right,shoulder);
+    const minHeight = getGroundAt(desiredCamera.x,desiredCamera.z,context)+0.52;
+    desiredCamera.y = Math.max(desiredCamera.y,minHeight);
+    // External camera obstruction query can return a safe fraction [0..1], or safe distance.
+    const query = context.cameraObstruction || options.cameraObstruction;
+    if (typeof query === 'function') {
+      const frequency = quality==='high' ? 1 : 2;
+      if (++obstructionTick % frequency === 0 || !cameraInitialized) {
+        camRayFrom.copy(cameraLook); camRayTo.copy(desiredCamera);
+        const rayLength = camRayFrom.distanceTo(camRayTo);
+        const result = query({origin:camRayFrom.clone(),target:camRayTo.clone(),
+          distance:rayLength,context,controller:api});
+        if (Number.isFinite(result)) {
+          rememberedDistance = clamp(result<=1 ? result*rayLength : result,0.5,rayLength);
+        } else rememberedDistance = rayLength;
+      }
+      const vector = desiredCamera.clone().sub(cameraLook);
+      if (vector.lengthSq()>0.0001) desiredCamera.copy(cameraLook).addScaledVector(vector.normalize(),Math.min(rememberedDistance,vector.length()));
+    }
+    if (!cameraInitialized) {
+      smoothCamera.copy(desiredCamera);
+      cameraInitialized = true;
+    } else smoothCamera.lerp(desiredCamera,expFollow(opts.cameraSmooth,dt));
+    cam.position.copy(smoothCamera);
+    cam.lookAt(cameraLook);
+  }
+
+  function update(dt, context={}) {
+    if (disposed || !enabled) return getState();
+    const frame = clamp(Number(dt)||0,0,0.0667);
+    if (!frame) return getState();
+    const input = readInput(context);
+    yaw += clamp(Number(input.lookX)||0,-0.9,0.9);
+    pitch = clamp(pitch - clamp(Number(input.lookY)||0,-0.9,0.9),-1.18,1.25);
+    const trigger = name => Boolean(input[name]) && !lastActions[name];
+    if (trigger('toggleView')) setMode(mode==='fps'?'tps':'fps');
+    if (trigger('jump')) jumpBuffer = opts.jumpBuffer;
+    if (trigger('action')) fire('action', {position:getPosition(),yaw});
+    if (trigger('dash') && dashCooldown<=0) {
+      forward.set(Math.sin(yaw),0,-Math.cos(yaw));
+      right.set(Math.cos(yaw),0,Math.sin(yaw));
+      const ix = clamp(Number(input.moveX)||0,-1,1), iy = clamp(Number(input.moveY)||0,-1,1);
+      dashDirection.copy(forward).multiplyScalar(iy).addScaledVector(right,ix);
+      if (dashDirection.lengthSq() < 0.01) dashDirection.copy(forward);
+      dashDirection.normalize();
+      dashTimer = opts.dashDuration; dashCooldown = opts.dashCooldown;
+      fire('dash',{direction:{x:dashDirection.x,y:0,z:dashDirection.z}});
+    }
+    lastActions = {jump:!!input.jump,dash:!!input.dash,
+      action:!!input.action,toggleView:!!input.toggleView};
+    const count = Math.max(1,Math.ceil(frame/(1/90)));
+    for(let i=0;i<count;i++) physicalStep(frame/count,input,context);
+    time += frame;
+    updateCamera(frame,context);
+    const state = getState();
+    if (typeof options.onUpdate === 'function') options.onUpdate(state,api);
+    return state;
+  }
+  function dispose() {
+    if (disposed) return;
+    disposed=true;
+    events.clear();
+    if (ownSceneAttachment && root.parent) root.parent.remove(root);
+    if (avatar && avatar.parent===root) root.remove(avatar);
+    // Caller retains ownership of external geometry, materials, scene and camera.
+    avatar=null; camera=null; scene=null; inputSource=null;
+  }
+  const api = { root,update,setQuality,dispose,setMode,getMode:()=>mode,
+    setCamera,setAvatar,teleport,getState,getPosition,
+    setEnabled(value){enabled=!!value; if(!enabled){velocity.set(0,0,0);horizontal.set(0,0,0);} },
+    setInputSource(source){inputSource=source;},
+    on(handler){events.add(handler);return()=>events.delete(handler);},
+    get camera(){return camera;},
+  };
+  return api;
+}
+
+/** AETHER FRONTIER No.19 / optional keyboard-mouse-touch adapter. MIT. */
+function createAetherInputAdapter(options={}) {
+  const element=options.domElement ?? document.body;
+  const touchParent=options.touchParent ?? document.body;
+  const deviceIsTouch=window.matchMedia?.('(pointer: coarse)').matches ?? false;
+  const showTouch=options.showTouch ?? deviceIsTouch;
+  const keys=new Set();
+  const touch={moveX:0,moveY:0,jump:false,sprint:false,action:false,dash:false,toggleView:false};
+  let lookX=0,lookY=0,active=true,locked=false,dragId=null,dragX=0,dragY=0;
+  let pointerActive=false,stickId=null,stickX=0,stickY=0;
+  const disposable=[];
+  let ui=null,style=null;
+  const on=(target,type,handler,opts)=>{target.addEventListener(type,handler,opts);disposable.push(()=>target.removeEventListener(type,handler,opts));};
+  const editable=target=>target && (['INPUT','TEXTAREA','SELECT'].includes(target.tagName) || target.isContentEditable);
+  function keyboard(e,pressed){
+    if (!active || editable(e.target)) return;
+    const movementKeys=['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight',
+      'ShiftLeft','ShiftRight','Space','KeyE','KeyQ','KeyF','KeyV','KeyC'];
+    if (!movementKeys.includes(e.code)) return;
+    if (pressed) keys.add(e.code); else keys.delete(e.code);
+    if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+  }
+  on(window,'keydown',e=>keyboard(e,true));
+  on(window,'keyup',e=>keyboard(e,false));
+  on(window,'blur',()=>{keys.clear();dragId=null;pointerActive=false;stickId=null;resetTouch();});
+  on(document,'visibilitychange',()=>{if(document.hidden){keys.clear();resetTouch();}});
+  function resetTouch(){
+    touch.moveX=touch.moveY=0;
+    for(const k of ['jump','sprint','action','dash','toggleView']) touch[k]=false;
+    if(ui) ui.stickThumb.style.transform='translate(0px,0px)';
+  }
+  function addLook(dx,dy,scale){lookX+=dx*scale;lookY+=dy*scale;}
+  on(document,'pointerlockchange',()=>{locked=document.pointerLockElement===element;});
+  on(document,'mousemove',e=>{if(active&&locked)addLook(e.movementX,e.movementY,options.mouseSensitivity??0.00225);});
+  on(element,'pointerdown',e=>{
+    if(!active || e.pointerType!=='mouse' || e.button!==0) return;
+    dragId=e.pointerId;dragX=e.clientX;dragY=e.clientY;
+    if(options.pointerLock!==false && element.requestPointerLock) {
+      try {const promise=element.requestPointerLock();if(promise?.catch)promise.catch(()=>{});}catch(_){}
+    }
+  });
+  on(window,'pointermove',e=>{
+    if(!active||locked||e.pointerType!=='mouse'||dragId!==e.pointerId)return;
+    addLook(e.clientX-dragX,e.clientY-dragY,options.mouseSensitivity??0.00225);
+    dragX=e.clientX;dragY=e.clientY;
+  });
+  on(window,'pointerup',e=>{if(e.pointerId===dragId)dragId=null;});
+  on(window,'pointercancel',e=>{if(e.pointerId===dragId)dragId=null;});
+  if (showTouch) {
+    style=document.createElement('style');style.dataset.aetherTouch='19';
+    style.textContent=`
+    .a19-touch{position:fixed;inset:0;z-index:35;pointer-events:none;user-select:none;-webkit-user-select:none;font-family:system-ui,-apple-system,sans-serif;color:#fff;touch-action:none}
+    .a19-look{position:absolute;top:12%;right:0;bottom:18%;width:60%;pointer-events:auto;touch-action:none}
+    .a19-joystick{position:absolute;bottom:calc(27px + env(safe-area-inset-bottom));left:calc(28px + env(safe-area-inset-left));width:132px;height:132px;display:grid;place-items:center;border:1px solid rgba(125,233,255,.35);border-radius:50%;background:radial-gradient(circle,rgba(34,99,133,.22),rgba(4,12,30,.47));box-shadow:inset 0 0 20px rgba(109,215,255,.13);pointer-events:auto;touch-action:none}
+    .a19-stick{width:62px;height:62px;border-radius:50%;background:radial-gradient(circle at 36% 28%,rgba(216,248,255,.64),rgba(45,138,183,.28));border:1px solid rgba(180,237,255,.8);box-shadow:0 0 14px rgba(50,195,247,.22);pointer-events:none}
+    .a19-buttons{position:absolute;right:calc(19px + env(safe-area-inset-right));bottom:calc(28px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(2,64px);gap:10px;pointer-events:none}
+    .a19-btn{pointer-events:auto;touch-action:none;display:grid;place-items:center;font-size:12px;letter-spacing:.08em;font-weight:800;color:#f4fcff;border:1px solid rgba(112,223,255,.48);border-radius:19px;background:linear-gradient(145deg,rgba(18,53,80,.78),rgba(7,19,34,.84));box-shadow:inset 0 1px rgba(255,255,255,.16),0 4px 18px rgba(0,0,0,.22);-webkit-tap-highlight-color:transparent}
+    .a19-btn.a19-down{background:linear-gradient(145deg,rgba(35,156,201,.74),rgba(8,63,93,.85));border-color:#d4f8ff;transform:scale(.96)}
+    .a19-btn.view{grid-column:1}.a19-btn.sprint{grid-column:2}.a19-btn.jump{grid-column:3}.a19-btn.dash{grid-column:2}.a19-btn.action{grid-column:3}
+    @media(max-width:380px){.a19-joystick{width:112px;height:112px;left:14px;bottom:calc(24px + env(safe-area-inset-bottom))}.a19-buttons{grid-template-columns:repeat(3,56px);grid-template-rows:repeat(2,56px);gap:6px;right:10px}.a19-btn{font-size:11px}}
+    `;
+    document.head.appendChild(style);
+    ui=document.createElement('div');ui.className='a19-touch';
+    ui.innerHTML='<div class="a19-look" aria-label="Drag to look"></div><div class="a19-joystick" aria-label="Move joystick"><div class="a19-stick"></div></div><div class="a19-buttons"><button type="button" class="a19-btn view">視点</button><button type="button" class="a19-btn sprint">走る</button><button type="button" class="a19-btn jump">ジャンプ</button><button type="button" class="a19-btn dash">ダッシュ</button><button type="button" class="a19-btn action">調べる</button></div>';
+    touchParent.appendChild(ui);
+    const stickZone=ui.querySelector('.a19-joystick');
+    ui.stickThumb=ui.querySelector('.a19-stick');
+    const lookZone=ui.querySelector('.a19-look');
+    let touchLookId=null,lastX=0,lastY=0;
+    on(stickZone,'pointerdown',e=>{
+      e.preventDefault();if(stickId!==null)return;
+      stickId=e.pointerId;stickZone.setPointerCapture(e.pointerId);
+      const rect=stickZone.getBoundingClientRect();stickX=rect.left+rect.width/2;stickY=rect.top+rect.height/2;
+      moveStick(e);
+    });
+    function moveStick(e){
+      const dx=e.clientX-stickX,dy=e.clientY-stickY;
+      const max=43;const ratio=Math.min(1,max/Math.max(0.001,Math.hypot(dx,dy)));
+      const x=dx*ratio,y=dy*ratio;
+      touch.moveX=x/max;touch.moveY=-y/max;
+      ui.stickThumb.style.transform=`translate(${x}px,${y}px)`;
+    }
+    on(stickZone,'pointermove',e=>{if(e.pointerId===stickId)moveStick(e);});
+    function releaseStick(e){if(e.pointerId!==stickId)return;stickId=null;touch.moveX=0;touch.moveY=0;ui.stickThumb.style.transform='translate(0px,0px)';}
+    on(stickZone,'pointerup',releaseStick);on(stickZone,'pointercancel',releaseStick);
+    on(lookZone,'pointerdown',e=>{
+      e.preventDefault();if(touchLookId!==null)return;
+      touchLookId=e.pointerId;lastX=e.clientX;lastY=e.clientY;
+      lookZone.setPointerCapture(e.pointerId);
+    });
+    on(lookZone,'pointermove',e=>{
+      if(e.pointerId!==touchLookId)return;
+      addLook(e.clientX-lastX,e.clientY-lastY,options.touchSensitivity??0.0041);
+      lastX=e.clientX;lastY=e.clientY;
+    });
+    const stopLook=e=>{if(e.pointerId===touchLookId)touchLookId=null;};
+    on(lookZone,'pointerup',stopLook);on(lookZone,'pointercancel',stopLook);
+    for(const name of ['view','sprint','jump','dash','action']) {
+      const button=ui.querySelector(`.a19-btn.${name}`);
+      const key=name==='view'?'toggleView':name;
+      on(button,'pointerdown',e=>{
+        e.preventDefault();button.setPointerCapture(e.pointerId);
+        touch[key]=true;button.classList.add('a19-down');
+      });
+      const release=e=>{touch[key]=false;button.classList.remove('a19-down');};
+      on(button,'pointerup',release);on(button,'pointercancel',release);
+      on(button,'contextmenu',e=>e.preventDefault());
+    }
+  }
+  function sample(){
+    const activeMove = n=>keys.has(n);
+    const dx=(activeMove('KeyD')||activeMove('ArrowRight')?1:0)-(activeMove('KeyA')||activeMove('ArrowLeft')?1:0);
+    const dy=(activeMove('KeyW')||activeMove('ArrowUp')?1:0)-(activeMove('KeyS')||activeMove('ArrowDown')?1:0);
+    const result={moveX:Math.max(-1,Math.min(1,dx+touch.moveX)),
+      moveY:Math.max(-1,Math.min(1,dy+touch.moveY)),
+      lookX:lookX,lookY:lookY,
+      jump:keys.has('Space')||touch.jump,
+      sprint:keys.has('ShiftLeft')||keys.has('ShiftRight')||touch.sprint,
+      dash:keys.has('KeyQ')||touch.dash,
+      action:keys.has('KeyE')||keys.has('KeyF')||touch.action,
+      toggleView:keys.has('KeyV')||keys.has('KeyC')||touch.toggleView};
+    lookX=lookY=0;
+    return active?result:{moveX:0,moveY:0,lookX:0,lookY:0};
+  }
+  function dispose(){
+    for(const off of disposable.splice(0))off();
+    if(ui)ui.remove();if(style)style.remove();
+    ui=style=null;keys.clear();
+  }
+  return {sample,dispose,setEnabled(v){active=!!v;if(!active){keys.clear();resetTouch();}},
+    isTouch:showTouch,get locked(){return locked;},
+    get ui(){return ui;},
+  };
+}
+
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+
+
+const canvas = document.querySelector('#game');
+const renderer = new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance',alpha:false});
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.45;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#050e21');
+scene.fog = new THREE.FogExp2('#07152b', 0.015);
+const camera = new THREE.PerspectiveCamera(70,1,.08,220);
+scene.add(new THREE.HemisphereLight('#9fd8ff','#111425',2.25));
+const sun=new THREE.DirectionalLight('#d4eaff',2.25);sun.position.set(-12,28,-17);scene.add(sun);
+const cyan=new THREE.Color('#58e3ff'),purple=new THREE.Color('#ae80ff');
+const materials=[];
+const geometry=[];
+const trackMat=m=>{materials.push(m);return m;};
+const trackGeo=g=>{geometry.push(g);return g;};
+function mat(color,metalness=.45,roughness=.32,emissive='#000000',intensity=0){return trackMat(new THREE.MeshStandardMaterial({color,metalness,roughness,emissive,emissiveIntensity:intensity}));}
+const wallMat=mat('#152947',.73,.35),trimMat=mat('#40758d',.75,.22), dark=mat('#091427',.65,.35);
+const glowC=mat('#4fd7f5',.32,.27,'#36ccff',2.6),glowP=mat('#9e71ff',.38,.27,'#8952ff',2.1);
+const floorMat=mat('#101e36',.65,.56);
+function box(w,h,d,m,x,y,z,parent=scene){const obj=new THREE.Mesh(trackGeo(new THREE.BoxGeometry(w,h,d)),m);obj.position.set(x,y,z);parent.add(obj);return obj;}
+function cyl(rt,rb,h,m,x,y,z,parent=scene,sides=12){const obj=new THREE.Mesh(trackGeo(new THREE.CylinderGeometry(rt,rb,h,sides)),m);obj.position.set(x,y,z);parent.add(obj);return obj;}
+function torus(radius,tube,m,x,y,z,rotX=0,rotY=0,rotZ=0,parent=scene){const obj=new THREE.Mesh(trackGeo(new THREE.TorusGeometry(radius,tube,8,76)),m);obj.position.set(x,y,z);obj.rotation.set(rotX,rotY,rotZ);parent.add(obj);return obj;}
+function rectPlane(w,h,m,x,y,z){const mesh=new THREE.Mesh(trackGeo(new THREE.PlaneGeometry(w,h)),m);mesh.position.set(x,y,z);mesh.rotation.x=-Math.PI/2;scene.add(mesh);return mesh;}
+const ground=new THREE.Mesh(trackGeo(new THREE.PlaneGeometry(150,150)),floorMat);ground.rotation.x=-Math.PI/2;ground.position.y=-.1;scene.add(ground);
+const grid=new THREE.GridHelper(126,84,0x286587,0x18324b);grid.position.y=-.085;grid.material.opacity=.28;grid.material.transparent=true;scene.add(grid);
+for(const r of [4.5,7.8,12.8,24]) torus(r,.042,r===7.8?glowP:glowC,0,-.045,0,Math.PI/2);
+const plaza=mat('#142b47',.78,.38);
+cyl(7.15,7.35,.2,plaza,0,.0,0,scene,48);
+cyl(2.65,2.86,.24,dark,0,.05,0,scene,48);
+for(let i=0;i<16;i++){
+  const a=i*Math.PI/8;
+  const obj=box(.15,.04,1.1,i%4===0?glowP:glowC,Math.sin(a)*6.35,.133,Math.cos(a)*6.35);
+  obj.rotation.y=a;
+}
+for(const [x,z,w,d] of [[0,-25,4.4,27],[0,25,4.4,27],[25,0,27,4.4],[-25,0,27,4.4]]){
+  rectPlane(w,d,plaza,x,-.012,z);
+  if(w<d){for(const dx of [-2.05,2.05])box(.065,.055,d,glowC,x+dx,.06,z);}else {for(const dz of [-2.05,2.05])box(w,.055,.065,glowC,x,.06,z+dz);}
+}
+// Interior monuments double as simple, predictable physics blockers.
+const solids=[];
+function obstacle(x,z,w,d,h=3.2,material=wallMat){
+  box(w,h,d,material,x,h/2,z);
+  box(w+.15,.12,d+.15,trimMat,x,h-.06,z);
+  box(Math.min(w*.65,1.1),.13,.12,glowC,x,h*.52,z+d/2+.065);
+  const b={minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2,minY:0,maxY:h};
+  solids.push(b);return b;
+}
+for(const [x,z] of [[-9,-11],[11,-10],[-10,9],[10,12]]){
+ obstacle(x,z,2.5,2.6,2.4);
+ cyl(1.1,1.4,.3,dark,x,2.55,z);
+ for(let j=0;j<4;j++) {
+   const a=j*Math.PI/2;
+   box(.15,1.1,.16,glowP,x+Math.cos(a)*.93,1.5,z+Math.sin(a)*.93);
+ }
+}
+for(const [x,z] of [[-28,-28],[28,-28],[-28,28],[28,28]]) {
+ obstacle(x,z,4.2,4.2,8.5,wallMat);
+ cyl(2.5,2.75,.6,dark,x,8.75,z);
+ const shaft=cyl(.73,.92,4.5,glowP,x,11.35,z);
+ shaft.material=glowP;
+ torus(1.6,.08,glowC,x,12.2,z,Math.PI/2);
+ torus(1.0,.06,glowC,x,10.4,z,0,0,0);
+}
+// Jagged skyline placed beyond traversal bounds.
+for(let i=0;i<42;i++){
+ const a=i*Math.PI*2/42;
+ const r=52+6*Math.sin(i*3.38);
+ const h=8+(i*13%23);
+ const x=Math.sin(a)*r,z=Math.cos(a)*r;
+ box(2.1+(i%4),h,2.1+(i%3),i%4===0?wallMat:dark,x,h/2-0.06,z);
+ if(i%2===0)box(.13,h*.64,.15,glowC,x+1.11,h*.56,z+1.05);
+}
+// Monument gate visually frames the far end of the north route.
+for(const x of [-3.5,3.5]) {
+ obstacle(x,-36,1.8,2.2,10.4);
+ box(.2,7,.18,glowC,x+Math.sign(x)*.72,5.5,-34.85);
+}
+box(8.3,1.4,2,wallMat,0,10.2,-36);
+box(6,.14,.3,glowP,0,9.5,-34.8);
+const gateRing=torus(4.1,.15,glowP,0,5,-35.9,0,0,Math.PI/2);
+const gateInner=torus(3.7,.04,glowC,0,5,-35.9,0,0,Math.PI/2);
+
+// Interactive echo terminals.
+const terminals=[];
+const crystalGeo=trackGeo(new THREE.OctahedronGeometry(.63,1));
+const pedestalGeo=trackGeo(new THREE.CylinderGeometry(1,1.25,.6,10));
+const labels=['北の記憶','東の脈動','南の航路','西の共鳴'];
+for(const [i,x,z] of [[0,0,-18],[1,18,0],[2,0,18],[3,-18,0]]){
+ const group=new THREE.Group();group.position.set(x,0,z);scene.add(group);
+ const base=new THREE.Mesh(pedestalGeo,dark);base.position.y=.25;group.add(base);
+ const panel=cyl(.96,1.1,.10,glowC,0,.58,0,group);
+ const core=new THREE.Mesh(crystalGeo,glowP);core.position.y=1.56;group.add(core);
+ const orb=torus(.92,.037,glowC,0,1.56,0,.45,0,0,group);
+ torus(1.30,.03,glowP,0,.64,0,Math.PI/2,0,0,group);
+ terminals.push({x,z,name:labels[i],group,core,orb,lit:false});
+}
+const particlesGeo=trackGeo(new THREE.BufferGeometry());
+const starCount=600;
+const starPos=new Float32Array(starCount*3);
+for(let i=0;i<starCount;i++){
+ const a=i*2.399963229728653;
+ const r=48+((i*17)%60);
+ starPos[i*3]=Math.cos(a)*r;
+ starPos[i*3+1]=12+((i*29)%60);
+ starPos[i*3+2]=Math.sin(a)*r;
+}
+particlesGeo.setAttribute('position',new THREE.BufferAttribute(starPos,3));
+const starMat=trackMat(new THREE.PointsMaterial({color:'#74bee2',size:.2,transparent:true,opacity:.56,sizeAttenuation:true,depthWrite:false}));
+const stars=new THREE.Points(particlesGeo,starMat);scene.add(stars);
+
+function makeAvatar(){
+ const rig=new THREE.Group();rig.name='AetherExplorer';
+ const coat=mat('#cadff4',.56,.33), armor=mat('#294563',.75,.26), joint=mat('#131d31',.5,.5),visor=mat('#07111d',.42,.12,'#125684',1.2);
+ const hips=new THREE.Group();hips.position.y=1.11;rig.add(hips);
+ box(.72,.75,.38,armor,0,0,0,hips);
+ box(.65,.38,.48,coat,0,.20,-.085,hips);
+ box(.55,.33,.42,dark,0,-.42,0,hips);
+ box(.24,.43,.12,glowC,0,.12,-.3,hips);
+ const head=new THREE.Group();head.position.y=.68;hips.add(head);
+ const helmet=new THREE.Mesh(trackGeo(new THREE.SphereGeometry(.32,12,9)),coat);head.add(helmet);
+ box(.58,.23,.13,visor,0,.015,-.27,head);
+ box(.5,.05,.05,glowC,0,-.11,-.33,head);
+ for(const side of [-1,1]){
+   const shoulder=new THREE.Group();shoulder.position.set(side*.49,.23,0);hips.add(shoulder);
+   box(.4,.25,.48,coat,0,0,0,shoulder);
+   const arm=new THREE.Group();arm.position.set(side*.11,-.18,0);shoulder.add(arm);
+   box(.22,.49,.23,armor,0,-.2,0,arm);
+   box(.23,.16,.25,dark,0,-.5,-.03,arm);
+   const leg=new THREE.Group();leg.position.set(side*.21,-.54,0);hips.add(leg);
+   box(.27,.53,.29,armor,0,-.27,0,leg);
+   box(.29,.20,.38,coat,0,-.61,-.07,leg);
+   box(.12,.08,.21,glowC,0,-.71,-.22,leg);
+   if(side===-1)rig.userData.leftLeg=leg;else rig.userData.rightLeg=leg;
+   if(side===-1)rig.userData.leftArm=shoulder;else rig.userData.rightArm=shoulder;
+ }
+ const backpack=new THREE.Group();backpack.position.set(0,.04,.30);hips.add(backpack);
+ box(.48,.59,.25,dark,0,0,0,backpack);
+ torus(.19,.045,glowC,0,.04,.16,0,0,0,backpack);
+ for(const side of [-1,1]){
+   const fin=box(.1,.63,.19,coat,side*.38,-.10,.12,backpack);
+   fin.rotation.z=side*.22;
+ }
+ rig.userData.hips=hips;
+ rig.userData.head=head;
+ return rig;
+}
+const avatar=makeAvatar();
+const input=createAetherInputAdapter({domElement:canvas,showTouch:matchMedia('(pointer:coarse)').matches});
+function getGroundHeight(){return 0;}
+function clipToWorld(p){p.x=Math.max(-42,Math.min(42,p.x));p.z=Math.max(-42,Math.min(42,p.z));}
+function intersects(x,z,y,height,r,solid){return y<solid.maxY&&y+height>solid.minY && x>solid.minX-r&&x<solid.maxX+r&&z>solid.minZ-r&&z<solid.maxZ+r;}
+function resolveMovement({previous,proposed,radius,height}){
+ clipToWorld(proposed);
+ // Collision-by-axis gives wall sliding without pushing the player into corners.
+ for(const solid of solids){
+   if(intersects(proposed.x,previous.z,proposed.y,height,radius,solid))proposed.x=previous.x;
+   if(intersects(proposed.x,proposed.z,proposed.y,height,radius,solid))proposed.z=previous.z;
+ }
+ return proposed;
+}
+function rayExit(origin,goal,solid){
+ // Segment versus expanded AABB; returns hit distance when obstructed.
+ const dx=goal.x-origin.x,dy=goal.y-origin.y,dz=goal.z-origin.z;
+ const length=Math.hypot(dx,dy,dz);if(length<.001)return Infinity;
+ const bounds=[[solid.minX-.24,solid.maxX+.24,dx,origin.x],
+ [solid.minY-.24,solid.maxY+.24,dy,origin.y],
+ [solid.minZ-.24,solid.maxZ+.24,dz,origin.z]];
+ let tmin=0,tmax=1;
+ for(const [lo,hi,d,originValue] of bounds){
+   if(Math.abs(d)<1e-8){if(originValue<lo||originValue>hi)return Infinity;}
+   else {let a=(lo-originValue)/d,b=(hi-originValue)/d;if(a>b)[a,b]=[b,a];
+     tmin=Math.max(tmin,a);tmax=Math.min(tmax,b);if(tmin>tmax)return Infinity;}
+ }
+ return Math.max(.45,tmin*length-.14);
+}
+function cameraObstruction({origin,target,distance}){
+ let safe=distance;
+ for(const solid of solids) safe=Math.min(safe,rayExit(origin,target,solid));
+ return safe;
+}
+const tip=document.querySelector('#tip'), toast=document.querySelector('#toast');
+let activated=0,toastTime=0,toastText='',burstTime=0,burstOrigin=new THREE.Vector3();
+const waveMat=trackMat(new THREE.MeshBasicMaterial({color:cyan,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide}));
+const actionWave=new THREE.Mesh(trackGeo(new THREE.RingGeometry(.8,.87,64)),waveMat);
+actionWave.rotation.x=-Math.PI/2;actionWave.visible=false;scene.add(actionWave);
+const flashMat=trackMat(new THREE.MeshBasicMaterial({color:purple,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide}));
+const dashWave=new THREE.Mesh(trackGeo(new THREE.RingGeometry(.65,.72,40)),flashMat);
+dashWave.rotation.x=-Math.PI/2;dashWave.visible=false;scene.add(dashWave);
+function showToast(text){toastText=text;toastTime=2.6;toast.textContent=text;toast.classList.add('visible');}
+function nearTerminal(){
+ let target=null,best=2.65;
+ for(const terminal of terminals){if(terminal.lit)continue;
+   const dist=Math.hypot(terminal.x-controller.root.position.x,terminal.z-controller.root.position.z);
+   if(dist<best){best=dist;target=terminal;}}
+ return target;
+}
+const controller=createAetherModule(THREE,{
+ scene,camera,avatar,position:{x:0,y:0,z:4.8},
+ getGroundHeight,resolveMovement,cameraObstruction,
+ onEvent(event){
+  if(event.type==='action'){
+   const near=nearTerminal();
+   burstTime=.62;actionWave.visible=true;
+   burstOrigin.copy(controller.root.position);actionWave.position.set(burstOrigin.x,.13,burstOrigin.z);
+   if(near){near.lit=true;activated++;
+     near.core.material=glowC;near.orb.material=glowP;
+     showToast(`${near.name} を起動  ·  ${activated} / 4`);
+     if(activated===4){setTimeout(()=>showToast('4基のエーテル端末を起動！ 探索クリア'),1150);}
+   } else showToast('端末に近づくとエーテルを調べられる');
+  }
+  if(event.type==='dash'){
+    dashWave.visible=true;dashWave.material.opacity=.6;dashWave.scale.setScalar(1);
+    dashWave.position.set(controller.root.position.x,.08,controller.root.position.z);
+  }
+  if(event.type==='mode')updateModeLabel();
+ }
+});
+function updateModeLabel(){
+ document.querySelector('#modeVal').textContent=controller.getMode().toUpperCase();
+ document.querySelector('#reticle').classList.toggle('fps',controller.getMode()==='fps');
+}
+const playerHead=document.querySelector('#playerState');
+function animateAvatar(state,t){
+ const rig=avatar.userData.hips,travel=Math.hypot(state.velocity.x,state.velocity.z);
+ const stride=(Math.min(1,travel/7))*((state.grounded)?1:.15);
+ const swing=Math.sin(t*travel*1.6)*stride;
+ avatar.userData.leftLeg.rotation.x=swing*.55;
+ avatar.userData.rightLeg.rotation.x=-swing*.55;
+ avatar.userData.leftArm.rotation.x=-swing*.32;
+ avatar.userData.rightArm.rotation.x=swing*.32;
+ rig.rotation.z = (state.moving?Math.sin(t*2)*.012:0);
+ rig.position.y=1.12+(state.grounded?Math.abs(Math.sin(t*travel*1.6))*.055*stride:0);
+ rig.rotation.x=state.sprinting?-.075:0;
+}
+let quality='low',pixelRatio=1,fps=60,frameAccumulator=0,frameCount=0,elapsed=0;
+function setQuality(next){
+ quality=next==='high'?'high':'low';
+ controller.setQuality(quality);
+ const dpr=window.devicePixelRatio||1;
+ pixelRatio=quality==='high'?Math.min(dpr,1.85):Math.min(dpr,1.16);
+ renderer.setPixelRatio(pixelRatio);
+ renderer.setSize(window.innerWidth,window.innerHeight,false);
+ scene.fog.density=quality==='high'?.013:.019;
+ stars.geometry.setDrawRange(0,quality==='high'?starCount:190);
+ renderer.toneMappingExposure=quality==='high'?1.52:1.38;
+ document.querySelector('#qualityVal').textContent=quality==='high'?'HIGH':'LIGHT';
+ document.querySelector('#qualityBtn').textContent=quality==='high'?'高品質':'軽量版';
+}
+function resize(){
+ const w=window.innerWidth,h=window.innerHeight;
+ camera.aspect=w/Math.max(1,h);camera.updateProjectionMatrix();
+ renderer.setSize(w,h,false);
+}
+window.addEventListener('resize',resize);
+document.querySelector('#qualityBtn').addEventListener('click',()=>setQuality(quality==='low'?'high':'low'));
+document.querySelector('#resetBtn').addEventListener('click',()=>{
+ controller.teleport(0,0,4.8,0);activated=0;
+ for(const term of terminals){term.lit=false;term.core.material=glowP;term.orb.material=glowC;}
+ showToast('探索エリアを初期化した');
+});
+const intro=document.querySelector('#intro');
+const startBtn=document.querySelector('#startBtn');
+startBtn.addEventListener('click',()=>{intro.hidden=true;showToast('4つのエーテル端末を探そう');});
+document.querySelector('#closeIntro').addEventListener('click',()=>{intro.hidden=true;});
+function render(t){
+ const dt=Math.min(.05,Math.max(0,(t-(render.previous??t))/1000));render.previous=t;
+ const state=controller.update(dt,{input});
+ elapsed+=dt;
+ animateAvatar(state,elapsed);
+ for(let i=0;i<terminals.length;i++){
+  const term=terminals[i];term.core.rotation.y+=dt*(term.lit?1.3:.63);
+  term.core.position.y=1.57+Math.sin(elapsed*1.9+i*.9)*.15;
+  term.orb.rotation.y+=dt*.42;
+  term.orb.rotation.z=Math.sin(elapsed*.5+i)*.13;
+  if(term.lit)term.core.scale.setScalar(1+Math.sin(elapsed*4+i)*.065);
+ }
+ gateRing.rotation.z= Math.sin(elapsed*.2)*.035;
+ gateInner.rotation.z=-Math.sin(elapsed*.33)*.06;
+ if(burstTime>0){
+  burstTime=Math.max(0,burstTime-dt);
+  actionWave.scale.setScalar(1+(1-burstTime/.62)*5);
+  waveMat.opacity=.6*burstTime/.62;
+  if(!burstTime)actionWave.visible=false;
+ }
+ if(dashWave.visible){
+  dashWave.scale.multiplyScalar(1+dt*9);
+  flashMat.opacity=Math.max(0,flashMat.opacity-dt*1.8);
+  if(flashMat.opacity<=0)dashWave.visible=false;
+ }
+ if(toastTime>0){toastTime-=dt;if(toastTime<=0)toast.classList.remove('visible');}
+ const near=nearTerminal();
+ tip.textContent=near?`近くの端末「${near.name}」  ·  ${input.isTouch?'調べる':'E'} で起動`:'エーテル端末を4基探して起動しよう';
+ document.querySelector('#progressVal').textContent=`${activated} / 4`;
+ document.querySelector('#speedVal').textContent=(Math.hypot(state.velocity.x,state.velocity.z)).toFixed(1);
+ playerHead.textContent=state.dashing?'BURST / ダッシュ':!state.grounded?'AIRBORNE / 空中':state.sprinting?'RUNNING / 走行':'EXPLORER / 探索';
+ frameAccumulator+=dt;frameCount++;
+ if(frameAccumulator>=.55){fps=frameCount/frameAccumulator;frameCount=0;frameAccumulator=0;
+  document.querySelector('#fpsVal').textContent=`${Math.round(fps)} fps`;}
+ renderer.render(scene,camera);
+ requestAnimationFrame(render);
+}
+setQuality('low');resize();updateModeLabel();requestAnimationFrame(render);
+window.addEventListener('beforeunload',()=>{
+ controller.dispose();input.dispose();
+ geometry.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());renderer.dispose();
+},{once:true});
+
+  </script>
+</body>
+</html>

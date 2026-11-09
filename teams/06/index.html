@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#07131e">
+<title>AETHER FRONTIER / No.06 | THE AETHER FOUNDRY</title>
+<style>
+:root{--ink:#07121c;--line:rgba(115,222,234,.23);--accent:#8beef5;--dim:#94acbd;--hot:#f5ab78;--panel:rgba(6,17,26,.81)}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#06121d;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#e7f7ff;touch-action:none;overscroll-behavior:none}
+#world{position:fixed;inset:0;display:block;width:100%;height:100%;outline:none;touch-action:none}
+#vignette{position:fixed;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(0,8,13,.45),transparent 30%,transparent 72%,rgba(0,8,13,.22)),linear-gradient(0deg,rgba(0,6,12,.55),transparent 27%,transparent 75%,rgba(1,10,17,.24));}
+.header{position:fixed;left:clamp(16px,3vw,48px);top:clamp(15px,4vh,37px);pointer-events:none;text-shadow:0 2px 14px #010812}
+.eyebrow{font:700 11px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:3px;color:#7edfea}
+.header h1{font-size:clamp(20px,2.7vw,37px);letter-spacing:2.1px;margin:9px 0 2px;font-weight:780;line-height:1.08}
+.header p{margin:9px 0;color:#b7cddd;font-size:clamp(11px,1vw,13px);letter-spacing:.13em}
+.top-actions{position:fixed;right:clamp(14px,3vw,44px);top:clamp(14px,3vh,33px);display:flex;gap:8px}
+.top-actions button{min-height:39px;border:1px solid rgba(129,226,239,.42);background:rgba(7,20,29,.82);color:#d7f7ff;font:700 11px ui-monospace,monospace;letter-spacing:.4px;padding:0 15px;cursor:pointer;border-radius:4px}
+.top-actions button:active{background:#1e5264}
+.corner{position:fixed;right:clamp(15px,3vw,43px);top:100px;width:clamp(205px,22vw,290px);background:var(--panel);border-top:2px solid rgba(128,228,240,.72);border-inline:1px solid var(--line);border-bottom:1px solid var(--line);padding:20px 22px 18px;box-shadow:0 16px 45px rgba(0,0,0,.18);pointer-events:none}
+.caption{font:700 10px ui-monospace,monospace;letter-spacing:2.3px;color:var(--dim)}
+.power{font:700 13px ui-monospace,monospace;letter-spacing:.6px;color:#b9eff2;margin:10px 0 16px}
+.power.overdrive{color:#bdffde}
+.meter-wrap{height:4px;background:#1f3947;overflow:hidden;margin:12px 0 16px}
+#meter{height:100%;width:0%;background:linear-gradient(90deg,#318d9c,#8af7e4);transition:width .65s}
+.progress-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:14px}
+.progress-row b{font:700 28px ui-monospace,monospace;color:#e9fcff;letter-spacing:-.6px}
+.status-list{display:grid;gap:12px;margin:15px 0 4px}
+.status-item{display:flex;gap:10px;align-items:center;font-size:12px;color:#b0c7d5}
+.status-dot{width:9px;height:9px;background:#543e39;border:1px solid #9f6956;flex:0 0 auto;box-shadow:0 0 0 3px rgba(157,101,69,.09)}
+.status-dot.on{background:#8afdd0;border-color:#b4ffe3;box-shadow:0 0 11px rgba(95,255,205,.4)}
+.status-item:last-child{padding-top:13px;border-top:1px solid var(--line);color:#c2a7eb}
+.hud-bottom{position:fixed;left:clamp(16px,3vw,48px);bottom:clamp(24px,4vh,46px);pointer-events:none;}
+.instructions{font:12px/1.8 ui-monospace,SFMono-Regular,Consolas,monospace;color:#c7dce7;letter-spacing:.3px}
+.instructions b{color:#8be8f1}
+.data{display:flex;align-items:center;gap:10px;color:#8caebf;font:700 10px ui-monospace,monospace;letter-spacing:1.2px;margin-bottom:12px}
+.data span+span::before{content:'•';margin-right:11px;color:#5a7b8d}
+#interaction{position:fixed;bottom:clamp(27px,4vh,47px);left:50%;transform:translate(-50%,15px);min-width:min(420px,90vw);display:flex;align-items:center;gap:18px;padding:13px 17px;background:rgba(5,16,25,.88);border:1px solid rgba(134,229,240,.4);opacity:0;transition:transform .2s,opacity .2s;pointer-events:none}
+#interaction.active{opacity:1;transform:translate(-50%,0)}
+.interact-key{width:38px;height:38px;display:grid;place-items:center;flex:0 0 auto;border:1px solid #7be2eb;color:#9dfbff;font:700 20px ui-monospace,monospace}
+.interact-text{display:grid;gap:4px}
+#contextTitle{font-size:13px;font-weight:700;color:#f5fcff}
+#contextSub{font-size:11px;color:#93b8c8}
+#reticle{position:fixed;left:50%;top:49%;transform:translate(-50%,-50%);pointer-events:none;width:22px;height:22px;opacity:.67}
+#reticle::before,#reticle::after{content:'';position:absolute;left:10px;top:0;background:#b2ffff;box-shadow:0 0 8px #78e6e2}
+#reticle::before{width:1px;height:22px}#reticle::after{height:1px;width:22px;top:10px;left:0}
+#toast{position:fixed;left:50%;top:19%;transform:translate(-50%,-10px);padding:13px 21px;max-width:min(530px,90vw);text-align:center;background:rgba(9,31,43,.95);border:1px solid #78dfe6;border-left:3px solid #80f1ef;font-weight:700;font-size:13px;letter-spacing:.4px;color:#ddfcff;pointer-events:none;opacity:0;transition:opacity .3s,transform .3s;z-index:10}
+#toast.visible{opacity:1;transform:translate(-50%,0)}
+.controls-touch{display:none}
+.corner-label{position:fixed;right:clamp(16px,3vw,44px);bottom:30px;font:700 10px ui-monospace,monospace;color:#7796a5;letter-spacing:1.5px;pointer-events:none}
+@media(max-width:900px){.header h1{font-size:23px}.corner{right:16px;top:90px;width:208px;padding:14px 15px}.header p{max-width:240px}.hud-bottom{bottom:22px}.instructions{font-size:10px}.corner-label{display:none}}
+@media(pointer:coarse){.controls-touch{display:block}.hud-bottom{display:none}.corner-label{display:none}
+#joystick{position:fixed;bottom:max(27px,env(safe-area-inset-bottom));left:max(16px,env(safe-area-inset-left));width:134px;height:134px;border:1px solid rgba(157,229,241,.52);background:radial-gradient(circle,rgba(82,179,197,.10),rgba(4,20,29,.40) 72%);border-radius:50%;touch-action:none;display:grid;place-items:center}
+#joystick::before,#joystick::after{content:'';position:absolute;opacity:.28;background:#c4f8ff}
+#joystick::before{width:1px;height:90%}#joystick::after{height:1px;width:90%}
+#knob{width:53px;height:53px;background:rgba(110,226,239,.24);border:1px solid #96f4f9;box-shadow:0 0 25px rgba(76,231,255,.11);border-radius:50%;z-index:1;pointer-events:none;will-change:transform}
+.touch-right{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:max(26px,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(2,65px);gap:10px;align-items:end}
+.touch-right button{touch-action:none;user-select:none;border:1px solid #7ab6c6;background:rgba(8,31,43,.8);color:#d3f7fe;border-radius:10px;font-size:12px;font-weight:780;padding:0;min-height:59px}
+#action{grid-column:2;grid-row:1 / 3;height:128px;border-color:#7ae7f0;font-size:16px;background:rgba(9,53,65,.85)}
+#action.near{box-shadow:0 0 23px rgba(85,233,238,.45);background:rgba(19,99,112,.9)}
+#sprint{grid-column:1;grid-row:1}#jump{grid-column:1;grid-row:2}#sprint.pressed{background:rgba(33,112,132,.85)}
+#interaction{bottom:177px;min-width:auto;width:min(340px,85vw);padding:9px 12px;gap:9px}
+.interact-key{display:none}
+#contextTitle{font-size:11px}#contextSub{font-size:10px}
+}
+@media(max-width:620px){.header{top:18px;left:17px}.eyebrow{font-size:9px;letter-spacing:2px}.header h1{font-size:19px;letter-spacing:.7px;margin:7px 0 1px}.header p{font-size:10px;margin-top:5px}
+.top-actions{top:18px;right:14px;gap:5px;flex-direction:column}.top-actions button{min-height:33px;font-size:10px;padding:0 11px}
+.corner{left:17px;right:auto;top:100px;width:190px;padding:9px 12px 7px;background:rgba(4,15,23,.66)}
+.caption{font-size:9px}.power{font-size:10px;margin:7px 0}.progress-row{margin-bottom:3px}.progress-row b{font-size:19px}.meter-wrap{margin:9px 0}.status-list{gap:5px;margin-top:7px}.status-item{font-size:10px;gap:7px}.status-item:last-child{padding-top:7px}
+#joystick{width:120px;height:120px}.touch-right{grid-template-columns:repeat(2,58px);gap:8px}.touch-right button{min-height:53px}#action{height:114px}.corner-label{display:none}
+#interaction{bottom:152px;left:50%;max-width:280px}
+}
+@media(max-height:520px) and (pointer:coarse){.corner{top:80px;max-height:150px;overflow:hidden}.header p{display:none}#joystick{width:100px;height:100px}.touch-right{grid-template-columns:repeat(2,52px)}.touch-right button{min-height:45px}#action{height:98px}#interaction{bottom:120px}}
+</style>
+</head>
+<body>
+<div id="vignette" aria-hidden="true"></div>
+<header class="header">
+<div class="eyebrow">AETHER FRONTIER <span style="color:#f4ab71">/ SECTOR 06</span></div>
+<h1>THE AETHER FOUNDRY</h1>
+<p>エーテル鋳造炉 ／ 第六工業区画</p>
+</header>
+<div class="top-actions">
+<button id="view" type="button">視点 : TPS</button>
+<button id="quality" type="button">画質 : LITE</button>
+</div>
+<section class="corner" aria-label="設備稼働ステータス">
+<div class="caption">CENTRAL ENERGY COMPLEX</div>
+<div class="power" id="powerLabel">REACTOR // STANDBY</div>
+<div class="progress-row"><span class="caption">SECTOR LINK</span><b id="charge">0 / 3</b></div>
+<div class="meter-wrap"><div id="meter"></div></div>
+<div class="status-list">
+<div class="status-item"><span id="light0" class="status-dot"></span>01　タービン同期</div>
+<div class="status-item"><span id="light1" class="status-dot"></span>02　鋳造プレス</div>
+<div class="status-item"><span id="light2" class="status-dot"></span>03　冷却循環</div>
+<div class="status-item"><span id="final" class="status-dot"></span>FINAL　炉心最大出力</div>
+</div>
+</section>
+<div id="reticle" aria-hidden="true"></div>
+<div class="hud-bottom">
+<div class="data"><span id="height">GROUND FLOOR</span><span id="fps">60 FPS</span><span>AF06 / EXPLORE MODE</span></div>
+<div class="instructions"><b>W A S D</b> 移動　 <b>SHIFT</b> 走行　 <b>SPACE</b> ジャンプ<br>
+<b>マウス</b> 視点操作　 <b>E</b> 装置起動　 <b>V</b> FPS/TPS切替<br>
+右手にプレス、左手に搬送ライン。西側の斜路から上階へ。</div>
+</div>
+<div id="interaction" role="status"><span class="interact-key">E</span><span class="interact-text"><span id="contextTitle">装置</span><span id="contextSub">操作して起動</span></span></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<div class="corner-label">03 AUXILIARY SECTORS → UPPER CONTROL DECK</div>
+<div class="controls-touch">
+<div id="joystick" role="group" aria-label="移動ジョイスティック"><div id="knob"></div></div>
+<div class="touch-right"><button id="sprint" type="button">RUN<br>走る</button><button id="jump" type="button">JUMP<br>跳ぶ</button><button id="action" type="button">操作</button></div>
+</div>
+<script type="module" src="./src/demo_app.js"></script>
+</body>
+</html>

@@ -1,0 +1,893 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0c182b">
+<title>AETHER FRONTIER | No.18 ETHERWEAVE ATMOSPHERE</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1423;--line:rgba(160,214,243,.22);--muted:#a9bfd2;--accent:#94e6f0;--white:#f0f7fc}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#071221;color:var(--white);font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif}
+canvas{display:block;position:fixed;inset:0;width:100%;height:100%;touch-action:none;outline:none}
+#screen-vignette{position:fixed;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(4,12,27,.40),transparent 19%,transparent 67%,rgba(3,8,18,.43));z-index:2}
+#hud{position:fixed;inset:0;pointer-events:none;z-index:4}
+.brand{position:absolute;left:clamp(18px,3.6vw,48px);top:max(23px,env(safe-area-inset-top));max-width:420px;text-shadow:0 1px 8px #0008}
+.eyebrow{font-size:10px;letter-spacing:.32em;font-weight:700;color:#bfe9f5;text-transform:uppercase;opacity:.92}
+.brand h1{margin:11px 0 2px;font-weight:650;font-size:clamp(27px,3.5vw,47px);letter-spacing:.16em;line-height:1.15}
+.brand p{font-size:11px;letter-spacing:.18em;color:#d6e8f3;margin:9px 0}
+.brand .line{height:1px;width:118px;margin:14px 0;background:linear-gradient(90deg,var(--accent),transparent)}
+.topright{position:absolute;right:clamp(17px,3.1vw,42px);top:26px;text-align:right;line-height:1.9;color:#dbeef7;font-size:10px;letter-spacing:.16em}
+.pill{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;padding:6px 10px;border:1px solid #d0f4ff55;background:#09172872;backdrop-filter:blur(12px);border-radius:3px}
+.pill:before{content:"";display:inline-block;width:6px;height:6px;background:#65d4db;box-shadow:0 0 10px #65d4db;border-radius:50%}
+#controls{pointer-events:auto;position:absolute;right:clamp(14px,3vw,36px);bottom:max(22px,env(safe-area-inset-bottom));width:min(352px,calc(100vw - 28px));padding:21px 21px 15px;background:linear-gradient(140deg,rgba(11,25,44,.88),rgba(8,16,30,.89));border:1px solid rgba(161,226,247,.22);border-radius:11px;box-shadow:0 18px 66px #0007;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.controlHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}.controlHead strong{font-size:11px;letter-spacing:.22em;font-weight:700}.controlHead span{font-size:10px;color:var(--accent);letter-spacing:.08em}
+.clockrow{display:flex;justify-content:space-between;align-items:end;gap:8px;margin-bottom:4px}.clock{font-size:40px;font-weight:300;letter-spacing:.01em;line-height:1;font-variant-numeric:tabular-nums}.phase{font-size:10px;color:#b5dce8;letter-spacing:.10em;line-height:1.5;text-align:right;padding-bottom:5px}
+.slider{width:100%;margin:13px 0 8px;accent-color:#86d8e3;cursor:pointer;height:18px}
+.timeAxis{display:flex;justify-content:space-between;color:#95aabc;font-size:10px;letter-spacing:.08em;margin-bottom:14px}
+.sectionLabel{color:#91aebd;letter-spacing:.17em;font-size:10px;margin:14px 0 8px;font-weight:700}
+.weathergrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+button{font:inherit;cursor:pointer;transition:background-color .15s ease,border-color .15s ease,color .15s ease;touch-action:manipulation}
+.weathergrid button,.segment button,.minorbtn{min-height:37px;border:1px solid rgba(145,185,210,.23);border-radius:5px;background:rgba(126,166,207,.065);color:#b7cbdc;font-size:12px;letter-spacing:.04em}
+.weathergrid button:hover,.segment button:hover,.minorbtn:hover{border-color:#a7e1f385;color:white}
+.weathergrid button.active,.segment button.active,.minorbtn.active{background:rgba(108,210,229,.18);border-color:#87d6e7;color:#efffff;box-shadow:inset 0 0 16px #7edcf019}
+.weathergrid button:focus-visible,.segment button:focus-visible,.minorbtn:focus-visible{outline:2px solid #a1eef1;outline-offset:2px}
+.dual{display:grid;grid-template-columns:1fr 1fr;gap:12px}.segment{display:flex;gap:5px}.segment>*{flex:1}.minorbtn{width:100%}
+.footerPanel{display:flex;justify-content:space-between;gap:10px;border-top:1px solid #bfdef022;margin-top:17px;padding-top:10px;color:#91a8bb;font-size:10px;letter-spacing:.05em}
+.note{position:absolute;left:clamp(18px,3.6vw,48px);bottom:max(29px,env(safe-area-inset-bottom));font-size:11px;line-height:1.9;letter-spacing:.11em;color:#d2e6f0;text-shadow:0 2px 8px #000a}
+.note .bullet{color:#9fe9ed;padding:0 6px}
+#loading{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;background:#0b1a2f;font-size:12px;letter-spacing:.18em;color:#c9e5f1;transition:opacity .7s ease}#loading.hidden{opacity:0;pointer-events:none}
+#fail{display:none;position:fixed;inset:0;z-index:11;padding:10%;background:#0a1628;color:#edf5fc;line-height:2}
+@media (max-width:700px){
+ .brand{top:max(17px,env(safe-area-inset-top));left:18px}.brand h1{font-size:25px;margin-top:7px}.brand .line{margin:10px 0;width:76px}.brand p{font-size:9px;margin:6px 0}
+ .topright{top:18px;right:15px}.topright .serial{display:none}
+ #controls{bottom:max(11px,env(safe-area-inset-bottom));right:10px;width:min(345px,calc(100vw - 20px));padding:15px 15px 10px}
+ .controlHead{margin-bottom:9px}.clock{font-size:32px}.weathergrid button,.segment button,.minorbtn{min-height:36px;font-size:11px}.sectionLabel{margin:10px 0 7px}
+ .footerPanel{margin-top:11px}.note{bottom:auto;top:110px;left:18px;font-size:10px;max-width:210px;opacity:.88}
+}
+@media(max-width:380px){.brand h1{font-size:23px}.pill{font-size:9px;padding:5px}.clock{font-size:29px}#controls{padding:12px}.timeAxis{margin-bottom:9px}}
+@media(max-height:680px) and (min-width:701px){#controls{padding:14px 19px}.controlHead{margin-bottom:6px}.clock{font-size:30px}.sectionLabel{margin:8px 0 6px}.weathergrid button,.segment button,.minorbtn{min-height:32px}.slider{margin:8px 0 6px}.timeAxis{margin-bottom:9px}.footerPanel{margin-top:11px}}
+@media(prefers-reduced-motion:reduce){button{transition:none}}
+</style>
+</head>
+<body>
+<div id="loading">ETHERWEAVE // ATMOSPHERE INITIALIZING</div>
+<div id="fail"></div>
+<div id="screen-vignette"></div>
+<div id="hud">
+  <header class="brand"><div class="eyebrow">AETHER FRONTIER &nbsp; / &nbsp; WORLD SYSTEM</div><h1>ETHERWEAVE</h1><p>ATMOSPHERE ENGINE &nbsp; <span style="color:#92e9f0">No.18</span></p><div class="line"></div></header>
+  <div class="topright"><div class="pill">LIVE SKY SIMULATION</div><div class="serial">THREE.JS r160 / NO.18 / v1.0</div></div>
+  <div class="note">ドラッグで空を見渡す <span class="bullet">·</span> ピンチ / ホイールでズーム<br>これは空・雲・天候の単体デモです</div>
+  <section id="controls" aria-label="天候と空のコントロール">
+    <div class="controlHead"><strong>ATMOSPHERE CONTROL</strong><span>18 / 20</span></div>
+    <div class="clockrow"><div class="clock" id="clock">17:24</div><div class="phase" id="phase">GOLDEN HOUR<br>夕焼け</div></div>
+    <input class="slider" id="timeSlider" type="range" min="0" max="24" value="17.4" step="0.05" aria-label="時刻 (0〜24時)">
+    <div class="timeAxis"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+    <div class="sectionLabel">天候 / WEATHER PRESET</div>
+    <div class="weathergrid" id="weatherButtons">
+      <button type="button" data-weather="clear" class="active" aria-pressed="true">快晴</button>
+      <button type="button" data-weather="cloudy" aria-pressed="false">曇り</button>
+      <button type="button" data-weather="mist" aria-pressed="false">霧</button>
+      <button type="button" data-weather="rain" aria-pressed="false">雨</button>
+      <button type="button" data-weather="storm" aria-pressed="false">雷雨</button>
+      <button type="button" data-weather="aurora" aria-pressed="false">オーロラ</button>
+    </div>
+    <div class="dual">
+      <div><div class="sectionLabel">描画品質 / QUALITY</div><div class="segment"><button id="liteBtn" type="button">軽量</button><button class="active" id="highBtn" type="button">高品質</button></div></div>
+      <div><div class="sectionLabel">環境 / SCENE</div><button id="seaBtn" class="minorbtn active" type="button" aria-pressed="true">雲海 ON</button></div>
+    </div>
+    <div class="dual"><div><div class="sectionLabel">時間の流れ</div><button id="autoBtn" type="button" class="minorbtn" aria-pressed="false">自動再生 OFF</button></div><div><div class="sectionLabel">カメラ</div><button id="resetBtn" type="button" class="minorbtn">視点をリセット</button></div></div>
+    <div class="footerPanel"><span id="fps">FPS -- · 非計測</span><span id="status">CLEAR / HIGH</span></div>
+  </section>
+</div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+// ===== BEGIN EMBEDDED INTEGRATION MODULE =====
+/**
+ * AETHER FRONTIER / No.18 ETHERWEAVE ATMOSPHERE v1.0
+ * Three.js r160 / ESM / build-free / world Y-up, forward -Z, 1 unit = 1m.
+ *
+ * This module owns ONLY its own scene graph and GPU resources.
+ * It never changes the caller's renderer, scene.background, scene.fog,
+ * tone mapping, camera, environment map or light setup.
+ *
+ * Usage:
+ *   import { createAetherModule } from './aether-atmosphere.js';
+ *   const sky = createAetherModule(THREE, { quality:'lite', timeOfDay:17.5 });
+ *   scene.add(sky.root);
+ *   sky.update(deltaSeconds, { camera });
+ *   sky.setWeather('storm', 2);
+ *   sky.dispose(); // after scene.remove(sky.root)
+ */
+
+const TAU = Math.PI * 2;
+const WEATHER = Object.freeze({
+  clear:    { clouds:0.19, haze:0.10, rain:0,    dark:0,    aurora:0, wind:0.65 },
+  cloudy:   { clouds:0.69, haze:0.28, rain:0,    dark:0.13, aurora:0, wind:1.00 },
+  mist:     { clouds:0.53, haze:0.73, rain:0,    dark:0.08, aurora:0, wind:0.38 },
+  rain:     { clouds:0.82, haze:0.42, rain:0.72, dark:0.28, aurora:0, wind:1.65 },
+  storm:    { clouds:1.00, haze:0.51, rain:1.00, dark:0.55, aurora:0, wind:2.45 },
+  aurora:   { clouds:0.12, haze:0.08, rain:0,    dark:0,    aurora:1, wind:0.45 }
+});
+
+// Painted atmospheric palettes: zenith / mid sky / horizon / below horizon /
+// illuminated cloud / sun. Interpolated smoothly across midnight.
+const PALETTE = [
+  [ 0.00, '#08152d','#172846','#33435f','#111b34','#7788aa','#ffd09b'],
+  [ 4.30, '#0d1a39','#27365e','#625975','#28243c','#7984a5','#ffd5b2'],
+  [ 5.60, '#253858','#805f7c','#e89a8d','#514157','#c1a2aa','#ffb777'],
+  [ 6.55, '#426889','#a99aaa','#ffd29a','#81736e','#f5d4bd','#ffcc83'],
+  [ 8.20, '#327fac','#91c6df','#d9edf1','#9fbfc9','#f4f3ed','#fff1c9'],
+  [12.00, '#1769ad','#72b4df','#c9e6f0','#97c1cf','#f1f5f6','#fff5d5'],
+  [15.60, '#277aaf','#87bfdd','#e9e2ce','#abbbc5','#f6e5d0','#ffdcaa'],
+  [17.40, '#46517b','#bc899b','#ffbf84','#6e6277','#f8caaa','#ffbe81'],
+  [18.35, '#28345e','#815374','#ed967c','#504257','#dca3a6','#ffab7c'],
+  [19.35, '#132448','#394063','#8b5970','#272841','#8b7d98','#ffbd99'],
+  [21.00, '#08162f','#172a49','#394762','#141d35','#6e7f9e','#ffd0a2'],
+  [24.00, '#08152d','#172846','#33435f','#111b34','#7788aa','#ffd09b']
+];
+
+const SKY_VERTEX = `
+  varying vec3 vDirection;
+  void main() {
+    vDirection = position;
+    vec4 clip = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    gl_Position = clip;
+    // Sky is always rendered at the farthest depth, without writing depth.
+    gl_Position.z = gl_Position.w * 0.9999;
+  }
+`;
+
+const SKY_FRAGMENT = `
+  precision highp float;
+  varying vec3 vDirection;
+  uniform vec3 uZenith;
+  uniform vec3 uUpper;
+  uniform vec3 uHorizon;
+  uniform vec3 uGround;
+  uniform vec3 uCloudColor;
+  uniform vec3 uSunColor;
+  uniform vec3 uSunDirection;
+  uniform float uDaylight;
+  uniform float uClouds;
+  uniform float uHaze;
+  uniform float uDarkness;
+  uniform float uAurora;
+  uniform float uFlash;
+  uniform float uTime;
+  uniform float uWind;
+
+  float hash31(vec3 p) {
+    p = fract(p * 0.1031);
+    p += dot(p, p.yzx + 33.33);
+    return fract((p.x + p.y) * p.z);
+  }
+  float hash21(vec2 p) {
+    vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+  }
+  float noise2(vec2 p) {
+    vec2 i = floor(p), f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    float a = hash21(i);
+    float b = hash21(i + vec2(1.0,0.0));
+    float c = hash21(i + vec2(0.0,1.0));
+    float d = hash21(i + vec2(1.0,1.0));
+    return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);
+  }
+
+  void main(){
+    vec3 d = normalize(vDirection);
+    float y = d.y;
+    float mid = smoothstep(-0.07,0.48,y);
+    vec3 sky = mix(uHorizon, uUpper, mid);
+    sky = mix(sky, uZenith, smoothstep(0.28,0.98,y));
+    sky = mix(uGround,sky,smoothstep(-0.48,0.025,y));
+    float horizonMist = exp(-pow(y / (0.13 + uHaze*0.14),2.0));
+    sky = mix(sky, uHorizon + vec3(0.055,0.048,0.045),horizonMist*(0.15 + uHaze*0.36));
+
+    float sunDot = dot(d,uSunDirection);
+    float sunVisibility = smoothstep(-0.10,0.10,uSunDirection.y);
+    float warmGlow = pow(max(sunDot,0.0),9.0) * 0.30 + pow(max(sunDot,0.0),44.0)*0.26;
+    sky += uSunColor * warmGlow * sunVisibility * (1.0-uDarkness*0.48);
+
+    // Sparse stable stars; no per-frame CPU update and no texture download.
+    vec3 cellPos = d * 390.0;
+    vec3 cell = floor(cellPos);
+    vec3 f = fract(cellPos) - 0.5;
+    float seed = hash31(cell);
+    float star = step(0.9980,seed) * (1.0-smoothstep(0.01,0.41,length(f)));
+    float sparkle = 0.78 + 0.22*sin(uTime*0.78 + seed*70.0);
+    float night = 1.0-smoothstep(0.03,0.48,uDaylight);
+    float stars = star * sparkle * night * smoothstep(-0.10,0.09,y);
+    sky += stars * mix(vec3(0.48,0.68,1.0),vec3(1.0,0.96,0.85),hash31(cell+21.4)) * 1.35;
+
+    // Moon remains opposite the sun, with a faint halo.
+    float moonDot = dot(d,-uSunDirection);
+    float moonUp = smoothstep(-0.08,0.10,-uSunDirection.y);
+    float moonDisc = smoothstep(0.99958,0.99974,moonDot) * moonUp;
+    float moonHalo = pow(max(moonDot,0.0),80.0) * 0.075 * moonUp;
+    float moonMottle = 0.95;
+#ifdef HIGH_QUALITY
+    if (moonDot > 0.999) moonMottle = 0.88 + 0.12*noise2(d.xz*270.0);
+#endif
+    sky += vec3(0.67,0.77,0.95) * (moonDisc*moonMottle*0.76+moonHalo) * night;
+
+#ifdef HIGH_QUALITY
+    // High cloud strata: two cheap value-noise octaves, only on the sky dome.
+    float az = atan(d.z,d.x);
+    vec2 uv = vec2(az*2.7,d.y*5.3);
+    uv += vec2(uTime*0.0036*uWind,uTime*0.0012*uWind);
+    float n = noise2(uv*2.0)*0.66 + noise2(uv*4.6)*0.34;
+    float cloud = smoothstep(0.45-uClouds*0.20,0.76-uClouds*0.09,n);
+    float region = smoothstep(-0.07,0.10,y) * (1.0-smoothstep(0.65,0.94,y));
+    float lightFacing = smoothstep(-0.23,0.78,sunDot);
+    vec3 cirrus = mix(uUpper*0.78,uCloudColor,0.50+0.4*lightFacing);
+    sky = mix(sky,cirrus,cloud*region*(0.12+uClouds*0.46));
+#endif
+    // Aurora remains available in Lite mode; high mode adds extra ripples.
+    if (uAurora > 0.01 && night > 0.02) {
+      float aurAz = atan(d.z,d.x);
+      float band = sin(aurAz*6.0 + sin(y*4.0+uTime*0.04)*1.3);
+      float curtain = pow(max(0.0,band*0.5+0.5),7.0) *
+        smoothstep(0.10,0.42,y)*(1.0-smoothstep(0.87,0.99,y));
+#ifdef HIGH_QUALITY
+      float ripple = sin(y*24.0 + aurAz*5.0 - uTime*0.16)*0.5 + 0.5;
+#else
+      float ripple = sin(y*8.0 - uTime*0.09)*0.5 + 0.5;
+#endif
+      vec3 auroraColor = mix(vec3(0.14,0.75,0.69),vec3(0.57,0.42,0.92),ripple);
+      sky += auroraColor * curtain * uAurora * night * 0.70;
+    }
+    float disc = smoothstep(0.99970,0.99985,sunDot) * sunVisibility;
+    sky += uSunColor * disc * 2.1 * (1.0-uDarkness*0.5);
+    sky = mix(sky,vec3(0.84,0.91,1.0),uFlash*0.58);
+    gl_FragColor = vec4(sky,1.0);
+    #include <colorspace_fragment>
+  }
+`;
+
+const SEA_VERTEX = `
+  varying vec2 vPos;
+  void main(){
+    vPos = position.xy;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+  }
+`;
+
+const SEA_FRAGMENT = `
+  precision mediump float;
+  varying vec2 vPos;
+  uniform vec3 uCloudColor;
+  uniform vec3 uShadowColor;
+  uniform float uTime;
+  uniform float uCoverage;
+  uniform float uWind;
+  uniform float uHaze;
+  float hash2(vec2 p){
+    return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);
+  }
+  float n2(vec2 p){
+    vec2 i=floor(p),f=fract(p);
+    f=f*f*(3.0-2.0*f);
+    return mix(mix(hash2(i),hash2(i+vec2(1.0,0.0)),f.x),
+               mix(hash2(i+vec2(0.0,1.0)),hash2(i+vec2(1.0,1.0)),f.x),f.y);
+  }
+  void main(){
+    vec2 p=vPos*0.009 + vec2(uTime*uWind*0.014,-uTime*uWind*0.005);
+    float n=n2(p)*0.70;
+#ifdef HIGH_QUALITY
+    n += n2(p*2.37+4.3)*0.22+n2(p*4.80-7.1)*0.08;
+#else
+    n += n2(p*2.37+4.3)*0.30;
+#endif
+    float wave = smoothstep(0.25-uCoverage*0.10,0.72,n);
+    vec3 c = mix(uShadowColor,uCloudColor,wave);
+    float alpha= (0.44+uCoverage*0.43) * (0.78+wave*0.22);
+    // Soften the square edges of this camera-following cloud ocean.
+    float rim = 1.0-smoothstep(1010.0,1510.0,length(vPos));
+    alpha *= rim;
+    c = mix(c,uCloudColor,uHaze*0.24);
+    gl_FragColor = vec4(c,alpha);
+    #include <colorspace_fragment>
+  }
+`;
+
+const RAIN_VERTEX = `
+  uniform float uTime;
+  uniform float uWind;
+  uniform float uSize;
+  varying float vDepth;
+  void main(){
+    vec3 p=position;
+    p.y=mod(position.y-uTime*(42.0+uWind*6.0)+2000.0,100.0)-42.0;
+    p.x+=uWind*(48.0-p.y)*0.055;
+    vec4 mv=modelViewMatrix*vec4(p,1.0);
+    gl_Position=projectionMatrix*mv;
+    gl_PointSize=clamp(uSize*(22.0/max(-mv.z,3.0)),2.0,13.0);
+    vDepth=clamp(1.0-(-mv.z)/85.0,0.1,1.0);
+  }
+`;
+const RAIN_FRAGMENT = `
+  precision mediump float;
+  uniform float uOpacity;
+  varying float vDepth;
+  void main(){
+    vec2 uv=gl_PointCoord-0.5;
+    float streak=(1.0-smoothstep(0.04,0.20,abs(uv.x)))*
+                 (1.0-smoothstep(0.31,0.50,abs(uv.y)));
+    gl_FragColor=vec4(0.70,0.84,1.0,streak*uOpacity*vDepth*0.72);
+    #include <colorspace_fragment>
+  }
+`;
+
+function createAetherModule(THREE, options = {}) {
+  if (!THREE || !THREE.Group || !THREE.ShaderMaterial || !THREE.InstancedMesh) {
+    throw new Error('No.18 needs the Three.js r160 namespace.');
+  }
+  const root = new THREE.Group();
+  root.name = 'AF18_EtherweaveAtmosphere';
+  const ownedGeometry = [];
+  const ownedMaterials = [];
+  const skyRadius = Math.max(600, Number(options.skyRadius) || 1600);
+  const initialQuality = options.quality === 'high' ? 'high' : 'lite';
+  let quality = initialQuality;
+  let disposed = false;
+  let elapsed = 0;
+  let timeOfDay = Number.isFinite(options.timeOfDay) ? ((options.timeOfDay%24)+24)%24 : 16.6;
+  let autoCycle = !!options.autoCycle;
+  let dayLengthSeconds = Math.max(30, Number(options.dayLengthSeconds) || 240);
+  let weatherName = Object.hasOwn(WEATHER, options.weather) ? options.weather : 'clear';
+  let transitionSeconds = 0;
+  const weatherCurrent = { ...WEATHER[weatherName] };
+  let weatherTarget = { ...WEATHER[weatherName] };
+  let customWind = Number.isFinite(options.windSpeed) ? Math.max(0,options.windSpeed) : null;
+  let seaLevel = Number.isFinite(options.cloudSeaLevel) ? options.cloudSeaLevel : -120;
+  let cloudSeaEnabled = options.cloudSea !== false;
+  let lightningTimer = 3.5, flash = 0;
+  let seed = 18673;
+  function random(){ seed = (Math.imul(seed,1664525)+1013904223)>>>0; return seed/4294967296; }
+  function clamp(v,a,b){ return Math.min(b,Math.max(a,v)); }
+  function wrapHour(v){ return ((v%24)+24)%24; }
+  function smooth(a,b,x){ x=clamp((x-a)/(b-a),0,1); return x*x*(3-2*x); }
+  function rememberGeom(g){ ownedGeometry.push(g); return g; }
+  function rememberMat(m){ ownedMaterials.push(m); return m; }
+  const uniformSet = () => ({
+    uZenith:{value:new THREE.Color()},uUpper:{value:new THREE.Color()},
+    uHorizon:{value:new THREE.Color()},uGround:{value:new THREE.Color()},
+    uCloudColor:{value:new THREE.Color()},uSunColor:{value:new THREE.Color()},
+    uSunDirection:{value:new THREE.Vector3(0,1,-1).normalize()},
+    uDaylight:{value:1},uClouds:{value:0.2},uHaze:{value:0.1},
+    uDarkness:{value:0},uAurora:{value:0},uFlash:{value:0},
+    uTime:{value:0},uWind:{value:0.65}
+  });
+  const skyUniforms = uniformSet();
+  const skyMats = {
+    lite: rememberMat(new THREE.ShaderMaterial({
+      name:'AF18_Sky_Lite', uniforms:skyUniforms,
+      vertexShader:SKY_VERTEX,fragmentShader:SKY_FRAGMENT,
+      depthTest:false,depthWrite:false,side:THREE.BackSide,
+      fog:false,toneMapped:false
+    })),
+    high: rememberMat(new THREE.ShaderMaterial({
+      name:'AF18_Sky_High',uniforms:skyUniforms,
+      vertexShader:SKY_VERTEX,fragmentShader:SKY_FRAGMENT,
+      defines:{HIGH_QUALITY:1},depthTest:false,depthWrite:false,
+      side:THREE.BackSide,fog:false,toneMapped:false
+    }))
+  };
+  const sky = new THREE.Mesh(rememberGeom(new THREE.SphereGeometry(skyRadius,32,20)),skyMats[quality]);
+  sky.name='SkyDome_NoDepth_NoSceneMutation';
+  sky.frustumCulled=false;
+  sky.renderOrder=-1000;
+  root.add(sky);
+
+  // Cloud-ocean sheet, world-height anchored but X/Z follow observer.
+  const seaUniforms = {
+    uCloudColor:{value:new THREE.Color()},uShadowColor:{value:new THREE.Color()},
+    uTime:{value:0},uCoverage:{value:0.2},uWind:{value:1},uHaze:{value:0.1}
+  };
+  const seaMats = {
+    lite:rememberMat(new THREE.ShaderMaterial({name:'AF18_CloudOcean_Lite',
+      uniforms:seaUniforms,vertexShader:SEA_VERTEX,fragmentShader:SEA_FRAGMENT,
+      transparent:true,depthWrite:false,side:THREE.DoubleSide,fog:false,toneMapped:false})),
+    high:rememberMat(new THREE.ShaderMaterial({name:'AF18_CloudOcean_High',
+      uniforms:seaUniforms,vertexShader:SEA_VERTEX,fragmentShader:SEA_FRAGMENT,
+      defines:{HIGH_QUALITY:1},transparent:true,depthWrite:false,
+      side:THREE.DoubleSide,fog:false,toneMapped:false}))
+  };
+  const sea = new THREE.Mesh(rememberGeom(new THREE.PlaneGeometry(3000,3000,1,1)),seaMats[quality]);
+  sea.name='CloudOcean_Optional';
+  sea.rotation.x=-Math.PI/2;
+  sea.position.y=seaLevel;
+  sea.renderOrder=-10;
+  sea.frustumCulled=false;
+  sea.visible=cloudSeaEnabled;
+  root.add(sea);
+
+  // Horizon cloud sculptures, single draw call each via instanced geometry.
+  // Deliberately use MeshBasic: no dependency on host lighting/environment.
+  const cloudGeometry = rememberGeom(new THREE.IcosahedronGeometry(1,1));
+  const upperMat = rememberMat(new THREE.MeshBasicMaterial({
+    name:'AF18_CloudBillows',color:0xffffff,transparent:true,
+    opacity:0.7,depthWrite:false,fog:false,toneMapped:false
+  }));
+  const lowerMat = rememberMat(new THREE.MeshBasicMaterial({
+    name:'AF18_CloudUndersides',color:0x63758c,transparent:true,
+    opacity:0.37,depthWrite:false,fog:false,toneMapped:false
+  }));
+  const MAX_CLUSTERS = 64, LOBES = 4;
+  const clouds = new THREE.Group();
+  clouds.name='InstancedHorizonClouds';
+  const upperClouds = new THREE.InstancedMesh(cloudGeometry,upperMat,MAX_CLUSTERS*LOBES);
+  const lowerClouds = new THREE.InstancedMesh(cloudGeometry,lowerMat,MAX_CLUSTERS*LOBES);
+  upperClouds.frustumCulled=false; lowerClouds.frustumCulled=false;
+  upperClouds.renderOrder=-8; lowerClouds.renderOrder=-9;
+  upperClouds.name='UpperClouds_256InstancesMax';
+  lowerClouds.name='CloudShadows_256InstancesMax';
+  const dummy = new THREE.Object3D();
+  for(let cluster=0;cluster<MAX_CLUSTERS;cluster++){
+    const a = cluster*2.3999632297 + (random()-0.5)*0.55;
+    const rad = 345 + Math.sqrt(random())*1040;
+    const cx=Math.sin(a)*rad, cz=Math.cos(a)*rad;
+    const cy = 11 + random()*66;
+    const base=30 + random()*34;
+    for(let l=0;l<LOBES;l++){
+      const index=cluster*LOBES+l;
+      const side=(l-1.5)*base*0.78;
+      const rx=(random()-0.5)*base*0.55;
+      const rz=(random()-0.5)*base*1.2;
+      const sx=base*(1.06+random()*1.1);
+      const sy=base*(0.27+random()*0.22);
+      const sz=base*(0.62+random()*0.75);
+      dummy.position.set(cx+side+rx,cy+(random()-0.5)*base*0.12,cz+rz);
+      dummy.rotation.set(0,random()*TAU,0);
+      dummy.scale.set(sx,sy,sz);
+      dummy.updateMatrix();upperClouds.setMatrixAt(index,dummy.matrix);
+      dummy.position.y-=sy*0.26;
+      dummy.scale.set(sx*0.97,sy*0.76,sz*0.98);
+      dummy.updateMatrix();lowerClouds.setMatrixAt(index,dummy.matrix);
+    }
+  }
+  upperClouds.instanceMatrix.needsUpdate=true;
+  lowerClouds.instanceMatrix.needsUpdate=true;
+  clouds.add(lowerClouds,upperClouds);
+  root.add(clouds);
+
+  // GPU-animated precipitation. All point positions are static on CPU.
+  const RAIN_MAX = 1120;
+  const points = new Float32Array(RAIN_MAX*3);
+  for(let i=0;i<RAIN_MAX;i++){
+    points[3*i]=(random()-0.5)*112;
+    points[3*i+1]=random()*100;
+    points[3*i+2]=(random()-0.5)*112;
+  }
+  const rainGeometry=rememberGeom(new THREE.BufferGeometry());
+  rainGeometry.setAttribute('position',new THREE.BufferAttribute(points,3));
+  const rainUniforms={uTime:{value:0},uWind:{value:0},uSize:{value:8.5},uOpacity:{value:0}};
+  const rainMaterial=rememberMat(new THREE.ShaderMaterial({
+    name:'AF18_Precipitation',uniforms:rainUniforms,
+    vertexShader:RAIN_VERTEX,fragmentShader:RAIN_FRAGMENT,
+    transparent:true,depthWrite:false,depthTest:true,fog:false,toneMapped:false
+  }));
+  const rain = new THREE.Points(rainGeometry,rainMaterial);
+  rain.name='GPU_Rain';
+  rain.frustumCulled=false;
+  rain.renderOrder=150;
+  root.add(rain);
+
+  const palette = PALETTE.map(row => ({
+    hour:row[0],
+    colors:row.slice(1).map(color => new THREE.Color(color))
+  }));
+  const blended = Array.from({length:6},()=>new THREE.Color());
+  const stormTint = [new THREE.Color('#102038'),new THREE.Color('#29374c'),
+                     new THREE.Color('#60707d'),new THREE.Color('#384456')];
+  const localCamera = new THREE.Vector3();
+  const worldCamera = new THREE.Vector3();
+  const sunDirection = skyUniforms.uSunDirection.value;
+  let daylight = 1;
+  function evaluateAtmosphere(){
+    let idx=0;
+    while(idx<palette.length-2 && timeOfDay>palette[idx+1].hour)idx++;
+    const a=palette[idx],b=palette[idx+1];
+    const t=smooth(a.hour,b.hour,timeOfDay);
+    for(let k=0;k<6;k++)blended[k].copy(a.colors[k]).lerp(b.colors[k],t);
+    for(let k=0;k<4;k++)blended[k].lerp(stormTint[k],weatherCurrent.dark*(k===2?0.57:0.72));
+    const angle = (timeOfDay-6)*Math.PI/12;
+    sunDirection.set(Math.cos(angle)*0.70,Math.sin(angle),-0.72).normalize();
+    daylight = smooth(-0.16,0.27,sunDirection.y);
+    const skyU=skyUniforms;
+    skyU.uZenith.value.copy(blended[0]);
+    skyU.uUpper.value.copy(blended[1]);
+    skyU.uHorizon.value.copy(blended[2]);
+    skyU.uGround.value.copy(blended[3]);
+    skyU.uCloudColor.value.copy(blended[4]);
+    skyU.uSunColor.value.copy(blended[5]);
+    skyU.uDaylight.value=daylight;
+    skyU.uClouds.value=weatherCurrent.clouds;
+    skyU.uHaze.value=weatherCurrent.haze;
+    skyU.uDarkness.value=weatherCurrent.dark;
+    skyU.uAurora.value=weatherCurrent.aurora;
+    skyU.uFlash.value=flash;
+    const wind = customWind??weatherCurrent.wind;
+    skyU.uWind.value=wind;
+    skyU.uTime.value=elapsed;
+    seaUniforms.uCloudColor.value.copy(blended[4]);
+    seaUniforms.uShadowColor.value.copy(blended[1]).lerp(blended[3],0.44);
+    seaUniforms.uTime.value=elapsed;
+    seaUniforms.uCoverage.value=weatherCurrent.clouds;
+    seaUniforms.uWind.value=wind;
+    seaUniforms.uHaze.value=weatherCurrent.haze;
+    upperMat.color.copy(blended[4]).lerp(blended[1],weatherCurrent.dark*0.35);
+    lowerMat.color.copy(blended[1]).lerp(blended[3],0.45);
+    upperMat.opacity=0.46+weatherCurrent.clouds*0.36;
+    lowerMat.opacity=0.23+weatherCurrent.clouds*0.20;
+    const maxClouds=(quality==='high'?MAX_CLUSTERS:23)*LOBES;
+    const count=Math.max(LOBES*8,Math.floor(maxClouds*(0.46+weatherCurrent.clouds*0.54)/LOBES)*LOBES);
+    upperClouds.count=count;lowerClouds.count=count;
+    rain.visible=weatherCurrent.rain>0.025;
+    rainUniforms.uOpacity.value=weatherCurrent.rain;
+    rainUniforms.uTime.value=elapsed;
+    rainUniforms.uWind.value=wind;
+    rainUniforms.uSize.value=quality==='high'?11.2:8.0;
+  }
+
+  function setQuality(mode){
+    if(disposed) return;
+    quality = mode === 'high'?'high':'lite';
+    sky.material=skyMats[quality];
+    sea.material=seaMats[quality];
+    rainGeometry.setDrawRange(0,quality==='high'?RAIN_MAX:380);
+    evaluateAtmosphere();
+  }
+  function setWeather(name,seconds=2.0){
+    if(disposed) return false;
+    if(!Object.hasOwn(WEATHER,name))return false;
+    weatherName=name;
+    weatherTarget={...WEATHER[name]};
+    transitionSeconds=Math.max(0,Number(seconds)||0);
+    if(transitionSeconds===0)Object.assign(weatherCurrent,weatherTarget);
+    evaluateAtmosphere();
+    return true;
+  }
+  function setTimeOfDay(hour){
+    if(disposed || !Number.isFinite(Number(hour)))return;
+    timeOfDay=wrapHour(Number(hour));
+    evaluateAtmosphere();
+  }
+  function setAutoCycle(enabled,daySeconds){
+    autoCycle=!!enabled;
+    if(Number.isFinite(daySeconds)&&daySeconds>=30)dayLengthSeconds=daySeconds;
+  }
+  function setCloudSeaLevel(height){
+    if(!Number.isFinite(height))return;
+    seaLevel=height;
+    sea.position.y=seaLevel;
+    clouds.position.y=seaLevel;
+  }
+  function setCloudSeaEnabled(enabled){
+    cloudSeaEnabled=!!enabled;
+    sea.visible=cloudSeaEnabled;
+    clouds.visible=cloudSeaEnabled;
+  }
+  function setWindSpeed(speed){
+    customWind=speed==null?null:clamp(Number(speed)||0,0,8);
+    evaluateAtmosphere();
+  }
+  function update(dt=0,context={}){
+    if(disposed)return;
+    if(!Number.isFinite(dt))dt=0;
+    dt=clamp(dt,0,0.10);
+    elapsed+=dt;
+    if(context && Number.isFinite(context.timeOfDay))timeOfDay=wrapHour(context.timeOfDay);
+    else if(autoCycle)timeOfDay=wrapHour(timeOfDay+dt*24/dayLengthSeconds);
+    if(context && typeof context.weather === 'string' && context.weather!==weatherName){
+      setWeather(context.weather,2);
+    }
+    if(context && Number.isFinite(context.windSpeed))customWind=clamp(context.windSpeed,0,8);
+    if(transitionSeconds>0){
+      const a=1-Math.exp(-dt*3.0/transitionSeconds);
+      let maxDelta=0;
+      for(const k in weatherCurrent){
+        weatherCurrent[k]+=(weatherTarget[k]-weatherCurrent[k])*a;
+        maxDelta=Math.max(maxDelta,Math.abs(weatherTarget[k]-weatherCurrent[k]));
+      }
+      if(maxDelta<0.001){Object.assign(weatherCurrent,weatherTarget);transitionSeconds=0;}
+    }
+    if(weatherCurrent.rain>0.90 && weatherCurrent.dark>0.43){
+      lightningTimer-=dt;
+      if(lightningTimer<=0){
+        flash=0.6+random()*0.33;
+        lightningTimer=3.8+random()*9.0;
+      }
+    }else lightningTimer=Math.max(lightningTimer,1.5);
+    flash*=Math.exp(-dt*10.0);
+    const camera=context?.camera??options.camera;
+    if(camera && camera.isCamera){
+      camera.getWorldPosition(worldCamera);
+      root.updateWorldMatrix(true,false);
+      localCamera.copy(worldCamera);
+      root.worldToLocal(localCamera);
+      sky.position.copy(localCamera);
+      sea.position.x=localCamera.x;
+      sea.position.z=localCamera.z;
+      clouds.position.x=localCamera.x;
+      clouds.position.z=localCamera.z;
+      rain.position.copy(localCamera);
+    }
+    const wind=customWind??weatherCurrent.wind;
+    clouds.rotation.y=Math.sin(elapsed*0.0014*wind)*0.026;
+    evaluateAtmosphere();
+  }
+  function getState(){
+    return {
+      timeOfDay,weather:weatherName,quality,autoCycle,
+      cloudSeaLevel:seaLevel,cloudSeaEnabled,
+      windSpeed:customWind??weatherCurrent.wind,
+      rainIntensity:weatherCurrent.rain,cloudiness:weatherCurrent.clouds,
+      daylight,lightning:flash
+    };
+  }
+  function getLightingHint(){
+    return {
+      sunDirection:sunDirection.clone(),
+      sunColor:blended[5].clone(),
+      ambientColor:blended[1].clone(),
+      daylight,
+      suggestedSunIntensity:0.15+daylight*1.35*(1-weatherCurrent.dark*0.55)
+    };
+  }
+  function dispose(){
+    if(disposed)return;
+    disposed=true;
+    if(root.parent)root.parent.remove(root);
+    if(typeof upperClouds.dispose === 'function') upperClouds.dispose();
+    if(typeof lowerClouds.dispose === 'function') lowerClouds.dispose();
+    for(const geometry of ownedGeometry)geometry.dispose();
+    for(const material of ownedMaterials)material.dispose();
+    root.clear();
+  }
+  setCloudSeaLevel(seaLevel);
+  setCloudSeaEnabled(cloudSeaEnabled);
+  setQuality(quality);
+  update(0,{camera:options.camera});
+  return {root,update,setQuality,dispose,setWeather,setTimeOfDay,
+    setAutoCycle,setCloudSeaLevel,setCloudSeaEnabled,setWindSpeed,
+    getState,getLightingHint};
+}
+
+// ===== END EMBEDDED INTEGRATION MODULE =====
+
+// The following scene is a DEMO ONLY and not part of the integration module.
+const THREEQuality = matchMedia('(max-width: 750px)').matches ? 'lite' : 'high';
+let quality=THREEQuality;
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,0.08,3400);
+const renderer=new THREE.WebGLRenderer({antialias:!matchMedia('(max-width: 750px)').matches,alpha:false,powerPreference:'high-performance'});
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.25;
+renderer.setPixelRatio(Math.min(devicePixelRatio,quality==='high'?1.65:1.16));
+renderer.setSize(innerWidth,innerHeight,false);
+renderer.domElement.setAttribute('aria-label','空と天候の3Dデモ。ドラッグでカメラを動かす');
+document.body.prepend(renderer.domElement);
+
+const sky=createAetherModule(THREE,{
+  timeOfDay:17.4,weather:'clear',quality,
+  cloudSeaLevel:-70,cloudSea:true,dayLengthSeconds:230
+});
+scene.add(sky.root);
+const ambient=new THREE.HemisphereLight(0xbfe8ff,0x354052,0.95);
+scene.add(ambient);
+const sunlight=new THREE.DirectionalLight(0xffe4c1,1.4);
+scene.add(sunlight);
+const demoRoot=new THREE.Group();
+demoRoot.name='DemoOnly_FloatingAetherObservatory';
+scene.add(demoRoot);
+const material=(color,metalness=0.15,roughness=0.74)=>new THREE.MeshStandardMaterial({color,metalness,roughness});
+const darkStone=material('#172739',0.32,0.75);
+const stone=material('#36485b',0.22,0.73);
+const lightStone=material('#6c7886',0.18,0.64);
+const gold=material('#a18d67',0.80,0.30);
+const glow=new THREE.MeshBasicMaterial({color:0x83f6f0});
+const ember=new THREE.MeshBasicMaterial({color:0xffd9a2});
+function mesh(geometry,mat,parent=demoRoot,x=0,y=0,z=0){const m=new THREE.Mesh(geometry,mat);m.position.set(x,y,z);parent.add(m);return m;}
+function cylinder(r1,r2,h,mat,x,y,z,n=10){return mesh(new THREE.CylinderGeometry(r1,r2,h,n),mat,demoRoot,x,y,z);}
+// Silhouette only. Actual gameplay terrain is owned by other teams.
+const island=mesh(new THREE.IcosahedronGeometry(24,1),darkStone,demoRoot,0,5,0);
+island.scale.set(1.18,0.40,1.0);
+const rockTip=mesh(new THREE.ConeGeometry(15,37,7),darkStone,demoRoot,0,-10,0);
+rockTip.rotation.z=Math.PI;
+cylinder(23,23,3.8,stone,0,17,0,12);
+cylinder(20.5,21,0.8,lightStone,0,19.3,0,12);
+cylinder(17.6,17.6,0.32,gold,0,19.8,0,48);
+const edgeRing=mesh(new THREE.TorusGeometry(22.5,0.33,6,72),gold,demoRoot,0,20.3,0);
+edgeRing.rotation.x=Math.PI/2;
+const innerRing=mesh(new THREE.TorusGeometry(17.7,0.15,4,72),glow,demoRoot,0,19.9,0);
+innerRing.rotation.x=Math.PI/2;
+// Crown-shaped observatory with floating aether rings.
+cylinder(5.6,7.2,9,stone,0,24.5,0,8);
+cylinder(2.5,4.2,22,darkStone,0,38.5,0,8);
+cylinder(4.2,3.6,2.1,gold,0,49.7,0,8);
+const crest=mesh(new THREE.OctahedronGeometry(4.1,0),glow,demoRoot,0,57,0);
+const crestInner=mesh(new THREE.OctahedronGeometry(2.2,0),ember,demoRoot,0,57,0);
+const orbitalRing=mesh(new THREE.TorusGeometry(8.5,0.21,7,90),gold,demoRoot,0,57,0);
+orbitalRing.rotation.y=0.3;
+const orbitalRing2=mesh(new THREE.TorusGeometry(11.6,0.12,6,100),glow,demoRoot,0,57,0);
+orbitalRing2.rotation.x=1.0;
+const energyBeam=mesh(new THREE.CylinderGeometry(0.11,0.35,23,7),new THREE.MeshBasicMaterial({color:0x5dd9e0,transparent:true,opacity:0.38,depthWrite:false}),demoRoot,0,39,0);
+// Four pylons and suspended translucent crystals.
+for(let k=0;k<8;k++){
+ const a=k*TAU/8;
+ const x=Math.sin(a)*14.1,z=Math.cos(a)*14.1;
+ cylinder(k%2?0.65:0.9,k%2?0.85:1.2,k%2?5:10,k%2?stone:lightStone,x,k%2?22:24.7,z,6);
+ mesh(new THREE.ConeGeometry(k%2?1.0:1.5,k%2?2.6:3.6,6),gold,demoRoot,x,k%2?26.2:31.5,z);
+ if(k%2===0)mesh(new THREE.OctahedronGeometry(0.8,0),glow,demoRoot,x,33.4,z);
+}
+// A few far-floating outcrops to establish scale; not included in export.
+for(let i=0;i<11;i++){
+ const a=i*2.39996+0.23;
+ const rad=190+(i%4)*57;
+ const x=Math.sin(a)*rad,z=Math.cos(a)*rad;
+ const y=8+(i%5)*11;
+ const g=new THREE.Group();g.position.set(x,y,z);demoRoot.add(g);
+ const rock=mesh(new THREE.IcosahedronGeometry(17+(i%3)*7,0),i%2?darkStone:stone,g);
+ rock.scale.set(1.45,.35,1.05);
+ const under=mesh(new THREE.ConeGeometry(10+(i%3)*5,18+(i%3)*4,6),darkStone,g,0,-12,0);under.rotation.z=Math.PI;
+ if(i%2===0){
+   mesh(new THREE.CylinderGeometry(1.3,2.0,18,6),stone,g,0,16,0);
+   mesh(new THREE.ConeGeometry(2.8,0.3,7,6),glow,g,0,29,0);
+ }
+}
+
+const controls=document.getElementById('controls');
+const timeSlider=document.getElementById('timeSlider');
+const clockNode=document.getElementById('clock');
+const phaseNode=document.getElementById('phase');
+const autoBtn=document.getElementById('autoBtn');
+const seaBtn=document.getElementById('seaBtn');
+const liteBtn=document.getElementById('liteBtn');
+const highBtn=document.getElementById('highBtn');
+let auto=false;
+let seaOn=true;
+let weather='clear';
+let orbitTheta=0.63,orbitPhi=1.29,orbitRadius=176;
+const target=new THREE.Vector3(0,27,0);
+function setOrbit(){
+ camera.position.set(target.x+Math.sin(orbitPhi)*Math.sin(orbitTheta)*orbitRadius,
+                     target.y+Math.cos(orbitPhi)*orbitRadius,
+                     target.z+Math.sin(orbitPhi)*Math.cos(orbitTheta)*orbitRadius);
+ camera.lookAt(target);
+}
+setOrbit();
+let dragging=false,lastX=0,lastY=0,lastInteraction=0;
+const activePointers=new Map();
+let pinchDistance=0;
+const canvas=renderer.domElement;
+canvas.addEventListener('pointerdown',e=>{
+ canvas.setPointerCapture(e.pointerId);
+ activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ if(activePointers.size===1){dragging=true;lastX=e.clientX;lastY=e.clientY;}
+ if(activePointers.size===2){const [a,b]=[...activePointers.values()];pinchDistance=Math.hypot(a.x-b.x,a.y-b.y);dragging=false;}
+ lastInteraction=performance.now();
+});
+canvas.addEventListener('pointermove',e=>{
+ if(!activePointers.has(e.pointerId))return;
+ activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ if(activePointers.size===2){
+  const [a,b]=[...activePointers.values()];
+  const d=Math.hypot(a.x-b.x,a.y-b.y);
+  if(pinchDistance>1)orbitRadius=Math.min(475,Math.max(72,orbitRadius*(pinchDistance/d)));
+  pinchDistance=d;
+ }else if(dragging){
+  const dx=e.clientX-lastX,dy=e.clientY-lastY;
+  orbitTheta-=dx*0.005;
+  orbitPhi=Math.min(2.37,Math.max(0.28,orbitPhi+dy*0.004));
+  lastX=e.clientX;lastY=e.clientY;
+ }
+ lastInteraction=performance.now();
+});
+function releasePointer(e){activePointers.delete(e.pointerId);if(activePointers.size===0){dragging=false;pinchDistance=0;}else if(activePointers.size===1){const p=[...activePointers.values()][0];dragging=true;lastX=p.x;lastY=p.y;}}
+canvas.addEventListener('pointerup',releasePointer);
+canvas.addEventListener('pointercancel',releasePointer);
+canvas.addEventListener('wheel',e=>{e.preventDefault();orbitRadius=Math.min(475,Math.max(72,orbitRadius+e.deltaY*0.12));lastInteraction=performance.now();},{passive:false});
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+function describeTime(h){
+ if(h<4.7)return ['DEEP NIGHT','深夜'];
+ if(h<6.3)return ['FIRST LIGHT','夜明け'];
+ if(h<8)return ['MORNING','朝焼け'];
+ if(h<16.2)return ['DAYLIGHT','青空'];
+ if(h<18.4)return ['GOLDEN HOUR','夕焼け'];
+ if(h<19.6)return ['BLUE HOUR','薄暮'];
+ return ['STARLIGHT','星空'];
+}
+function refreshClock(){
+ const h=sky.getState().timeOfDay;
+ let minutes=Math.round(h*60)%1440;
+ clockNode.textContent=String(Math.floor(minutes/60)).padStart(2,'0')+':'+String(minutes%60).padStart(2,'0');
+ const phase=describeTime(h);
+ phaseNode.textContent=phase[0]+' / '+phase[1];
+ if(!timeSlider.matches(':active'))timeSlider.value=String(h);
+}
+function refreshQuality(){
+ liteBtn.classList.toggle('active',quality==='lite');
+ highBtn.classList.toggle('active',quality==='high');
+ renderer.setPixelRatio(Math.min(devicePixelRatio,quality==='high'?1.65:1.16));
+ renderer.setSize(innerWidth,innerHeight,false);
+ sky.setQuality(quality);
+ document.getElementById('status').textContent=weather.toUpperCase()+' / '+quality.toUpperCase();
+}
+liteBtn.addEventListener('click',()=>{quality='lite';refreshQuality();});
+highBtn.addEventListener('click',()=>{quality='high';refreshQuality();});
+seaBtn.addEventListener('click',()=>{
+ seaOn=!seaOn;sky.setCloudSeaEnabled(seaOn);
+ seaBtn.textContent=seaOn?'雲海 ON':'雲海 OFF';seaBtn.classList.toggle('active',seaOn);
+ seaBtn.setAttribute('aria-pressed',String(seaOn));
+});
+autoBtn.addEventListener('click',()=>{
+ auto=!auto;sky.setAutoCycle(auto,230);
+ autoBtn.textContent='自動再生 '+(auto?'ON':'OFF');autoBtn.classList.toggle('active',auto);
+ autoBtn.setAttribute('aria-pressed',String(auto));
+});
+document.getElementById('resetBtn').addEventListener('click',()=>{
+ orbitTheta=0.63;orbitPhi=1.29;orbitRadius=176;setOrbit();
+});
+timeSlider.addEventListener('input',e=>{
+ auto=false;sky.setAutoCycle(false);
+ autoBtn.textContent='自動再生 OFF';autoBtn.classList.remove('active');autoBtn.setAttribute('aria-pressed','false');
+ sky.setTimeOfDay(Number(e.target.value));refreshClock();
+});
+document.querySelectorAll('[data-weather]').forEach(btn=>{
+ btn.addEventListener('click',()=>{
+   weather=btn.dataset.weather;sky.setWeather(weather,1.5);
+   for(const el of document.querySelectorAll('[data-weather]')){
+     const selected=el===btn;el.classList.toggle('active',selected);el.setAttribute('aria-pressed',String(selected));
+   }
+   if(weather==='aurora'){
+     sky.setTimeOfDay(22.4);auto=false;sky.setAutoCycle(false);
+     autoBtn.textContent='自動再生 OFF';autoBtn.classList.remove('active');autoBtn.setAttribute('aria-pressed','false');
+   }
+   document.getElementById('status').textContent=weather.toUpperCase()+' / '+quality.toUpperCase();
+   refreshClock();
+ });
+});
+function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight,false);}
+addEventListener('resize',resize);
+refreshClock();refreshQuality();
+let last=performance.now(),acc=0,frames=0, fpsSmooth=0;
+function animate(now){
+  requestAnimationFrame(animate);
+  const dt=Math.min(0.1,Math.max(0,(now-last)/1000));last=now;
+  // Cinematic orbit pauses while the user manipulates the camera.
+  if(now-lastInteraction>5000 && !dragging){orbitTheta+=dt*0.012;}
+  setOrbit();
+  const hint=sky.getLightingHint();
+  sunlight.position.copy(hint.sunDirection).multiplyScalar(150);
+  sunlight.color.copy(hint.sunColor);
+  sunlight.intensity=hint.suggestedSunIntensity;
+  ambient.color.copy(hint.ambientColor);
+  ambient.intensity=0.65+hint.daylight*0.34;
+  orbitalRing.rotation.z+=dt*0.095;
+  orbitalRing2.rotation.y+=dt*0.09;
+  crest.rotation.y+=dt*0.24;
+  crest.position.y=57+Math.sin(now*.0015)*0.52;
+  sky.update(dt,{camera});
+  renderer.render(scene,camera);
+  frames++;acc+=dt;
+  if(acc>=0.65){
+    const fps=frames/acc;
+    fpsSmooth=fpsSmooth===0?fps:fpsSmooth*0.66+fps*0.34;
+    document.getElementById('fps').textContent='FPS '+fpsSmooth.toFixed(0)+' · 参考値';
+    frames=0;acc=0;refreshClock();
+  }
+}
+requestAnimationFrame(animate);
+requestAnimationFrame(()=>{
+ const loading=document.getElementById('loading');loading.classList.add('hidden');
+ setTimeout(()=>loading.remove(),800);
+});
+</script>
+</body>
+</html>

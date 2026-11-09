@@ -1,0 +1,802 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#071624"/><meta name="description" content="AETHER FRONTIER No.08 standalone playable magitech aircraft demo"/>
+<title>AETHER FRONTIER | LUMEN KESTREL | No.08</title><style>:root{color-scheme:dark;--bg:#071624;--panel:rgba(7,23,38,.70);--line:rgba(113,205,222,.30);--cyan:#8feefa;--warm:#f2c78c;--muted:#86aabf;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:#e6f6ff;touch-action:none;overscroll-behavior:none}button{font:inherit;cursor:pointer;color:inherit;border:0;-webkit-tap-highlight-color:transparent}button:focus-visible{outline:2px solid var(--warm);outline-offset:3px}
+#scene,canvas{position:fixed;inset:0;width:100%;height:100%;display:block}#scene{touch-action:none}#scene:after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 52%,transparent 36%,rgba(4,13,26,.30) 100%)}
+.ui{position:fixed;pointer-events:none;z-index:10}.ui button,.ui .clickable{pointer-events:auto}.topbar{top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:21px max(23px,env(safe-area-inset-right)) 0 max(23px,env(safe-area-inset-left));gap:20px}.brand{display:flex;gap:11px;align-items:center;min-width:225px}.logo{width:35px;height:35px;border:1px solid var(--warm);transform:rotate(45deg);position:relative;flex-shrink:0}.logo:before{content:"";position:absolute;inset:8px;border:1px solid var(--cyan)}.logo:after{content:"";position:absolute;left:14px;top:3px;width:4px;height:27px;background:var(--warm)}.brandname{letter-spacing:.19em;font-size:13px;font-weight:800;line-height:1.25}.brandsub{font-size:9px;color:#98bac9;letter-spacing:.25em;margin-top:3px}.topcenter{text-align:center;min-width:225px}.tinylabel{font-size:10px;letter-spacing:.3em;color:var(--muted)}.flighttarget{font-size:15px;font-weight:700;letter-spacing:.15em;margin-top:3px;color:#efffff}.topactions{display:flex;gap:7px;justify-content:flex-end}.chip{font-size:10px;letter-spacing:.09em;min-width:64px;padding:9px 10px;border:1px solid rgba(162,219,222,.40);border-radius:3px;background:rgba(4,16,28,.65);backdrop-filter:blur(8px)}.chip:hover{border-color:var(--warm);background:rgba(14,43,59,.76)}.chip.is-on{color:#102d37;background:#f3c786}.keycap{font-size:9px;opacity:.65;margin-left:4px}
+#reticle{top:50%;left:50%;width:30px;height:30px;transform:translate(-50%,-50%);opacity:.55}#reticle:before,#reticle:after{content:"";position:absolute;background:#bce9ec}#reticle:before{height:1px;width:30px;left:0;top:14px}#reticle:after{width:1px;height:30px;left:14px;top:0}#reticle b{position:absolute;left:9px;top:9px;border:1px solid #e3c799;border-radius:50%;width:12px;height:12px}
+.leftpanel{left:26px;bottom:35px;width:229px;padding:15px 18px 13px;background:linear-gradient(110deg,rgba(4,25,41,.89),rgba(4,25,41,.33));border-left:2px solid var(--warm);backdrop-filter:blur(7px)}.section-id{font-size:9px;letter-spacing:.3em;color:var(--warm)}.bigvalue{display:flex;align-items:baseline;gap:10px;margin:4px 0}.bigvalue strong{font-variant-numeric:tabular-nums;font-size:55px;line-height:1.1;letter-spacing:-.045em;font-weight:320}.bigvalue span{font-size:11px;letter-spacing:.08em;color:var(--muted)}.splitstats{display:flex;border-top:1px solid var(--line);padding-top:10px;margin-top:5px;justify-content:space-between}.splitstats strong{font-size:19px;font-weight:500;font-variant-numeric:tabular-nums}.splitstats small{display:block;letter-spacing:.18em;font-size:8px;color:var(--muted);margin-top:2px}.charge{height:5px;background:rgba(92,135,157,.25);margin-top:16px;overflow:hidden}.chargebar{height:100%;width:100%;background:linear-gradient(90deg,#4488be,#66edf6);transition:width .15s}.chargelabel{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.13em;color:#b4d6df;margin-top:5px}.odometer{margin-top:11px;font-size:10px;color:#94b9c5;letter-spacing:.10em}.odometer b{color:white;font-size:12px}
+.rightpanel{right:26px;bottom:34px;text-align:right;max-width:280px;text-shadow:0 2px 6px #001}.rightpanel .section-id{color:var(--cyan)}.shipname{font-size:25px;letter-spacing:.12em;font-weight:650}.shipvariant{font-size:11px;letter-spacing:.13em;color:var(--muted);margin:2px 0 12px}.rightpanel .foot{font-size:10px;letter-spacing:.2em;color:#aacbd2;line-height:1.9}.rightpanel .dim{color:#79a8be}
+.bottomcenter{left:50%;bottom:30px;transform:translateX(-50%);text-align:center}.progress{display:flex;justify-content:center;gap:7px}.step{width:38px;height:34px;display:grid;place-items:center;border:1px solid rgba(132,194,205,.30);font-size:10px;color:#779fb3;background:rgba(6,23,33,.56);font-variant-numeric:tabular-nums;transform:skew(-9deg)}.step.active{border-color:var(--warm);background:rgba(137,98,52,.26);color:#ffe5b5;box-shadow:0 0 17px rgba(242,193,127,.16)}.step.done{color:#a3fcff;border-color:rgba(95,231,236,.5)}.progresslabel{font-size:10px;letter-spacing:.19em;color:#9abcc9;margin-top:9px}
+#target-pin{top:50%;left:50%;z-index:8;transform:translate(-50%,-50%);color:#fbe3af;text-align:center;text-shadow:0 2px 6px #101c27;font-variant-numeric:tabular-nums}#target-pin .diamond{font-size:19px;line-height:1}#target-pin .dist{font-size:9px;letter-spacing:.12em;white-space:nowrap;margin-top:3px}#target-pin.hidden{display:none}
+#gate-notice{left:50%;top:24%;transform:translate(-50%,-8px);width:max-content;max-width:87%;border:1px solid rgba(234,196,133,.60);background:rgba(11,28,40,.82);padding:14px 27px;color:#f7dba7;text-align:center;font-size:14px;letter-spacing:.14em;opacity:0;transition:opacity .28s,transform .28s;backdrop-filter:blur(11px)}#gate-notice.show{opacity:1;transform:translate(-50%,0)}
+.overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(125deg,rgba(4,15,26,.91),rgba(5,25,45,.59) 60%,rgba(10,19,28,.76));z-index:40;padding:20px}.overlay.hidden{display:none}.splashcard{width:min(550px,100%);padding:38px 40px 35px;border:1px solid rgba(146,215,225,.28);border-top:2px solid var(--warm);background:rgba(5,21,34,.89);box-shadow:0 20px 90px rgba(0,0,0,.55);backdrop-filter:blur(14px)}.eyebrow{font-size:10px;letter-spacing:.28em;color:var(--warm);font-weight:600}.splashcard h1{font-size:42px;letter-spacing:.15em;line-height:1.1;font-weight:650;margin:15px 0 4px}.jpname{font-size:14px;color:var(--cyan);letter-spacing:.22em}.description{font-size:13px;line-height:1.8;color:#bdd1da;margin:22px 0 20px}.specs{display:flex;justify-content:space-between;gap:12px;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:10px;letter-spacing:.12em;color:#9dc3cb}.specs b{display:block;font-size:15px;color:#e8f9ff;margin-bottom:4px}.controlnote{font-size:11px;color:#8eadba;line-height:1.9;margin:18px 0 23px}.primary{display:block;width:100%;padding:15px;font-weight:750;font-size:12px;letter-spacing:.28em;background:linear-gradient(90deg,#f0bc7f,#f6daa9);color:#152735;box-shadow:0 4px 25px rgba(237,188,128,.20)}.primary:hover{filter:brightness(1.09)}.subnote{font-size:10px;color:#658d9e;text-align:center;margin-top:13px}
+.mobile-controls{display:none;pointer-events:none;position:fixed;bottom:0;left:0;right:0;z-index:19;align-items:end;justify-content:space-between;padding:0 max(12px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));gap:12px}.stick-area{display:flex;flex-direction:column;align-items:center;gap:7px}.stick-title{font-size:9px;letter-spacing:.12em;color:#bfe3ed;text-shadow:0 1px 4px black}.stick-pad{width:118px;height:118px;border-radius:50%;border:1px solid rgba(138,229,237,.42);background:radial-gradient(circle,rgba(56,151,180,.1) 0 25%,rgba(6,33,54,.54) 70%);display:grid;place-items:center;position:relative;touch-action:none;pointer-events:auto}.stick-pad:before,.stick-pad:after{content:"";position:absolute;opacity:.2;background:var(--cyan)}.stick-pad:before{width:1px;height:100%}.stick-pad:after{height:1px;width:100%}.stick-knob{width:48px;height:48px;border:1px solid var(--cyan);border-radius:50%;background:rgba(44,117,151,.7);box-shadow:0 0 17px rgba(56,172,221,.22);pointer-events:none}.stick-pad.engaged{border-color:var(--warm)}.mobile-actions{display:flex;flex-direction:column;gap:8px;pointer-events:auto;padding-bottom:24px}.touchbutton{width:82px;min-height:47px;border:1px solid rgba(129,213,234,.50);background:rgba(7,34,54,.73);font-size:10px;letter-spacing:.12em;font-weight:700}.touchbutton.is-on{background:rgba(196,153,84,.82);color:#152835;border-color:var(--warm)}
+@media(max-width:1080px){.topcenter{display:none}.topbar{padding-top:15px}.brand{min-width:170px}.rightpanel{bottom:35px}.leftpanel{bottom:34px}.bottomcenter{bottom:39px}.step{width:30px;height:30px}}
+@media(pointer:coarse){.mobile-controls{display:flex}.leftpanel{left:15px;bottom:170px;width:170px;padding:9px 11px}.bigvalue strong{font-size:39px}.bigvalue{margin:0}.splitstats{padding-top:6px}.splitstats strong{font-size:15px}.charge{margin-top:9px}.rightpanel{right:14px;bottom:185px}.rightpanel .shipname{font-size:17px}.rightpanel .foot,.rightpanel .shipvariant{display:none}.bottomcenter{bottom:175px}.step{width:25px;height:24px;font-size:8px}.progresslabel{display:none}.topbar{padding-top:max(10px,env(safe-area-inset-top))}.brandname{font-size:10px}.brandsub{font-size:7px}.logo{width:25px;height:25px}.logo:before{inset:5px}.logo:after{left:10px;top:2px;width:3px;height:20px}.chip{min-width:43px;padding:8px 5px;font-size:9px}.keycap{display:none}.topactions{gap:5px}.splashcard{padding:22px}.splashcard h1{font-size:31px}.description{margin:13px 0}.specs{padding:9px 0}.controlnote{margin:8px 0 13px}.primary{padding:13px}.subnote{margin-top:7px}}
+@media(max-width:430px){.mobile-actions{gap:6px}.touchbutton{width:63px;min-height:41px;font-size:9px}.stick-pad{width:105px;height:105px}.stick-knob{width:41px;height:41px}.leftpanel{bottom:155px}.rightpanel{bottom:170px}.bottomcenter{bottom:160px}.splashcard h1{font-size:26px}.description{font-size:12px}.specs{font-size:8px}.specs b{font-size:12px}}
+@media(max-height:620px) and (pointer:coarse){.leftpanel{bottom:128px}.rightpanel{bottom:144px}.bottomcenter{bottom:129px}.mobile-actions{padding-bottom:9px}.stick-pad{width:95px;height:95px}.touchbutton{min-height:38px}.splashcard{max-height:98vh;overflow:auto}.splashcard h1{margin:8px 0}}
+</style></head><body>
+<div id="scene"></div>
+<header class="topbar ui">
+  <div class="brand"><div class="logo" aria-hidden="true"></div><div><div class="brandname">AETHER FRONTIER</div><div class="brandsub">FLIGHT SYSTEM // NO.08</div></div></div>
+  <div class="topcenter"><div class="tinylabel">NAVIGATION OBJECTIVE</div><div id="target-label" class="flighttarget">飛行ゲート 01 / 06</div></div>
+  <nav class="topactions" aria-label="デモ操作">
+    <button class="chip" type="button" data-action="view"><span id="view-label">TPS</span><span class="keycap">V</span></button>
+    <button class="chip" type="button" data-action="quality"><span id="quality-label">HIGH</span><span class="keycap">1/2</span></button>
+    <button class="chip" id="auto-button" type="button" data-action="auto"><span id="auto-label">AUTO OFF</span><span class="keycap">P</span></button>
+    <button class="chip" type="button" data-action="restart" title="最初からやり直す">RESET<span class="keycap">X</span></button>
+  </nav>
+</header>
+<div id="reticle" class="ui" aria-hidden="true"><b></b></div>
+<div id="target-pin" class="ui"><div class="diamond">◇</div><div class="dist" id="target-distance">GATE</div></div>
+<aside class="leftpanel ui" aria-label="機体の状態">
+  <div class="section-id">FLIGHT TELEMETRY</div><div class="bigvalue"><strong id="speed">000</strong><span>KM / H</span></div>
+  <div class="splitstats"><div><strong id="altitude">18</strong><small>ALTITUDE / M</small></div><div style="text-align:right"><strong id="fps">60</strong><small>RENDER / FPS</small></div></div>
+  <div class="charge"><div id="energy-bar" class="chargebar"></div></div><div class="chargelabel"><span>AETHER RESERVE</span><span>BOOST</span></div>
+  <div class="odometer">TRAVELLED&nbsp;&nbsp;<b id="distance">0</b> m</div>
+</aside>
+<div class="bottomcenter ui"><div id="progress" class="progress"></div><div class="progresslabel">SIX-GATE ASCENSION TRIAL</div></div>
+<aside class="rightpanel ui"><div class="section-id">VEHICLE CLASS // SCOUT</div><div class="shipname">LUMEN KESTREL</div><div class="shipvariant" id="tier">MK-I / SCOUT</div><div class="foot">TWIN AETHER DRIVE · ADAPTIVE WINGS<br/><span class="dim">+Y UP &nbsp; / &nbsp; FORWARD -Z &nbsp; / &nbsp; NO.08</span></div></aside>
+<div id="gate-notice" class="ui" aria-live="polite"></div>
+<div class="mobile-controls" aria-label="スマートフォン操作">
+  <div class="stick-area"><div class="stick-title">STEER / PITCH</div><div class="stick-pad" id="left-pad"><div class="stick-knob" id="left-knob"></div></div></div>
+  <div class="stick-area"><div class="stick-title">THRUST / LIFT</div><div class="stick-pad" id="right-pad"><div class="stick-knob" id="right-knob"></div></div></div>
+  <div class="mobile-actions"><button class="touchbutton" id="boost-button">BOOST</button><button class="touchbutton" id="brake-button">BRAKE</button></div>
+</div>
+<div class="overlay" id="splash"><div class="splashcard">
+  <div class="eyebrow">AETHER FRONTIER / INDEPENDENT MODULE NO.08</div>
+  <h1>LUMEN<br/>KESTREL</h1><div class="jpname">ルーメン・ケストレル / 次世代魔導飛行艇</div>
+  <p class="description">可変翼と双発エーテル炉を備えた探索艇。浮遊島群に設置された<strong>6つの飛行ゲート</strong>を通過し、上位推進機構を解放せよ。航行、上昇、急旋回、ブーストを実際に体験できる単体デモ。</p>
+  <div class="specs"><div><b>12.6 m</b>BODY LENGTH</div><div><b>3 TIERS</b>FLIGHT UPGRADES</div><div><b>6 GATES</b>FLIGHT TRIAL</div></div>
+  <div class="controlnote" id="control-help">PC：W/S スロットル · A/D 旋回 · ↑/↓ ピッチ · R/F 上昇/下降 · Shift 加速 · Space ブレーキ<br/>スマホ：左スティックで旋回/ピッチ · 右スティック上下で推力、左右で昇降<br/>V 視点変更 · 1/2 画質変更 · P 自動航路補助 · マウスドラッグでTPSカメラ回転</div>
+  <button class="primary" id="start-button">INITIALIZE FLIGHT &nbsp; / &nbsp; 飛行開始</button>
+  <div class="subnote">Three.js 0.160.0 · WebGL · PC / iPhone 16 Safari</div>
+</div></div>
+<div class="overlay hidden" id="finish"><div class="splashcard"><div class="eyebrow">FLIGHT COMPLETED / ALL SIX RINGS</div><h1>ASCENSION<br/>COMPLETE</h1><div class="jpname">試験飛行完了 · MK-III HORIZON 開放済み</div><p class="description">天空の試験航路を突破。機体モデルと飛行システムは独立しているため、AETHER FRONTIER本編にそのまま組み込める。</p><div class="specs"><div><b id="finish-time">0:00</b>FLIGHT TIME</div><div><b id="finish-distance">0m</b>DISTANCE</div><div><b>MK-III</b>TOP TIER</div></div><br/><button class="primary" id="again-button">RESTART TRIAL / もう一度飛ぶ</button></div></div>
+<script type="module">
+let THREE;
+try { THREE=await import('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js'); }
+catch(firstCDNError) { THREE=await import('https://unpkg.com/three@0.160.0/build/three.module.js'); }
+/**
+ * AETHER FRONTIER / No.08: LUMEN KESTREL
+ * Procedural SF-fantasy airship. Three.js 0.160.0.
+ * +Y up, forward -Z, 1 unit = about 1 meter.
+ * Renderer, camera, input and physics are deliberately NOT owned by this module.
+ */
+function createAetherModule(THREE, options = {}) {
+  const root = new THREE.Group();
+  root.name = 'AF08_LUMEN_KESTREL';
+  const visual = new THREE.Group();
+  visual.name = 'ship_visual';
+  root.add(visual);
+  const main = new THREE.Group();
+  main.name = 'non_articulated_airframe';
+  visual.add(main);
+  const high = new THREE.Group();
+  high.name = 'high_detail_decorations';
+  visual.add(high);
+  const dynamic = [];
+  const group = (name, parent = main) => { const g = new THREE.Group(); g.name = name; parent.add(g); return g; };
+  const mat = (name, hex, metal = 0.25, rough = 0.5, extra = {}) => {
+    const m = new THREE.MeshStandardMaterial({color: hex, metalness: metal, roughness: rough, ...extra});
+    m.name = name; return m;
+  };
+  const m = {
+    hull: mat('titanium_midnight', 0x17263a, .75, .3),
+    armor: mat('pearl_armor', 0x9fbbcc, .75, .26),
+    edge: mat('anodized_gunmetal', 0x344b60, .7, .34),
+    shadow: mat('recesses', 0x0a1424, .5, .49),
+    gold: mat('ancient_gold', 0xba9564, .66, .29),
+    glass: mat('cockpit_crystal', 0x20678a, .35, .16, {transparent:true, opacity:.67, depthWrite:false, side:THREE.DoubleSide}),
+    cyan: mat('aether_cyan', 0x52e3ef, .08, .28, {emissive:0x15a9c5, emissiveIntensity:1.55}),
+    blue: mat('drive_blue', 0x4b8aff, .09, .27, {emissive:0x1767eb, emissiveIntensity:2.1}),
+    warm: mat('mana_gold', 0xffdb94, .15, .2, {emissive:0xc28b38, emissiveIntensity:1.35}),
+    vent: mat('power_channels', 0x111c2b, .5, .52),
+    thruster: new THREE.MeshBasicMaterial({color:0x7cedff, transparent:true, opacity:.94, depthWrite:false, side:THREE.DoubleSide}),
+    glow: new THREE.MeshBasicMaterial({color:0x21dfff, transparent:true, opacity:.2, depthWrite:false, blending:THREE.AdditiveBlending, side:THREE.DoubleSide})
+  };
+  const geom = {
+    box: new THREE.BoxGeometry(1,1,1),
+    unitCylinder: new THREE.CylinderGeometry(1,1,1,12),
+    orb: new THREE.SphereGeometry(1,12,8),
+    finOrb: new THREE.IcosahedronGeometry(1,1)
+  };
+  const add = (parent, geometry, material, name, pos, scale, rot) => {
+    const o = new THREE.Mesh(geometry,material); o.name = name;
+    if(pos)o.position.set(...pos); if(scale)o.scale.set(...scale); if(rot)o.rotation.set(...rot);
+    parent.add(o); return o;
+  };
+  const box = (p,material,name,pos,scale,rot) => add(p,geom.box,material,name,pos,scale,rot);
+  const orb = (p,material,name,pos,scale) => add(p,geom.orb,material,name,pos,scale);
+  const ring = (p,material,name,pos,r,t,rot) => add(p,new THREE.TorusGeometry(r,t,7,36),material,name,pos,null,rot);
+  const beam = (p,material,name,a,b,r) => {
+    const aa = new THREE.Vector3(...a), bb = new THREE.Vector3(...b);
+    const obj = add(p,geom.unitCylinder,material,name);
+    const dir = bb.clone().sub(aa);
+    obj.position.copy(aa.add(bb).multiplyScalar(.5));
+    obj.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.clone().normalize());
+    obj.scale.set(r,dir.length(),r); return obj;
+  };
+  function fuselage(rings, sides=16) {
+    const v=[], ids=[];
+    rings.forEach(({z,rx,ry,y=0}) => {
+      for(let j=0;j<sides;j++){const a=j/sides*Math.PI*2;v.push(Math.cos(a)*rx,y+Math.sin(a)*ry,z);}
+    });
+    for(let k=0;k<rings.length-1;k++) for(let j=0;j<sides;j++) {
+      const a=k*sides+j,b=k*sides+(j+1)%sides,c=(k+1)*sides+j,d=(k+1)*sides+(j+1)%sides;
+      ids.push(a,b,c,b,d,c);
+    }
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(v,3));g.setIndex(ids);g.computeVertexNormals();return g;
+  }
+  function slab(points, thickness=.16, side=1) {
+    // Convex top-down aerodynamic panel, triangulated into a closed thin solid.
+    const n=points.length, v=[];for(const y of [thickness/2,-thickness/2]) for(const [x,z] of points)v.push(x*side,y,z);
+    const ix=[];
+    const crossY=((points[1][1]-points[0][1])*(points[2][0]-points[0][0])-(points[1][0]-points[0][0])*(points[2][1]-points[0][1]))*side;
+    const reverseTop=crossY<0;
+    for(let i=1;i<n-1;i++) {
+      if(reverseTop){ix.push(0,i+1,i);ix.push(n,n+i,n+i+1);}
+      else {ix.push(0,i,i+1);ix.push(n,n+i+1,n+i);}
+    }
+    for(let i=0;i<n;i++){let j=(i+1)%n;ix.push(i,j,n+i,j,n+j,n+i);}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(v,3));g.setIndex(ix);g.computeVertexNormals();return g;
+  }
+  // ----- armored hull & bow -----
+  add(main,fuselage([
+    {z:-6.25,rx:.035,ry:.045,y:.03}, {z:-5.63,rx:.58,ry:.34,y:-.04},
+    {z:-4.65,rx:1.05,ry:.53,y:-.08}, {z:-2.95,rx:1.37,ry:.68,y:-.13},
+    {z:-.9,rx:1.48,ry:.75,y:-.12}, {z:1.15,rx:1.39,ry:.69,y:-.11},
+    {z:3.05,rx:1.03,ry:.55,y:-.08}, {z:4.64,rx:.18,ry:.28,y:-.05}
+  ]),m.hull,'armored_fuselage');
+  add(main,fuselage([
+    {z:-5.7,rx:.08,ry:.08,y:.23},{z:-4.9,rx:.52,ry:.22,y:.43},
+    {z:-3.3,rx:.85,ry:.25,y:.49},{z:-1.8,rx:.91,ry:.23,y:.46},
+    {z:-.85,rx:.53,ry:.13,y:.5},{z:-.56,rx:.04,ry:.03,y:.42}
+  ],12),m.glass,'panoramic_crystal_canopy');
+  beam(main,m.gold,'bow_gold_keel',[0,-.31,-6.11],[0,-.44,-3.45],.055);
+  for(const s of [-1,1]) {
+    beam(main,m.armor,'upper_armor_streak',[s*.35,.39,-5.37],[s*1.08,.51,-2.31],.08);
+    beam(main,m.edge,'side_rib',[s*1.08,.12,-4.42],[s*1.43,-.12,.56],.093);
+    beam(main,m.cyan,'side_ether_seam',[s*1.15,-.20,-3.35],[s*1.32,-.24,.82],.032);
+    box(main,m.armor,'tail_guard',[s*.85,.13,2.8],[.23,.32,2.2],[0,s*.16,0]);
+  }
+  // Hexagonal forward sensor and runic trim.
+  orb(main,m.warm,'bow_focus',[0,.08,-6.2],[.13,.13,.22]);
+  ring(main,m.gold,'nose_annulus',[0,.13,-5.83],.37,.055);
+  ring(main,m.cyan,'nose_locator',[0,.13,-5.84],.24,.026);
+  // ----- variable geometry lift surfaces -----
+  const wingPivots=[];
+  const panels=[];
+  for(const s of [-1,1]) {
+    const w=group((s<0?'port':'starboard')+'_articulated_wing',visual);
+    w.position.set(s*1.1,.17,-.34);
+    const points=[[.05,-2.12],[1.45,-2.19],[4.5,-.86],[5.12,-.10],[5.0,.73],[4.32,1.24],[1.61,2.53],[.15,1.65]];
+    add(w,slab(points,.22,s),m.armor,'aerofoil_shield');
+    add(w,slab([[.25,-1.88],[1.46,-1.84],[3.91,-.76],[3.41,-.44],[.53,-1.02]],.26,s),m.edge,'wing_front_inset');
+    add(w,slab([[2.4,.86],[4.18,.73],[4.0,1.01],[2.33,1.93]],.24,s),m.hull,'rear_stealth_panel');
+    beam(w,m.gold,'leading_edge',[s*.19,.15,-2.05],[s*4.67,.15,-.65],.076);
+    beam(w,m.cyan,'rune_vein',[s*.7,.151,-1.24],[s*4.22,.151,.16],.037);
+    beam(w,m.cyan,'rune_branch',[s*2.54,.15,-.52],[s*2.73,.15,1.1],.026);
+    beam(w,m.edge,'trailing_edge',[s*1.45,.15,2.3],[s*4.55,.15,.98],.075);
+    const hinge=orb(w,m.gold,'visible_hinge',[s*.15,.18,.08],[.3,.28,.4]);
+    // Animated secondary hover-stabilizer with a separate pivot.
+    const fin=group('wingtip_airbrake',w);fin.position.set(s*4.43,.07,.62);
+    add(fin,slab([[0,-.25],[.72,.0],[.68,.75],[0,.55]],.12,s),m.hull,'wingtip_airbrake_panel');
+    beam(w,m.edge,'aether_capacitor',[s*2.55,.02,.58],[s*3.46,-.08,1.00],.14);
+    panels.push({fin,s}); wingPivots.push({group:w,s});
+    // Hover vanes nested under the wings.
+    const hover=group('grav_lift_vane',w);hover.position.set(s*3.48,-.22,-.22);
+    add(hover,new THREE.CylinderGeometry(.7,.7,.12,16),m.vent,'lift_recess',null,null,[Math.PI/2,0,0]);
+    ring(hover,m.blue,'lift_iris',[0,-.015,0],.52,.07,[Math.PI/2,0,0]);
+    orb(hover,m.cyan,'lift_center',[0,-.06,0],[.2,.07,.2]);
+  }
+  // ----- paired engine nacelles -----
+  const engineGlows=[];
+  const nozzles=[];
+  for(const s of [-1,1]){
+    const p=group((s<0?'left':'right')+'_engine_pod');p.position.set(s*1.2,-.16,1.69);
+    add(p,new THREE.CylinderGeometry(.57,.76,2.86,16,1),m.edge,'nacelle_shell',null,null,[Math.PI/2,0,0]);
+    add(p,new THREE.CylinderGeometry(.43,.59,2.8,16,1),m.shadow,'engine_recess',null,null,[Math.PI/2,0,0]);
+    for(const z of [-1.1,-.15,.95])ring(p,m.armor,'locking_ring',[0,0,z],.71,.085);
+    ring(p,m.gold,'exit_bezel',[0,0,1.48],.66,.09);
+    ring(p,m.blue,'nozzle_torus',[0,0,1.57],.49,.1);
+    const g=orb(p,m.thruster,'ion_exhaust',[0,0,1.68],[.39,.39,.10]);
+    const bloom=orb(p,m.glow,'exhaust_halo',[0,0,1.74],[.65,.65,.18]);
+    engineGlows.push({g,bloom});nozzles.push({x:s*1.2,y:-.16,z:3.36});
+    for(const a of [-1,1])box(p,m.gold,'nacelle_mount',[a*.55,.01,-.42],[.15,.35,1.92]);
+    for(let i=0;i<4;i++){
+      const z=-.75+i*.54;
+      box(p,m.blue,'nacelle_cell',[s*.63,.25,z],[.065,.065,.27]);
+    }
+  }
+  // Central ancient drive halo, counter-rotating rings.
+  const drive=group('ancient_aether_drive');drive.position.set(0,-.10,4.18);
+  orb(drive,m.vent,'axial_mana_chamber',[0,0,.5],[.66,.66,1.35]);
+  const rotorA=group('gyro_ring_one',drive),rotorB=group('gyro_ring_two',drive);
+  ring(rotorA,m.gold,'outer_grav_ring',[0,0,.94],1.27,.095);
+  ring(rotorA,m.cyan,'inner_grav_ring',[0,0,.94],1.1,.04);
+  ring(rotorB,m.armor,'runic_ring',[0,0,1.05],.77,.065);
+  ring(rotorB,m.blue,'blue_subring',[0,0,1.06],.61,.04);
+  orb(drive,m.blue,'reactor_heart',[0,0,1.12],[.39,.39,.48]);
+  for(let i=0;i<8;i++){
+    const a=i*Math.PI/4;
+    box(rotorA,m.warm,'orbital_rune',[Math.sin(a)*1.25,Math.cos(a)*1.25,.97],[.13,.29,.08],[0,0,-a]);
+  }
+  // ----- retractable landing pylons -----
+  const legs=[];
+  for(const x of [-.92,.92]){
+    const g=group('landing_gear');g.position.set(x,-.66,1.23);
+    beam(g,m.edge,'telescoping_strut',[0,0,0],[x*.1,-1.08,.27],.13);
+    box(g,m.armor,'landing_foot',[x*.1,-1.09,.47],[.45,.12,1.05]);
+    orb(g,m.warm,'hydraulic_lock',[0,-.16,.04],[.17,.15,.17]);
+    legs.push(g);
+  }
+  // ----- optional artisan detail (quality=high only) -----
+  for(const s of [-1,1]){
+    for(let i=0;i<7;i++){
+      const z=-3.7+i*.75;
+      box(high,m.gold,'etched_hull_mark',[s*(1.04+Math.sin(i*.4)*.22),.08,z],[.042,.04,.30],[0,s*.12,0]);
+    }
+    for(let i=0;i<5;i++){
+      const z=-1.7+i*.67;
+      box(high,m.vent,'maintenance_grille',[s*.61,-.72,z],[.28,.038,.29]);
+    }
+    const grp=group('gold_glyph_cluster',high);grp.position.set(s*.80,.64,-1.02);
+    ring(grp,m.gold,'shield_seal',[0,0,0],.19,.022);
+    beam(grp,m.warm,'glyph_line',[0,-.14,0],[0,.14,0],.026);
+  }
+  const antenna=group('trailing_survey_fins',high);
+  for(const s of [-1,1]){
+    add(antenna,slab([[.72,2.4],[1.1,2.95],[1.08,4.2],[.82,4.72]],.17,s),m.armor,'vertical_rune_stabilizer',[0,.70,0],[1,1,1],[s*.43,0,0]);
+    beam(antenna,m.cyan,'fin_etherline',[s*.96,1.00,3],[s*.90,1.10,4.25],.035);
+  }
+  // Cheap single-drawcall ion stream, with fixed particles in model space.
+  const count=40, pts=new Float32Array(count*3), phases=new Float32Array(count);
+  for(let i=0;i<count;i++){
+    phases[i]=(i*0.61803398875)%1;
+    pts[3*i]= (i%2===0?-1.2:1.2);
+    pts[3*i+1]=-.16;
+    pts[3*i+2]=3.4+phases[i]*6;
+  }
+  const particleGeo=new THREE.BufferGeometry();particleGeo.setAttribute('position',new THREE.BufferAttribute(pts,3));
+  const particleMat=new THREE.PointsMaterial({color:0x64dfff,size:.19,transparent:true,opacity:.67,depthWrite:false,blending:THREE.AdditiveBlending,sizeAttenuation:true});
+  const particles=new THREE.Points(particleGeo,particleMat);particles.name='ion_exhaust_particles';visual.add(particles);
+  let quality='high',clock=0,disposed=false;
+  const out={throttle:.35,speed:0,boost:false,landing:false,steer:0,vertical:0};
+  function setFlightState(state={}) {for(const k in out)if(state[k]!==undefined)out[k]=state[k];}
+  function setQuality(mode='high') {
+    quality=(mode==='low'||mode==='lite')?'low':'high';
+    high.visible=quality==='high';
+    particleGeo.setDrawRange(0,quality==='high'?40:12);
+    particleMat.size=quality==='high'?.21:.14;
+    m.glow.opacity=quality==='high'?.20:.11;
+    return quality;
+  }
+  function update(dt, context={}) {
+    if(disposed)return;
+    const t=Math.min(Math.max(Number(dt)||0,0),.10);clock+=t;
+    if(context.flight)setFlightState(context.flight);
+    else if(context.throttle!==undefined)setFlightState(context);
+    const throttle=THREE.MathUtils.clamp(out.throttle||0,0,1);
+    const power=throttle+(out.boost?.4:0);
+    const flying=THREE.MathUtils.clamp(out.speed/28,0,1);
+    visual.position.y=Math.sin(clock*1.7)*(.025+.043*flying);
+    for(const {group:w,s} of wingPivots)w.rotation.z=s*(.045+.16*(1-flying)+Math.sin(clock*2.5)*.009);
+    for(const {fin,s} of panels)fin.rotation.z=s*(.12+.27*(out.boost?1:0)+.05*Math.sin(clock*4.5));
+    for(const leg of legs){leg.rotation.x=THREE.MathUtils.lerp(leg.rotation.x,out.landing?0:-1.1,Math.min(1,t*3.5));}
+    rotorA.rotation.z=clock*(.45+power*.6);
+    rotorB.rotation.z=-clock*(.75+power*1.1);
+    const pulse=1+.11*Math.sin(clock*13)+.30*power;
+    engineGlows.forEach(({g,bloom})=>{g.scale.z=.12+pulse*.10;bloom.scale.setScalar(.55+.18*power);bloom.scale.z=.25+.3*power;});
+    m.blue.emissiveIntensity=1.5+1.1*power;
+    m.cyan.emissiveIntensity=1.1+.7*power;
+    m.thruster.opacity=.54+.25*power;
+    particles.visible=power>.1;
+    const a=particleGeo.attributes.position;
+    for(let i=0;i<count;i++){
+      const phase=(phases[i]+clock*(.31+.19*power))%1;
+      const j=3*i;
+      pts[j]=(i%2===0?-1.2:1.2)+Math.sin(phase*21+i*3)*phase*.19;
+      pts[j+1]=-.16+Math.sin(phase*8+i)*phase*.17;
+      pts[j+2]=3.4+phase*(3.0+power*6.7);
+    }
+    a.needsUpdate=true;
+    particleMat.opacity=.35+.37*power;
+  }
+  function dispose() {
+    if(disposed)return;disposed=true;
+    const geometries=new Set(),materials=new Set();
+    root.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material){const a=Array.isArray(o.material)?o.material:[o.material];a.forEach(m=>materials.add(m));}});
+    Object.values(geom).forEach(g=>geometries.add(g));
+    Object.values(m).forEach(v=>materials.add(v));
+    geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());root.clear();
+  }
+  setQuality(options.quality||'high');
+  return {
+    root,update,setQuality,dispose,setFlightState,
+    get quality(){return quality;},
+    // Local-space anchors: parent application computes world transforms as needed.
+    anchors: {cockpit:[0,1.25,-2.3],chase:[0,4.4,16],engine:[0,0,5.4]},
+    dimensions: {length:12.6,width:12.5,height:3.6},
+    id:'AF08_LUMEN_KESTREL',
+    getSpecs(){return {id:'AF08_LUMEN_KESTREL',quality,axes:'+Y up / -Z forward',units:'meters',bounds:[12.5,3.6,12.6]};}
+  };
+}
+
+/**
+ * AETHER FRONTIER / No.08 - independent arcade flight controller.
+ * No camera, renderer, DOM, global input or scene dependencies.
+ * Input fields (normalized -1..1): yaw, pitch, lift, throttle, strafe,
+ * boost (boolean), brake (boolean). Returns a plain flight telemetry object.
+ */
+class AetherFlightController {
+  constructor(THREE, options={}) {
+    this.THREE=THREE;
+    this.position=new THREE.Vector3(...(options.position||[0,18,40]));
+    this.quaternion=new THREE.Quaternion();
+    this.euler=new THREE.Euler(0,0,0,'YXZ');
+    this.yaw=0;this.pitch=0;this.bank=0;
+    this.speed=0;this.throttle=.32;this.liftVelocity=0;
+    this.energy=100;this.tier=1;this.travelled=0;
+    this.minAltitude=options.minAltitude??5;
+    this.maxAltitude=options.maxAltitude??230;
+    this.maxRange=options.maxRange??850;
+    this.maxSpeedByTier=options.maxSpeedByTier||[27,38,52];
+    this._move=new THREE.Vector3();
+    this._forward=new THREE.Vector3();
+    this._right=new THREE.Vector3();
+    this._lift=new THREE.Vector3(0,1,0);
+    this._yawDirection=0;
+  }
+  reset(position=[0,18,40]){
+    this.position.set(...position);this.yaw=0;this.pitch=0;this.bank=0;
+    this.euler.set(0,0,0,'YXZ');this.quaternion.setFromEuler(this.euler);
+    this.speed=0;this.throttle=.32;this.liftVelocity=0;
+    this.energy=100;this.tier=1;this.travelled=0;
+  }
+  setTier(tier){this.tier=Math.max(1,Math.min(this.maxSpeedByTier.length,Math.round(tier)||1));}
+  get maxSpeed(){return this.maxSpeedByTier[this.tier-1];}
+  update(dt,input={}) {
+    dt=Math.min(Math.max(Number(dt)||0,0),.055);
+    const clamp=this.THREE.MathUtils.clamp;
+    const yaw=clamp(input.yaw||0,-1,1), pitch=clamp(input.pitch||0,-1,1);
+    const lift=clamp(input.lift||0,-1,1), th=clamp(input.throttle||0,-1,1);
+    const strafe=clamp(input.strafe||0,-1,1);
+    this.throttle=clamp(this.throttle+th*dt*.46,0,1);
+    const boost=!!input.boost && this.energy>1 && this.throttle>.10 && !input.brake;
+    const limit=this.maxSpeed*(boost?1.55:1);
+    const target=input.brake?0:this.throttle*limit;
+    const response=input.brake?4.5:1.65;
+    this.speed+=(target-this.speed)*Math.min(1,dt*response);
+    this.energy=clamp(this.energy+dt*(boost?-21:9.5),0,100);
+    const steerRate=.78+.017*this.speed;
+    this.yaw-=yaw*dt*steerRate;
+    this.pitch=clamp(this.pitch+pitch*dt*.70,-.50,.53);
+    if(Math.abs(pitch)<.04)this.pitch*=Math.max(0,1-dt*.09);
+    const bankGoal=-yaw*.52-strafe*.2;
+    this.bank+=(bankGoal-this.bank)*Math.min(1,dt*3.4);
+    this.euler.set(this.pitch,this.yaw,this.bank,'YXZ');
+    this.quaternion.setFromEuler(this.euler);
+    this._forward.set(0,0,-1).applyQuaternion(this.quaternion);
+    this._right.set(1,0,0).applyQuaternion(this.quaternion);
+    this._move.copy(this._forward).multiplyScalar(this.speed*dt);
+    this._move.addScaledVector(this._right,strafe*dt*7);
+    const verticalTarget=lift*12.5;
+    this.liftVelocity+=(verticalTarget-this.liftVelocity)*Math.min(1,dt*3.3);
+    this._move.y+=this.liftVelocity*dt;
+    const travelled=this._move.length();this.position.add(this._move);this.travelled+=travelled;
+    if(this.position.y<this.minAltitude){this.position.y=this.minAltitude;this.liftVelocity=Math.max(0,this.liftVelocity);this.pitch=Math.max(0,this.pitch);}
+    if(this.position.y>this.maxAltitude){this.position.y=this.maxAltitude;this.liftVelocity=Math.min(0,this.liftVelocity);}
+    this.position.x=clamp(this.position.x,-this.maxRange,this.maxRange);
+    this.position.z=clamp(this.position.z,-this.maxRange,this.maxRange);
+    return this.telemetry(boost);
+  }
+  telemetry(boost=false){return {
+    speed:this.speed,throttle:this.throttle,boost,energy:this.energy,
+    altitude:this.position.y,heading:(this.yaw*180/Math.PI+360)%360,
+    pitch:this.pitch,roll:this.bank,tier:this.tier,maxSpeed:this.maxSpeed,
+    position:this.position,quaternion:this.quaternion,landing:this.speed<3&&this.position.y<9,
+    distance:this.travelled
+  };}
+}
+
+/** Standalone playable AETHER FRONTIER No.08 proving ground. */
+function launchDemo(THREE, createAetherModule, AetherFlightController) {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const clamp=THREE.MathUtils.clamp;
+  const mount=$('scene');
+  const scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x09172b);
+  scene.fog=new THREE.FogExp2(0x2a506e,.0024);
+  const camera=new THREE.PerspectiveCamera(67,1,.1,970);
+  const isTouch=window.matchMedia('(pointer: coarse)').matches;
+  const renderer=new THREE.WebGLRenderer({antialias:!isTouch,alpha:false,powerPreference:'high-performance'});
+  renderer.outputColorSpace=THREE.SRGBColorSpace;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=1.15;
+  renderer.setClearColor(0x071222,1);
+  renderer.shadowMap.enabled=false;
+  mount.appendChild(renderer.domElement);
+  renderer.domElement.setAttribute('aria-label','LUMEN KESTREL flight simulator 3D scene');
+  const hemisphere=new THREE.HemisphereLight(0xbce7ff,0x243147,2.05);scene.add(hemisphere);
+  const sunlight=new THREE.DirectionalLight(0xffe4b3,2.12);sunlight.position.set(-120,170,-230);scene.add(sunlight);
+  const rimlight=new THREE.DirectionalLight(0x5c9de5,.7);rimlight.position.set(120,80,190);scene.add(rimlight);
+  // Procedural atmospheric sky. Does not use textures or external models.
+  const sky=new THREE.Mesh(
+    new THREE.SphereGeometry(870,24,16),
+    new THREE.ShaderMaterial({
+      side:THREE.BackSide,depthWrite:false,fog:false,
+      uniforms:{top:{value:new THREE.Color(0x071a37)},middle:{value:new THREE.Color(0x29729a)},bottom:{value:new THREE.Color(0xe3a976)}},
+      vertexShader:'varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }',
+      fragmentShader:'uniform vec3 top;uniform vec3 middle;uniform vec3 bottom;varying vec3 vP;void main(){float h=normalize(vP).y;vec3 col=mix(bottom,middle,smoothstep(-.45,.08,h));col=mix(col,top,smoothstep(.03,.82,h));gl_FragColor=vec4(col,1.);}'
+    })
+  );sky.frustumCulled=false;scene.add(sky);
+  // Ground cloud layer serves as a depth cue when climbing above it.
+  const cloudGeo=new THREE.SphereGeometry(1,8,5);
+  const cloudMat=new THREE.MeshBasicMaterial({color:0x9cc9db,transparent:true,opacity:.19,depthWrite:false,fog:true});
+  const cloudCount=isTouch?90:145;
+  const clouds=new THREE.InstancedMesh(cloudGeo,cloudMat,cloudCount);
+  clouds.frustumCulled=false;
+  const cloudDummy=new THREE.Object3D();
+  const rand=(s)=>{let v=Math.sin(s*127.1+31.22)*43758.5453;return v-Math.floor(v);};
+  for(let i=0;i<cloudCount;i++){
+    const x=(rand(i+9)-.5)*750;
+    const z=50-rand(i+83)*680;
+    cloudDummy.position.set(x,1.5+(rand(i+71)-.5)*15,z);
+    cloudDummy.scale.set(13+rand(i+3)*31,1.3+rand(i+35)*5,8+rand(i+44)*19);
+    cloudDummy.rotation.set(0,rand(i+10)*Math.PI,0);
+    cloudDummy.updateMatrix();clouds.setMatrixAt(i,cloudDummy.matrix);
+  }
+  clouds.instanceMatrix.needsUpdate=true;scene.add(clouds);
+  // A faint cloud ocean under the island field.
+  const sea=new THREE.Mesh(new THREE.PlaneGeometry(1400,1400),new THREE.MeshBasicMaterial({color:0x396784,transparent:true,opacity:.18,depthWrite:false}));
+  sea.rotation.x=-Math.PI/2;sea.position.set(0,-19,-245);scene.add(sea);
+  const worldHigh=new THREE.Group();worldHigh.name='decorative_world_high';scene.add(worldHigh);
+  const world=new THREE.Group();world.name='floating_island_world';scene.add(world);
+  const rockMats=[0x405368,0x4f6575,0x3c5260,0x576677].map(c=>new THREE.MeshStandardMaterial({color:c,roughness:1,flatShading:true}));
+  const topMat=new THREE.MeshStandardMaterial({color:0x668c78,roughness:1,flatShading:true});
+  const rimMat=new THREE.MeshStandardMaterial({color:0xa5ad8b,metalness:.16,roughness:.83});
+  const ancientMat=new THREE.MeshStandardMaterial({color:0xa6b3a5,metalness:.17,roughness:.75});
+  const goldMat=new THREE.MeshStandardMaterial({color:0xf0c384,metalness:.58,roughness:.36});
+  const crystalMat=new THREE.MeshStandardMaterial({color:0x6acbd6,emissive:0x2c98b9,emissiveIntensity:.65,metalness:.25,roughness:.28,flatShading:true});
+  const templeMat=new THREE.MeshStandardMaterial({color:0x2e4557,metalness:.45,roughness:.58});
+  const islandGeo=new THREE.CylinderGeometry(1,.24,.82,7,1);
+  const islandTopGeo=new THREE.CylinderGeometry(1,1,.11,9);
+  const crystalGeo=new THREE.ConeGeometry(1,2,5);
+  const shardGeo=new THREE.OctahedronGeometry(1,0);
+  const columnGeo=new THREE.CylinderGeometry(.48,.58,1,6);
+  const isles=[];
+  function makeIsland(x,y,z,r,seed){
+    const g=new THREE.Group();g.position.set(x,y,z);world.add(g);
+    const rock=new THREE.Mesh(islandGeo,rockMats[seed%rockMats.length]);
+    rock.position.y=-r*.41;rock.scale.set(r,r,r);g.add(rock);
+    const top=new THREE.Mesh(islandTopGeo,topMat);top.scale.set(r*.97,1.1,r*.97);g.add(top);
+    const trim=new THREE.Mesh(new THREE.TorusGeometry(r*.93,.085,5,12),rimMat);
+    trim.rotation.x=Math.PI/2;trim.position.y=.10;g.add(trim);
+    const ancient=new THREE.Group();ancient.position.y=.22;g.add(ancient);
+    const houseCount=r<11?1:2;
+    for(let j=0;j<houseCount;j++){
+      const a=(j*2.38+seed*.9);
+      const rad=r*(.20+.20*rand(seed+j));
+      const col=new THREE.Mesh(columnGeo,ancientMat);col.position.set(Math.sin(a)*rad,1.8,Math.cos(a)*rad);
+      const h=2.6+rand(seed+j+94)*4.3;
+      col.scale.set(.9,h,.9);ancient.add(col);
+      const cap=new THREE.Mesh(new THREE.ConeGeometry(.9,1.5,5),goldMat);
+      cap.position.set(col.position.x,h/2+2.5,col.position.z);ancient.add(cap);
+    }
+    const c=new THREE.Mesh(crystalGeo,crystalMat);
+    c.position.set((rand(seed+17)-.5)*r*.7,2.0,(rand(seed+49)-.5)*r*.7);
+    c.scale.set(.6+rand(seed)*.7,1.3+rand(seed+5)*1.5,.6+rand(seed+22)*.7);ancient.add(c);
+    const platform=new THREE.Mesh(new THREE.TorusGeometry(r*.34,.14,5,24),goldMat);
+    platform.rotation.x=Math.PI/2;platform.position.y=.4;ancient.add(platform);
+    const spire=new THREE.Mesh(shardGeo,crystalMat);
+    spire.position.set((rand(seed+39)-.5)*r, -r*.54, (rand(seed+17)-.5)*r);
+    spire.scale.set(1.1,r*.38,1.1);g.add(spire);
+    isles.push({x,y,z,r});return g;
+  }
+  const islandDefs=[
+    [-23,6,20,17,1],[29,9,-12,12,2],[34,17,-69,15,3],[-28,16,-70,12,4],
+    [-55,26,-122,17,5],[12,24,-133,15,6],[52,35,-174,19,7],[-13,20,-198,13,8],
+    [-41,34,-258,17,9],[26,31,-270,17,10],[-58,42,-331,15,11],
+    [29,48,-345,20,12],[-8,48,-384,15,13],[48,65,-441,18,14],
+    [-44,59,-466,18,15],[18,73,-498,13,16],[-11,68,-564,19,17],
+    [59,46,-512,15,18],[-65,48,-580,16,19]
+  ];
+  for(const [x,y,z,r,seed] of islandDefs)makeIsland(x,y,z,r,seed);
+  // One-instanced-drawcall scatter of ancient fragments.
+  const shardCount=76,smallShard=new THREE.InstancedMesh(shardGeo,templeMat,shardCount);
+  const dummy=new THREE.Object3D();
+  for(let i=0;i<shardCount;i++){
+    const x=(rand(i+37)-.5)*190,z=40-rand(i+58)*670;
+    dummy.position.set(x,8+rand(i+38)*80,z);
+    dummy.rotation.set(rand(i+2)*Math.PI,rand(i+5)*Math.PI,rand(i+7)*Math.PI);
+    const s=.4+rand(i+99)*1.8;dummy.scale.set(s,s*2.4,s);
+    dummy.updateMatrix();smallShard.setMatrixAt(i,dummy.matrix);
+  }
+  smallShard.instanceMatrix.needsUpdate=true;worldHigh.add(smallShard);
+  // Six portal rings, placed along a climbable 3D route.
+  const targetCoords=[[0,22,-53],[-27,31,-126],[31,41,-211],[-18,54,-302],[21,71,-417],[0,84,-545]];
+  const portalGold=new THREE.MeshBasicMaterial({color:0xeaca83,transparent:true,opacity:.95});
+  const portals=[];
+  let prev=new THREE.Vector3(0,18,40);
+  for(let i=0;i<targetCoords.length;i++){
+    const g=new THREE.Group();g.position.set(...targetCoords[i]);world.add(g);
+    const pathDir=g.position.clone().sub(prev).normalize();
+    g.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,-1),pathDir);
+    const ringMat=new THREE.MeshBasicMaterial({color:0x467e8e,transparent:true,opacity:.84});
+    const mainRing=new THREE.Mesh(new THREE.TorusGeometry(7.6,.34,8,48),ringMat);g.add(mainRing);
+    const innerMat=new THREE.MeshBasicMaterial({color:0x3eb8d2,transparent:true,opacity:.82});
+    const innerRing=new THREE.Mesh(new THREE.TorusGeometry(6.94,.057,5,48),innerMat);g.add(innerRing);
+    const detailGroup=new THREE.Group();g.add(detailGroup);
+    for(let j=0;j<12;j++){
+      const a=j*Math.PI/6;
+      const point=new THREE.Mesh(new THREE.BoxGeometry(.34,.72,.6),j%3===0?goldMat:ancientMat);
+      point.position.set(Math.sin(a)*7.54,Math.cos(a)*7.54,0);
+      point.rotation.z=-a;detailGroup.add(point);
+    }
+    const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.54,0),crystalMat);
+    beacon.position.set(0,8.8,0);g.add(beacon);
+    const halo=new THREE.Mesh(new THREE.TorusGeometry(8.04,.07,4,32),portalGold);
+    halo.visible=false;g.add(halo);
+    const core=new THREE.Mesh(new THREE.CircleGeometry(6.67,36),new THREE.MeshBasicMaterial({color:0x62dbec,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide}));
+    core.position.z=-.14;g.add(core);
+    portals.push({g,mainRing,innerRing,detailGroup,beacon,halo,core,ringMat,innerMat,done:false});
+    prev=g.position;
+  }
+  // A few background rock arches, enormous landmarks on distant sky islands.
+  function makeArch(pos,scale){
+    const g=new THREE.Group();g.position.set(...pos);g.scale.setScalar(scale);worldHigh.add(g);
+    for(const s of [-1,1]){
+      const pier=new THREE.Mesh(new THREE.CylinderGeometry(.8,1.2,14,6),ancientMat);pier.position.set(s*7,6,0);g.add(pier);
+      const cap=new THREE.Mesh(new THREE.ConeGeometry(1.3,2.3,5),goldMat);cap.position.set(s*7,13.7,0);g.add(cap);
+    }
+    const bridge=new THREE.Mesh(new THREE.BoxGeometry(14,1.2,1.6),ancientMat);
+    bridge.position.set(0,12,0);g.add(bridge);
+    const orb=new THREE.Mesh(new THREE.OctahedronGeometry(2.2,1),crystalMat);orb.position.set(0,10.4,0);g.add(orb);
+  }
+  makeArch([77,18,-200],1.55);makeArch([-93,21,-430],1.85);
+  const ship=createAetherModule(THREE,{quality:'high'});scene.add(ship.root);
+  const controller=new AetherFlightController(THREE,{position:[0,18,40]});
+  const keys=new Set();
+  const sticks={left:{x:0,y:0},right:{x:0,y:0}};
+  const held={boost:false,brake:false};
+  let view='TPS',quality='high',auto=false,paused=true,completed=0,flightTime=0;
+  let orbitYaw=0,orbitPitch=0,camReady=false,frameCount=0,fpsAccumulator=0,lastFPS=60;
+  let noticeUntil=0,previousFrame=0,noticeText='';
+  let meterAccumulator=0;
+  const clock=new THREE.Clock();
+  const help=$('splash');
+  const gateNotice=$('gate-notice');
+  const $speed=$('speed'),$alt=$('altitude'),$energy=$('energy-bar'),$meters=$('distance'),$fps=$('fps');
+  const $tier=$('tier'),$progress=$('progress'),$target=$('target-label'),$view=$('view-label'),$quality=$('quality-label'),$auto=$('auto-label');
+  const $targetPin=$('target-pin'),$targetDist=$('target-distance');
+  const $finished=$('finish');
+  function printNotice(text){noticeText=text;gateNotice.textContent=text;noticeUntil=performance.now()+2600;gateNotice.classList.add('show');}
+  function refreshProgress(){
+    $progress.innerHTML=targetCoords.map((_,i)=>`<span class="step ${i<completed?'done':i===completed?'active':''}">${i<completed?'◆':String(i+1).padStart(2,'0')}</span>`).join('');
+    $target.textContent=completed>=targetCoords.length?'全ゲート通過':`飛行ゲート ${String(completed+1).padStart(2,'0')} / ${targetCoords.length}`;
+    $tier.textContent=`MK-${controller.tier} / ${['SCOUT','VANGUARD','HORIZON'][controller.tier-1]}`;
+  }
+  function changeQuality(q){
+    quality=q==='low'?'low':'high';ship.setQuality(quality);
+    worldHigh.visible=quality==='high';
+    const dpr=window.devicePixelRatio||1;
+    renderer.setPixelRatio(Math.min(dpr,quality==='low'?1.05:(isTouch?1.45:1.65)));
+    renderer.setSize(window.innerWidth,window.innerHeight,false);
+    $quality.textContent=quality==='high'?'HIGH':'LITE';
+    document.querySelectorAll('[data-action="quality"]').forEach(el=>el.title=`Current quality: ${quality}`);
+  }
+  function changeView(v){view=v;camReady=false;$view.textContent=v;printNotice(v==='TPS'?'CHASE CAMERA / TPS':'COCKPIT CAMERA / FPS');}
+  function changeAuto(a){auto=!!a;$auto.textContent=auto?'AUTO ON':'AUTO OFF';$('auto-button').classList.toggle('is-on',auto);printNotice(auto?'航路補助 ON / AUTOPILOT':'航路補助 OFF / MANUAL');}
+  function start(){paused=false;help.classList.add('hidden');$finished.classList.add('hidden');clock.getDelta();}
+  function restart(){
+    controller.reset([0,18,40]);completed=0;flightTime=0;camReady=false;auto=false;$auto.textContent='AUTO OFF';$('auto-button').classList.remove('is-on');
+    portals.forEach(p=>{p.done=false;p.core.material.opacity=0;});refreshProgress();start();printNotice('FLIGHT RESTARTED');
+  }
+  function keyIs(key){return keys.has(key);}
+  window.addEventListener('keydown',ev=>{
+    const k=ev.key.toLowerCase();
+    if(['arrowup','arrowdown','arrowleft','arrowright',' ','shift'].includes(k))ev.preventDefault();
+    keys.add(k);
+    if(ev.repeat)return;
+    if(k==='v')changeView(view==='TPS'?'FPS':'TPS');
+    if(k==='1')changeQuality('low');
+    if(k==='2')changeQuality('high');
+    if(k==='p')changeAuto(!auto);
+    if(k==='x')restart();
+    if(k==='escape'&&!paused) {paused=true;help.classList.remove('hidden');}
+    if((k==='enter'||k===' ')&&paused)start();
+  });
+  window.addEventListener('keyup',ev=>keys.delete(ev.key.toLowerCase()));
+  window.addEventListener('blur',()=>{keys.clear();held.boost=false;held.brake=false;sticks.left.x=sticks.left.y=sticks.right.x=sticks.right.y=0;});
+  function readInput(){
+    const input={yaw:0,pitch:0,throttle:0,lift:0,strafe:0,boost:false,brake:false};
+    input.yaw=clamp((keyIs('d')||keyIs('arrowright')?1:0)-(keyIs('a')||keyIs('arrowleft')?1:0)+sticks.left.x,-1,1);
+    input.pitch=clamp((keyIs('arrowup')||keyIs('i')?1:0)-(keyIs('arrowdown')||keyIs('k')?1:0)+sticks.left.y,-1,1);
+    input.throttle=clamp((keyIs('w')?1:0)-(keyIs('s')?1:0)+sticks.right.y,-1,1);
+    input.lift=clamp((keyIs('r')||keyIs('e')?1:0)-(keyIs('f')||keyIs('q')?1:0)+sticks.right.x,-1,1);
+    input.boost=keyIs('shift')||held.boost;
+    input.brake=keyIs(' ')||held.brake;
+    if(auto && completed<targetCoords.length){
+      const target=portals[completed].g.position;
+      const dx=target.x-controller.position.x,dz=target.z-controller.position.z;
+      const dy=target.y-controller.position.y;
+      const desiredYaw=Math.atan2(-dx,-dz);
+      const err=Math.atan2(Math.sin(desiredYaw-controller.yaw),Math.cos(desiredYaw-controller.yaw));
+      const dist=Math.hypot(dx,dz);
+      const desiredPitch=clamp(Math.atan2(dy,Math.max(dist,1)),-.36,.38);
+      input.yaw=clamp(-err*2.0,-1,1);
+      input.pitch=clamp((desiredPitch-controller.pitch)*3.0,-1,1);
+      input.lift=clamp(dy*.035,-.7,.7);
+      input.throttle=controller.throttle<.83?.85:0;
+      input.boost=false;input.brake=dist<16&&Math.abs(dy)>8;
+    }
+    return input;
+  }
+  // Touch joysticks: left yaw/pitch; right vertical throttle and horizontal hover lift.
+  function installStick(name){
+    const pad=$(`${name}-pad`), knob=$(`${name}-knob`),state=sticks[name];
+    let pointer=null;
+    function update(ev){
+      if(pointer!==ev.pointerId)return;
+      const r=pad.getBoundingClientRect();const x=ev.clientX-(r.left+r.width/2),y=ev.clientY-(r.top+r.height/2);
+      const radius=r.width*.34;
+      const length=Math.hypot(x,y),factor=length>radius?radius/length:1;
+      const xx=x*factor,yy=y*factor;
+      state.x=clamp(xx/radius,-1,1);state.y=clamp(-yy/radius,-1,1);
+      knob.style.transform=`translate(${xx}px,${yy}px)`;
+    }
+    function release(ev){if(pointer===ev.pointerId){pointer=null;state.x=0;state.y=0;knob.style.transform='translate(0px,0px)';pad.classList.remove('engaged');}}
+    pad.addEventListener('pointerdown',ev=>{ev.preventDefault();pointer=ev.pointerId;pad.setPointerCapture(pointer);pad.classList.add('engaged');update(ev);});
+    pad.addEventListener('pointermove',update);pad.addEventListener('pointerup',release);pad.addEventListener('pointercancel',release);
+  }
+  installStick('left');installStick('right');
+  function holdButton(id,key){
+    const el=$(id);const fn=val=>{held[key]=val;el.classList.toggle('is-on',val);};
+    el.addEventListener('pointerdown',ev=>{ev.preventDefault();el.setPointerCapture(ev.pointerId);fn(true);});
+    el.addEventListener('pointerup',()=>fn(false));el.addEventListener('pointercancel',()=>fn(false));
+  }
+  holdButton('boost-button','boost');holdButton('brake-button','brake');
+  const menuActions={view:()=>changeView(view==='TPS'?'FPS':'TPS'),quality:()=>changeQuality(quality==='high'?'low':'high'),auto:()=>changeAuto(!auto),restart};
+  for(const el of document.querySelectorAll('[data-action]')){
+    el.addEventListener('click',()=>menuActions[el.dataset.action]?.());
+  }
+  $('start-button').addEventListener('click',start);
+  $('again-button').addEventListener('click',restart);
+  // Mouse / free touch swipe on viewport: chase camera orbit.
+  let mousePointer=null,px=0,py=0;
+  renderer.domElement.addEventListener('pointerdown',ev=>{
+    if(ev.pointerType==='mouse'&&ev.button!==0)return;
+    mousePointer=ev.pointerId;px=ev.clientX;py=ev.clientY;
+    renderer.domElement.setPointerCapture(mousePointer);
+  });
+  renderer.domElement.addEventListener('pointermove',ev=>{
+    if(ev.pointerId!==mousePointer||view!=='TPS')return;
+    const dx=ev.clientX-px,dy=ev.clientY-py;px=ev.clientX;py=ev.clientY;
+    orbitYaw-=dx*.004;orbitPitch=clamp(orbitPitch+dy*.0025,-.48,.82);
+  });
+  const endPointer=ev=>{if(ev.pointerId===mousePointer)mousePointer=null;};
+  renderer.domElement.addEventListener('pointerup',endPointer);renderer.domElement.addEventListener('pointercancel',endPointer);
+  function onResize(){
+    const width=window.innerWidth,height=window.innerHeight;
+    camera.aspect=width/Math.max(height,1);camera.updateProjectionMatrix();
+    renderer.setSize(width,height,false);
+  }
+  window.addEventListener('resize',onResize,{passive:true});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){keys.clear();}clock.getDelta();});
+  const forward=new THREE.Vector3(),desired=new THREE.Vector3(),aim=new THREE.Vector3(),tmp=new THREE.Vector3();
+  function updateCamera(dt){
+    forward.set(0,0,-1).applyQuaternion(controller.quaternion);
+    if(view==='FPS'){
+      desired.set(0,1.42,-2.38).applyQuaternion(controller.quaternion).add(controller.position);
+      if(!camReady)camera.position.copy(desired);else camera.position.lerp(desired,Math.min(1,dt*19));
+      camera.quaternion.copy(controller.quaternion);
+      camera.fov=73;
+    }else{
+      const bearing=controller.yaw+orbitYaw;
+      const dist=16.7;
+      desired.set(Math.sin(bearing)*dist,5.9+orbitPitch*9.2,Math.cos(bearing)*dist).add(controller.position);
+      if(!camReady)camera.position.copy(desired);else camera.position.lerp(desired,Math.min(1,dt*5.8));
+      aim.copy(controller.position).addScaledVector(forward,4.9);aim.y+=.42;
+      camera.lookAt(aim);
+      camera.fov=66;
+    }
+    camReady=true;camera.updateProjectionMatrix();
+    // Scene environment follows camera, sky shader's world space remains fixed relative to dome.
+    sky.position.copy(camera.position);
+  }
+  function updateGates(dt,now){
+    portals.forEach((p,i)=>{
+      const active=i===completed;
+      p.mainRing.scale.setScalar(active?1+.012*Math.sin(now*.0022):1);
+      p.innerRing.rotation.z=now*.00012*(i%2?1:-1);
+      p.detailGroup.rotation.z=now*.00006*(i%2?1:-1);
+      p.beacon.rotation.y=now*.001;
+      p.halo.visible=active;
+      p.ringMat.color.setHex(p.done?0x366c73:active?0xf1b865:0x3b8b9c);
+      p.innerMat.opacity=p.done?.25:active?.9:.45;
+      p.core.material.opacity=p.done?.03:active?.035+.022*Math.sin(now*.0018):0;
+    });
+    if(completed<portals.length&&!paused){
+      const p=portals[completed];
+      // Check the portal's 3D distance in meters, not a pre-scripted timeline.
+      if(controller.position.distanceToSquared(p.g.position)<8.7*8.7){
+        p.done=true;completed++;
+        if(completed===2||completed===4){
+          controller.setTier(completed===2?2:3);
+          printNotice(completed===2?'UPGRADE / MK-II VANGUARD 解放':'UPGRADE / MK-III HORIZON 解放');
+        }else printNotice(completed===portals.length?'ALL PORTALS CLEARED':'PORTAL CLEARED +1');
+        refreshProgress();
+        if(completed===portals.length){
+          paused=true;$('finish-time').textContent=`${Math.floor(flightTime/60)}:${Math.floor(flightTime%60).toString().padStart(2,'0')}`;
+          $('finish-distance').textContent=`${Math.round(controller.travelled)}m`;
+          $finished.classList.remove('hidden');
+        }
+      }
+    }
+  }
+  function updateHud(dt,now){
+    meterAccumulator+=dt;
+    if(meterAccumulator>.09){
+      meterAccumulator=0;
+      $speed.textContent=String(Math.round(controller.speed*3.6)).padStart(3,'0');
+      $alt.textContent=Math.round(controller.position.y).toString();
+      $energy.style.width=`${controller.energy.toFixed(0)}%`;
+      $meters.textContent=Math.floor(controller.travelled).toLocaleString('ja-JP');
+      $fps.textContent=lastFPS.toFixed(0);
+      if(completed<portals.length){
+        const range=controller.position.distanceTo(portals[completed].g.position);
+        $targetDist.textContent=`${range<1000?Math.round(range)+'m':(range/1000).toFixed(1)+'km'} TO GATE`;
+      }else $targetDist.textContent='SECTOR COMPLETE';
+    }
+    if(noticeUntil<now)gateNotice.classList.remove('show');
+    if(completed<portals.length){
+      tmp.copy(portals[completed].g.position).project(camera);
+      let x=(tmp.x*.5+.5)*window.innerWidth,y=(-tmp.y*.5+.5)*window.innerHeight;
+      const behind=tmp.z>1;
+      if(behind){x=window.innerWidth-x;y=window.innerHeight-y;}
+      const margin=45;
+      x=clamp(x,margin,window.innerWidth-margin);y=clamp(y,100,window.innerHeight-80);
+      $targetPin.style.transform=`translate(${x}px,${y}px) translate(-50%,-50%)`;
+      $targetPin.classList.remove('hidden');
+    }else $targetPin.classList.add('hidden');
+  }
+  function loop(){
+    requestAnimationFrame(loop);
+    const dt=Math.min(clock.getDelta(),.05),now=performance.now();
+    fpsAccumulator+=dt;frameCount++;
+    if(fpsAccumulator>.6){lastFPS=frameCount/fpsAccumulator;fpsAccumulator=0;frameCount=0;}
+    if(!paused){
+      const input=readInput();const state=controller.update(dt,input);
+      ship.root.position.copy(controller.position);ship.root.quaternion.copy(controller.quaternion);
+      ship.update(dt,{flight:state});
+      flightTime+=dt;
+      // Simple elevated-island collision safety: place ship above traversable island tops.
+      for(const island of isles){
+        const dx=controller.position.x-island.x,dz=controller.position.z-island.z;
+        if(dx*dx+dz*dz<(island.r*.80)**2 && controller.position.y<island.y+2.1 && controller.position.y>island.y-island.r*.45){
+          controller.position.y=island.y+2.1;
+          controller.speed*=.94;
+        }
+      }
+    }else ship.update(dt,{flight:controller.telemetry()});
+    updateCamera(Math.max(dt,.016));updateGates(dt,now);updateHud(dt,now);
+    renderer.render(scene,camera);
+  }
+  refreshProgress();changeQuality(isTouch?'low':'high');onResize();ship.root.position.copy(controller.position);
+  ship.root.quaternion.copy(controller.quaternion);updateCamera(.016);
+  // Lightweight integration diagnostics for host game and automated smoke checks.
+  window.__AF08={
+    ship,controller,scene,camera,renderer,
+    get status(){return {paused,view,quality,auto,completed,fps:lastFPS,tier:controller.tier};},
+    setQuality:changeQuality,setView:changeView,reset:restart,start,
+    dispose(){window.removeEventListener('resize',onResize);ship.dispose();renderer.dispose();}
+  };
+  loop();
+}
+
+launchDemo(THREE,createAetherModule,AetherFlightController);
+</script></body></html>

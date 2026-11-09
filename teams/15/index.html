@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#06111d">
+<title>VESPER PRISM | AETHER FRONTIER No.15</title>
+<style>
+  :root { --bg:#050d18;--panel:rgba(7,19,30,.82);--line:rgba(145,211,236,.24);--cyan:#8aeeff;--gold:#e9c08a;--white:#eef6fc;--muted:#8ca5b3; }
+  * { box-sizing:border-box; }
+  html,body{height:100%;margin:0;overflow:hidden;color:var(--white);background:var(--bg);font-family:Inter,-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;}
+  #viewport { position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none; }
+  #vignette {position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse 60% 65% at 58% 49%,transparent 21%,rgba(2,9,17,.08) 56%,rgba(1,7,15,.57) 100%);}
+  .screen-lines {position:fixed;inset:0;pointer-events:none;opacity:.13;background:repeating-linear-gradient(to bottom,rgba(176,232,255,.12) 0px,rgba(176,232,255,.12) 1px,transparent 1px,transparent 5px);mix-blend-mode:screen;}
+  .hud{position:absolute;z-index:3;pointer-events:none;}
+  .hud button, .hud input, .hud a {pointer-events:auto;}
+  .top-left {left:clamp(15px,3vw,50px);top:clamp(18px,4vw,40px);max-width:470px;}
+  .eyebrow {display:flex;align-items:center;gap:10px;letter-spacing:.26em;font-size:10px;font-weight:750;color:var(--gold);margin-bottom:14px;}
+  .sigil{width:31px;height:31px;border:1px solid var(--gold);transform:rotate(45deg);display:grid;place-items:center;margin-right:5px;}
+  .sigil b{transform:rotate(-45deg);font-size:15px;letter-spacing:0;font-weight:500;}
+  h1 {font-size:clamp(32px,4.35vw,66px);font-weight:760;letter-spacing:.07em;line-height:.94;margin:0 0 10px;text-shadow:0 2px 25px #0009;}
+  .subtitle {font-size:clamp(12px,1.5vw,17px);color:var(--gold);letter-spacing:.42em;font-weight:450;margin:0 0 22px;}
+  .rule{height:1px;background:linear-gradient(90deg,var(--gold),transparent);width:min(310px,84%);opacity:.48;margin-bottom:15px;}
+  .lore {font-size:12px;line-height:1.9;color:#b0c4ce;letter-spacing:.075em;max-width:340px;text-shadow:0 2px 5px #000a;margin:0;}
+  .top-right {right:clamp(14px,3vw,42px);top:clamp(18px,4vw,40px);text-align:right;}
+  .top-right .caption {font-size:10px;font-weight:650;color:#7eafc5;letter-spacing:.19em;}
+  .top-right .value {font-size:15px;font-weight:650;letter-spacing:.12em;margin:5px 0 13px;}
+  .state-dot{display:inline-block;width:6px;height:6px;background:var(--cyan);box-shadow:0 0 12px var(--cyan);border-radius:50%;margin-right:9px;vertical-align:3px;}
+  .statline{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#8fa4b4;line-height:1.65;}
+  .left-rail {left:clamp(15px,3vw,49px);bottom:clamp(165px,21vh,210px);}
+  .detail-mark {display:flex;align-items:center;gap:11px;margin:9px 0;font-family:ui-monospace,monospace;font-size:10px;color:#8ba7b7;letter-spacing:.15em;}
+  .detail-mark::before {content:"";display:block;width:18px;height:1px;background:#d6b57f;}
+  .control-shell {position:fixed;z-index:5;left:50%;transform:translateX(-50%);bottom:max(20px,env(safe-area-inset-bottom));display:flex;justify-content:center;max-width:calc(100vw - 28px);width:max-content;}
+  .control-panel {display:flex;gap:16px;align-items:center;border:1px solid rgba(159,219,237,.24);border-radius:13px;padding:12px 13px;background:linear-gradient(160deg,rgba(14,34,48,.93),rgba(5,15,27,.94));box-shadow:0 15px 52px #0007, inset 0 1px rgba(251,251,252,.07);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);}
+  .control-col {display:flex;gap:7px;align-items:center;}
+  .sep{width:1px;align-self:stretch;background:linear-gradient(transparent,#447288,transparent);}
+  button{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+  .control-col button {border:1px solid rgba(157,203,222,.19);color:#b8ced7;background:rgba(21,42,55,.6);border-radius:6px;min-height:39px;padding:0 13px;font-size:11px;font-weight:650;letter-spacing:.06em;white-space:nowrap;transition:background .18s,border-color .18s,color .18s;}
+  .control-col button[aria-pressed="true"]{color:#04131b;border-color:#9edfeb;background:linear-gradient(110deg,#a5f0f9,#64bdd9);box-shadow:0 0 15px rgba(73,203,232,.19);}
+  .control-col button.action {color:#f0c994;border-color:rgba(235,187,116,.39);background:rgba(87,58,35,.24);}
+  .control-col button.action:active {background:#654b2b;transform:scale(.98);}
+  .control-col button:not([aria-pressed="true"]):hover{border-color:#83c0d2;color:white;background:#244051;}
+  .control-tag {font-size:9px;color:#7f9eae;letter-spacing:.15em;margin-right:2px;white-space:nowrap;}
+  .bottom-note{position:fixed;z-index:3;right:clamp(15px,3vw,45px);bottom:clamp(111px,15vh,137px);font-size:10px;color:rgba(171,206,220,.68);letter-spacing:.05em;pointer-events:none;text-align:right;line-height:1.8;}
+  .crosshair{position:fixed;z-index:2;left:50%;top:50%;width:20px;height:20px;transform:translate(-50%,-50%);pointer-events:none;opacity:0;}
+  .crosshair::before,.crosshair::after{content:"";position:absolute;background:#93deeb;box-shadow:0 0 8px #6fe5fe;}
+  .crosshair::before{width:1px;height:20px;left:9px;top:0;}.crosshair::after{width:20px;height:1px;top:9px;left:0;}
+  body.fps .crosshair{opacity:.73;}
+  body.fps .left-rail{display:none;}
+  body.fps .bottom-note{opacity:.5;}
+  #status{position:fixed;z-index:10;inset:auto 14px calc(max(100px,env(safe-area-inset-bottom)) + 50px);text-align:center;font-size:13px;color:#ffd29d;pointer-events:none;display:none;}
+  .footer-code{position:fixed;bottom:17px;left:25px;color:#627b8c;font-size:9px;letter-spacing:.19em;pointer-events:none;z-index:2;}
+  @media(max-width:880px){
+   .top-left{top:18px;left:18px;max-width:290px}.eyebrow{font-size:9px;margin-bottom:11px;letter-spacing:.16em}.sigil{width:24px;height:24px}.sigil b{font-size:12px}
+   h1{font-size:37px}.subtitle{font-size:10px;margin-bottom:12px;letter-spacing:.31em}.rule{margin-bottom:8px}.lore{font-size:10px;max-width:255px;line-height:1.6}
+   .top-right{top:20px;right:14px}.top-right .caption{font-size:8px}.top-right .value{font-size:10px}.statline{font-size:9px}
+   .control-shell{bottom:max(12px,env(safe-area-inset-bottom));width:calc(100vw - 18px);max-width:100%;}
+   .control-panel{width:100%;max-width:690px;justify-content:center;flex-wrap:wrap;padding:10px;gap:8px;}
+   .control-col{gap:5px}.control-col button{padding:0 9px;min-height:35px;font-size:10px}.control-tag{display:none}
+   .sep{display:none}.left-rail{bottom:145px;left:17px}.detail-mark{font-size:9px;margin:6px 0}.bottom-note{bottom:140px;right:18px;font-size:9px}
+   .footer-code{display:none}
+  }
+  @media(max-width:520px){
+   .top-left{max-width:240px}.eyebrow{gap:7px;font-size:8px}h1{font-size:31px}.subtitle{font-size:10px;letter-spacing:.20em}
+   .lore{font-size:10px;max-width:202px}.rule{width:196px}
+   .top-right .value{font-size:10px;margin-bottom:8px}.top-right .caption{letter-spacing:.06em}
+   .statline{font-size:8px}.top-right{right:13px}.left-rail{display:none}.bottom-note{right:15px;bottom:159px;font-size:9px}
+   .control-panel{gap:7px;padding:9px 7px}.control-col button{min-height:37px;padding:0 9px;font-size:10px}
+  }
+  @media(max-height:560px){
+   .top-left .lore,.top-left .rule,.subtitle,.left-rail,.bottom-note{display:none}.top-left{top:12px}h1{font-size:27px}.eyebrow{margin-bottom:5px}.top-right{top:12px}
+   .control-shell{bottom:5px}.control-panel{padding:6px}.control-col button{min-height:31px}
+  }
+  @media(prefers-reduced-motion:reduce){.control-col button{transition:none}}
+</style>
+</head>
+<body>
+<canvas id="viewport" aria-label="VESPER PRISM 3Dプレビュー"></canvas>
+<div id="vignette"></div><div class="screen-lines"></div>
+<div class="hud top-left">
+ <div class="eyebrow"><span class="sigil"><b>✦</b></span> AETHER FRONTIER <span style="color:#8c9ca6">/ DIVISION 15</span></div>
+ <h1>VESPER<br>PRISM</h1>
+ <p class="subtitle">星環裂刃 · SEIKAN RETSUJIN</p>
+ <div class="rule"></div>
+ <p class="lore">古代星図を演算する双刃機構。<br>閉じた装甲がほどけると、虚空から第三の刃が現れる。</p>
+</div>
+<div class="hud top-right">
+ <div class="caption">WEAPON SYSTEM <span class="state-dot"></span></div>
+ <div class="value" id="formLabel">SEALED / 通常形態</div>
+ <div class="caption">VISUAL PERFORMANCE</div>
+ <div class="statline" id="performance">FPS -- / DRAW --<br>TRIS -- / HIGH</div>
+</div>
+<div class="hud left-rail">
+ <div class="detail-mark">MAGIC × MACHINE</div>
+ <div class="detail-mark">TWIN FLOATING RAILS</div>
+ <div class="detail-mark">COUNTER ROTATING ORBITS</div>
+</div>
+<div class="bottom-note" id="helper">ドラッグ：回転 / ホイール・2本指：ズーム<br>形態切替で装甲と星環が展開</div>
+<div class="crosshair"></div>
+<div class="footer-code">AF // 15 &nbsp;&nbsp; THREE.JS R160 &nbsp;&nbsp; VISUAL ONLY</div>
+<div class="control-shell"><nav class="control-panel" aria-label="3Dプレビュー操作">
+ <div class="control-col"><span class="control-tag">FORM</span><button id="sealed" aria-pressed="true">通常形態</button><button id="awakened" aria-pressed="false">覚醒形態</button><button id="pulse" class="action">魔力脈動</button><button id="slash" class="action">剣閃</button></div>
+ <div class="sep"></div>
+ <div class="control-col"><span class="control-tag">VIEW</span><button id="gallery" aria-pressed="true">鑑賞</button><button id="fps" aria-pressed="false">FPS</button><button id="tps" aria-pressed="false">TPS</button></div>
+ <div class="sep"></div>
+ <div class="control-col"><span class="control-tag">DETAIL</span><button id="high" aria-pressed="true">高品質</button><button id="low" aria-pressed="false">軽量</button></div>
+</nav></div>
+<div id="status" role="alert"></div>
+<script type="module">
+let THREE;
+for (const url of [
+ 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js',
+ 'https://unpkg.com/three@0.160.0/build/three.module.js'
+]) {
+ try { THREE=await import(url); break; } catch (_) { /* try fallback CDN */ }
+}
+if (!THREE) {
+ const alertBox=document.getElementById('status');
+ alertBox.style.display='block';
+ alertBox.textContent='Three.jsを読み込めなかった。ネット接続を確認して再読み込みしてね。';
+ throw new Error('Three.js r160 could not be loaded');
+}
+/**
+ * AETHER FRONTIER / Team 15
+ * VESPER PRISM  |  星環裂刃
+ * Three.js r160, Y-up, forward -Z, meters.
+ * Visual-only weapon. No renderer, camera, input, damage or game-state dependencies.
+ *
+ * import { createAetherModule } from './aether15_weapon.js';
+ * const weapon = createAetherModule(THREE, { quality: 'high' });
+ * scene.add(weapon.root);
+ * weapon.update(deltaSeconds, { charge: 0.6 });
+ */
+function createAetherModule(THREE, options = {}) {
+  const root = new THREE.Group();
+  root.name = 'AF15_VESPER_PRISM';
+  root.userData = { id: 'AF-15', weapon: 'VESPER PRISM', kind: 'arcane split-blade', forward: '-Z', unit: 'meter' };
+  const rig = new THREE.Group();
+  rig.name = 'AnimatedWeaponAssembly';
+  root.add(rig);
+  const high = new THREE.Group();
+  high.name = 'HighQualityDetails';
+  rig.add(high);
+  const glowHigh = new THREE.Group();
+  glowHigh.name = 'HighQualityAura';
+  rig.add(glowHigh);
+
+  const geometries = new Set();
+  const materials = new Set();
+  const ownG = g => (geometries.add(g), g);
+  const ownM = m => (materials.add(m), m);
+  const material = (color, metalness, roughness, emissive = null, intensity = 0) => ownM(new THREE.MeshStandardMaterial({
+    color, metalness, roughness, emissive: emissive ?? 0x000000, emissiveIntensity: intensity, side: THREE.DoubleSide
+  }));
+  const mat = {
+    dark: material(0x111d2b, .82, .31),
+    graphite: material(0x253545, .8, .34),
+    steel: material(0x68899d, .87, .22),
+    pearl: material(0xb2c7d0, .75, .23),
+    gold: material(0xd8a56b, .8, .27),
+    deepGold: material(0x72543b, .88, .35),
+    black: material(0x08111d, .48, .43),
+    grip: material(0x17242c, .24, .77),
+    neon: material(0x60dcf9, .19, .25, 0x1fa8e7, 2.1),
+    white: material(0xb1f5ff, .1, .2, 0x9defff, 2.35),
+    amber: material(0xfbd49a, .28, .19, 0xffab58, 1.6),
+  };
+  const energyMat = ownM(new THREE.MeshBasicMaterial({color: 0x39baff, transparent: true, opacity: .77, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide}));
+  const bladeWhiteMat = ownM(new THREE.MeshBasicMaterial({color: 0xc6f7ff, transparent: true, opacity: .77, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide}));
+  const haloMat = ownM(new THREE.MeshBasicMaterial({color: 0x37c9ff, transparent: true, opacity: .13, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide}));
+  const moteMat = ownM(new THREE.MeshBasicMaterial({color: 0x88eaff, transparent: true, opacity: .8, depthWrite: false, blending: THREE.AdditiveBlending}));
+
+  function mesh(geometry, m, parent = rig, name = '') {
+    const obj = new THREE.Mesh(ownG(geometry), m);
+    if (name) obj.name = name;
+    parent.add(obj);
+    return obj;
+  }
+  function box(w, h, d, m, parent, x=0,y=0,z=0) {
+    const obj = mesh(new THREE.BoxGeometry(w,h,d), m, parent);
+    obj.position.set(x,y,z); return obj;
+  }
+  function cyl(radiusTop, radiusBottom, length, sides, m, parent, x=0,y=0,z=0) {
+    const obj = mesh(new THREE.CylinderGeometry(radiusTop,radiusBottom,length,sides),m,parent);
+    obj.rotation.x = Math.PI / 2;
+    obj.position.set(x,y,z); return obj;
+  }
+  function torus(radius, tube, sides, segments, m, parent, x=0,y=0,z=0) {
+    const obj = mesh(new THREE.TorusGeometry(radius,tube,sides,segments),m,parent);
+    obj.position.set(x,y,z); return obj;
+  }
+  function ico(size, detail, m, parent, x=0,y=0,z=0) {
+    const obj = mesh(new THREE.IcosahedronGeometry(size,detail),m,parent);
+    obj.position.set(x,y,z); return obj;
+  }
+  // A curved hard-surface plate in the XZ plane with physical bevels on the Y axis.
+  function plate(outline, depth, m, parent, bevel=.01) {
+    const shape = new THREE.Shape();
+    shape.moveTo(outline[0][0], outline[0][1]);
+    for (let i=1;i<outline.length;i++) shape.lineTo(outline[i][0],outline[i][1]);
+    shape.closePath();
+    const g = new THREE.ExtrudeGeometry(shape, {
+      depth, steps: 1, bevelEnabled: bevel > 0,
+      bevelThickness: bevel, bevelSize: bevel * .64, bevelSegments: 2, curveSegments: 1
+    });
+    g.rotateX(Math.PI / 2);
+    g.translate(0, depth * .5, 0);
+    return mesh(g,m,parent);
+  }
+  function line(points, radius, m, parent, sides=5) {
+    const curve = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(...p)), false, 'centripetal');
+    return mesh(new THREE.TubeGeometry(curve, Math.max(8, points.length*7), radius, sides, false),m,parent);
+  }
+  function instanced(geometry, m, count, parent, setup) {
+    const instance = new THREE.InstancedMesh(ownG(geometry),m,count);
+    const obj = new THREE.Object3D();
+    for (let i=0; i<count; i++) {
+      obj.position.set(0,0,0); obj.rotation.set(0,0,0); obj.scale.set(1,1,1);
+      setup(obj,i); obj.updateMatrix(); instance.setMatrixAt(i,obj.matrix);
+    }
+    instance.instanceMatrix.needsUpdate = true;
+    instance.frustumCulled = false;
+    parent.add(instance);
+    return instance;
+  }
+
+  // HILT: asymmetric pommel, carbon grip, gilded latchwork.
+  const hilt = new THREE.Group(); hilt.name = 'Hilt'; rig.add(hilt);
+  cyl(.109,.109,.84,10,mat.steel,hilt,0,0,.56);
+  cyl(.095,.095,.70,10,mat.grip,hilt,0,0,.57);
+  cyl(.121,.121,.07,12,mat.gold,hilt,0,0,.18);
+  cyl(.113,.113,.08,12,mat.deepGold,hilt,0,0,.97);
+  cyl(.126,.126,.048,12,mat.steel,hilt,0,0,.99);
+  cyl(.078,.115,.17,8,mat.graphite,hilt,0,0,1.10);
+  ico(.073,1,mat.neon,hilt,0,0,1.21);
+  torus(.088,.008,5,32,mat.gold,hilt,0,0,1.145);
+  // alternating metallic weave, modeled rather than texture painted
+  instanced(new THREE.TorusGeometry(.098,.007,4,10),mat.deepGold,18,hilt,(o,i)=> {
+    o.position.z = .267 + i*.032;
+    o.rotation.z = (i % 2 ? .19 : -.19);
+  });
+  instanced(new THREE.BoxGeometry(.014,.019,.05),mat.gold,24,high,(o,i)=> {
+    const a = i * Math.PI * 2 / 8;
+    const z = .34 + Math.floor(i / 8) * .205;
+    o.position.set(Math.cos(a)*.101,Math.sin(a)*.101,z);
+    o.rotation.z = a;
+  });
+
+  // POWER SOCKET: layered octagonal mechanical collars and spinning star rings.
+  const socket = new THREE.Group(); socket.name='PrismaticSocket'; socket.position.z=-.25; rig.add(socket);
+  cyl(.148,.175,.34,10,mat.dark,socket,0,0,.09);
+  cyl(.175,.158,.12,10,mat.gold,socket,0,0,-.10);
+  cyl(.22,.22,.064,12,mat.graphite,socket,0,0,-.155);
+  cyl(.15,.15,.052,12,mat.pearl,socket,0,0,-.20);
+  ico(.145,1,mat.neon,socket,0,0,-.21).rotation.z=Math.PI/4;
+  ico(.072,0,mat.white,socket,0,0,-.225);
+  const innerRing = new THREE.Group(); innerRing.name='CounterRotatingRunes'; socket.add(innerRing);
+  torus(.25,.014,6,72,mat.gold,innerRing,0,0,-.26);
+  torus(.22,.006,4,72,mat.neon,innerRing,0,0,-.26);
+  const outerRing = new THREE.Group(); outerRing.name='OrbitingAstrolabe'; socket.add(outerRing);
+  torus(.35,.023,6,80,mat.graphite,outerRing,0,0,-.19);
+  torus(.354,.004,4,80,mat.amber,outerRing,0,0,-.19);
+  torus(.304,.007,4,72,mat.gold,outerRing,0,0,-.16);
+  instanced(new THREE.BoxGeometry(.056,.013,.025),mat.gold,24,outerRing,(o,i)=> {
+    const a = Math.PI * 2 * i / 24;
+    o.position.set(Math.cos(a)*.347,Math.sin(a)*.347,-.19);
+    o.rotation.z=a;
+  });
+  instanced(new THREE.TetrahedronGeometry(.025,0),mat.neon,12,innerRing,(o,i)=> {
+    const a = Math.PI * 2 * i / 12;
+    o.position.set(Math.cos(a)*.255,Math.sin(a)*.255,-.26);
+    o.rotation.z=a;
+  });
+  // High fidelity: a second inclined orbital mechanism and tiny golden etching.
+  const eccentric = new THREE.Group(); eccentric.name='InclinedHighRing'; eccentric.rotation.y=.38; eccentric.rotation.x=.17; high.add(eccentric);
+  torus(.402,.009,4,80,mat.gold,eccentric,0,0,-.48);
+  instanced(new THREE.OctahedronGeometry(.019,0),mat.white,16,eccentric,(o,i)=> {
+    const a=i*2*Math.PI/16; o.position.set(Math.cos(a)*.402,Math.sin(a)*.402,-.48);
+  });
+  // Mechanical locking plates behind socket.
+  for (const s of [-1,1]) {
+    const claw = plate([[s*.09,.08],[s*.245,-.015],[s*.27,-.18],[s*.19,-.28],[s*.15,-.17]],.09,mat.graphite,rig);
+    claw.name = s<0 ? 'LeftLockingSpur' : 'RightLockingSpur';
+    line([[s*.14,.059,.045],[s*.225,.059,-.08],[s*.208,.059,-.185]],.011,mat.gold,rig,4);
+  }
+
+  // GUARD: independent fold-out split wing structures with multi-material profiles.
+  const wings=[];
+  for (const s of [-1,1]) {
+    const wing = new THREE.Group(); wing.name=s<0?'LeftGuardWing':'RightGuardWing'; rig.add(wing); wings.push({wing,s});
+    plate([[s*.12,.02],[s*.26,-.03],[s*.48,-.18],[s*.59,-.40],[s*.40,-.32],[s*.28,-.22],[s*.14,-.24]], .095, mat.graphite, wing, .014);
+    plate([[s*.21,-.035],[s*.43,-.19],[s*.51,-.32],[s*.36,-.26]],.055,mat.steel,wing,.008);
+    plate([[s*.165,-.026],[s*.315,-.115],[s*.43,-.265],[s*.33,-.205],[s*.21,-.145]],.027,mat.gold,wing,.004);
+    line([[s*.24,.075,-.05],[s*.42,.072,-.20],[s*.5,.064,-.32]],.011,mat.neon,wing);
+    ico(.041,0,mat.white,wing,s*.33,0,-.178);
+    const highFin = plate([[s*.32,-.12],[s*.61,-.33],[s*.71,-.45],[s*.55,-.405]],.034,mat.dark,high,.006);
+    highFin.position.y=-.014;
+  }
+
+  // BLADE: independent exterior prismatic rails suspended on an arcane field.
+  const rails = [];
+  const mirror = (outline,s) => outline.map(([x,z])=>[x*s,z]);
+  const railOutline = [
+    [.10,-.33],[.213,-.49],[.255,-.82],[.26,-1.30],[.218,-1.77],
+    [.115,-2.27],[.035,-2.46],[.107,-1.79],[.135,-1.32],
+    [.133,-.89],[.076,-.52]
+  ];
+  const goldRailOutline = [[.190,-.54],[.218,-.77],[.222,-1.27],[.192,-1.64],[.165,-1.80],[.178,-1.34],[.178,-.90]];
+  const spineOutline = [[.125,-.49],[.157,-.63],[.162,-1.30],[.139,-1.68],[.139,-1.17],[.125,-.75]];
+  for (const s of [-1,1]) {
+    const g = new THREE.Group();g.name=s<0?'LeftActuatedRail':'RightActuatedRail';rig.add(g);
+    rails.push({g,s});
+    plate(mirror(railOutline,s),.102,mat.steel,g,.013);
+    plate(mirror(goldRailOutline,s),.116,mat.deepGold,g,.005);
+    plate(mirror(spineOutline,s),.123,mat.dark,g,.006);
+    line([[s*.117,.073,-.48],[s*.174,.083,-.78],[s*.178,.083,-1.32],[s*.132,.073,-1.84],[s*.066,.047,-2.35]], .012,mat.neon,g,6);
+    line([[s*.233,-.058,-.76],[s*.238,-.058,-1.26],[s*.195,-.052,-1.7]],.008,mat.gold,g,4);
+    // Short segmented armor vanes, backed with dark inlay and emissive tips.
+    for (const [i,z] of [-.74,-1.02,-1.33,-1.64].entries()) {
+      plate(mirror([[.17,z+.073],[.325-i*.013,z+.015],[.27-i*.015,z-.09],[.178,z-.035]],s),.08,mat.graphite,g,.008);
+      plate(mirror([[.18,z+.043],[.29-i*.01,z+.013],[.239-i*.01,z-.049]],s),.09,mat.steel,g,.005);
+      ico(.023,0,mat.amber,g,s*(.245-i*.01),.053,z+.008);
+    }
+    const notchGroup = new THREE.Group(); g.add(notchGroup);
+    instanced(new THREE.BoxGeometry(.035,.009,.025),mat.gold,13,notchGroup,(o,i)=> {
+      o.position.set(s*.193,.073,-.71-i*.096); o.rotation.y=(s*.07);
+    });
+    instanced(new THREE.BoxGeometry(.028,.015,.042),mat.pearl,14,high,(o,i)=> {
+      o.position.set(s*(.28-i*.008),.015,-.79-i*.107);o.rotation.y=-s*.3;
+    });
+  }
+  // Inner aether lattice. Translucent, bright on both sides of the blade.
+  const energy = new THREE.Group(); energy.name='SuspendedAetherBlade'; rig.add(energy);
+  plate([[0,-.51],[-.045,-.68],[-.079,-1.24],[-.068,-1.73],[-.04,-2.10],[0,-2.46],[.04,-2.10],[.068,-1.73],[.079,-1.24],[.045,-.68]], .035, energyMat,energy,0);
+  const brightCore = plate([[0,-.56],[-.014,-.86],[-.025,-1.45],[-.018,-2.09],[0,-2.45],[.018,-2.09],[.025,-1.45],[.014,-.86]],.017,bladeWhiteMat,energy,0);
+  brightCore.position.y=.029;
+  const halo = plate([[0,-.39],[-.12,-1.0],[-.155,-1.61],[-.11,-2.13],[0,-2.52],[.11,-2.13],[.155,-1.61],[.12,-1.0]],.01,haloMat,glowHigh,0);
+  halo.position.y=-.025;
+  for (const z of [-.80,-1.18,-1.57,-1.95]) {
+    const jewel=ico(.055,0,mat.white,energy,0,.045,z);jewel.scale.set(.60,.45,1.45);
+    torus(.065,.004,4,40,mat.gold,high,0,.065,z).rotation.x=Math.PI/2;
+  }
+  // Independent levitating splinters, visible in high quality mode.
+  const splinters=[];
+  for(let i=0;i<10;i++) {
+    const s = i%2 ? 1 : -1;
+    const anchorZ= -.64 - Math.floor(i/2)*.35;
+    const shard=ico(.042+i%3*.008,0,i%3===0?mat.amber:mat.neon,glowHigh,s*(.37+i%4*.037),0,anchorZ);
+    shard.scale.set(.58,.30,1.9);splinters.push({shard,anchorZ,s,phase:i*1.31});
+  }
+  const arcRibbons=[];
+  for(const s of [-1,1]) {
+    const arc = line([[s*.17,.042,-.53],[s*.32,.09,-.9],[s*.27,.02,-1.35],[s*.22,-.09,-1.85],[s*.05,.025,-2.35]],.006,mat.neon,glowHigh,4);
+    arcRibbons.push(arc);
+  }
+  // An etched, hollow six-point constellation behind the reactor.
+  const backGlyph=new THREE.Group();backGlyph.name='HighQualitySigil';backGlyph.position.z=-.535;high.add(backGlyph);
+  const glyphPts=[];
+  for(let i=0;i<12;i++) {
+    const a=i*Math.PI/6;const r=i%2===0?.145:.078;
+    glyphPts.push([Math.cos(a)*r,Math.sin(a)*r,-.02]);
+  }
+  for(let i=0;i<12;i++) {
+    const a=glyphPts[i],b=glyphPts[(i+1)%12];line([a,b],.0045,mat.amber,backGlyph,4);
+  }
+
+  // STATE & ANIMATION. External users may move/rotate root freely.
+  let destroyed=false;
+  let quality = 'high';
+  let form = 'sealed';
+  let formMix = 0;
+  let charge = 0.20;
+  let chargeTarget = 0.20;
+  let clock = 0;
+  let pulseTime = -1;
+  let slashTime = -1;
+  const originalOpacity = { energy:energyMat.opacity, core:bladeWhiteMat.opacity, halo:haloMat.opacity };
+  const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+  function setQuality(mode) {
+    if (mode !== 'low' && mode !== 'high') return quality;
+    quality=mode;
+    high.visible = mode==='high';
+    glowHigh.visible = mode==='high';
+    return quality;
+  }
+  function setForm(value) {
+    if (value === 'sealed' || value === 'awakened') form=value;
+    return form;
+  }
+  function setCharge(value) {
+    if(Number.isFinite(value)) chargeTarget=clamp(value,0,1);
+    return chargeTarget;
+  }
+  function playAction(action) {
+    if (action==='pulse' || action==='surge') pulseTime=0;
+    else if (action==='slash') slashTime=0;
+  }
+  function update(dt, context={}) {
+    if(destroyed) return;
+    dt=clamp(Number.isFinite(dt)?dt:0,0,.07);
+    if (context && typeof context==='object') {
+      if (Number.isFinite(context.charge)) setCharge(context.charge);
+      if (context.form==='sealed' || context.form==='awakened') setForm(context.form);
+    }
+    clock+=dt;
+    const follow=1-Math.exp(-dt*5);
+    formMix+=(Number(form==='awakened')-formMix)*follow;
+    charge+=(chargeTarget-charge)*follow;
+    if(pulseTime>=0){pulseTime+=dt;if(pulseTime>1.4)pulseTime=-1;}
+    if(slashTime>=0){slashTime+=dt;if(slashTime>0.86)slashTime=-1;}
+    const pulse=pulseTime<0?0:Math.sin(Math.PI*clamp(pulseTime/1.4,0,1))**2;
+    const power=clamp(.23+formMix*.60+charge*.2+pulse*.46,0,1.4);
+    const breath=Math.sin(clock*2.2)*.007;
+    for(const {g,s} of rails){
+      g.position.x=s*(.006+formMix*.088+pulse*.043+breath);
+      g.rotation.y=s*(.013+formMix*.034);
+    }
+    for(const {wing,s} of wings){
+      wing.rotation.y=s*(formMix*.16+Math.sin(clock*1.7)*.013);
+      wing.position.x=s*formMix*.02;
+    }
+    outerRing.rotation.z=clock*(.22+power*.75);
+    innerRing.rotation.z=-clock*(.52+power*.9);
+    eccentric.rotation.z=clock*.17;
+    backGlyph.rotation.z=-clock*.27;
+    energy.scale.x=.68+formMix*.55+pulse*.27;
+    energy.scale.y=1+formMix*.03;
+    energyMat.opacity=clamp(originalOpacity.energy*(.60+power*.54),.25,1);
+    bladeWhiteMat.opacity=clamp(originalOpacity.core*(.56+power*.51),.22,1);
+    haloMat.opacity=clamp(originalOpacity.halo*(.55+power*1.14),.03,.32);
+    mat.neon.emissiveIntensity=1.35+power*2.6;
+    mat.white.emissiveIntensity=1.6+power*2.8;
+    mat.amber.emissiveIntensity=1.1+power*.8;
+    for (const {shard,anchorZ,s,phase} of splinters) {
+      shard.position.x=s*(.34+formMix*.10)+Math.sin(clock*.9+phase)*.033;
+      shard.position.y=Math.sin(clock*1.45+phase)*.06;
+      shard.position.z=anchorZ+Math.cos(clock*.8+phase)*.04;
+      shard.rotation.z=clock*.33+phase;
+    }
+    const stroke=slashTime<0?0:Math.sin(Math.PI*clamp(slashTime/.86,0,1));
+    // All animation stays inside rig, never edits the externally owned root transform.
+    rig.rotation.x=stroke*.21;
+    rig.rotation.y=-stroke*.38;
+    rig.rotation.z=stroke*-.23;
+    rig.position.y=stroke*.08;
+    outerRing.scale.setScalar(1+pulse*.10);
+    innerRing.scale.setScalar(1+pulse*.06);
+  }
+  function getState(){return {form,quality,charge,formBlend:formMix};}
+  function dispose() {
+    if(destroyed)return;
+    destroyed=true;
+    root.remove(rig);
+    for (const g of geometries) g.dispose();
+    for (const m of materials) m.dispose();
+    geometries.clear();materials.clear();
+  }
+  setQuality(options.quality === 'low' ? 'low' : 'high');
+  setForm(options.form === 'awakened' ? 'awakened' : 'sealed');
+  setCharge(Number.isFinite(options.charge) ? options.charge : .2);
+  return { root, update, setQuality, setForm, setCharge, playAction, getState, dispose };
+}
+
+// ---------- EXHIBITION / DEMO HOST ----------
+// Everything below is for the standalone viewer only. It does not enter the weapon module.
+const canvas = document.getElementById('viewport');
+const status = document.getElementById('status');
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance',alpha:false,stencil:false});
+} catch (err) {
+  status.style.display='block';
+  status.textContent='WebGL を初期化できなかった。WebGL対応ブラウザで試してね。';
+  throw err;
+}
+renderer.setClearColor(0x06101b,1);
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.62;
+const scene=new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x06101b,.013);
+const camera=new THREE.PerspectiveCamera(48,1,.05,120);
+scene.add(camera);
+scene.add(new THREE.HemisphereLight(0xbfdafa,0x131827,2.2));
+const lightA=new THREE.DirectionalLight(0xd9f4ff,4.5);lightA.position.set(-4,7,5);scene.add(lightA);
+const lightB=new THREE.DirectionalLight(0xffc385,3.1);lightB.position.set(4,3,-5);scene.add(lightB);
+const lightC=new THREE.DirectionalLight(0x5889fa,2.5);lightC.position.set(0,-3,-4);scene.add(lightC);
+// The scene's subtle stage is not part of the exported weapon module.
+const stage=new THREE.Group();scene.add(stage);
+const stageMat=new THREE.MeshStandardMaterial({color:0x152838,metalness:.62,roughness:.39});
+const stageTrim=new THREE.MeshStandardMaterial({color:0x7095a9,metalness:.68,roughness:.37,emissive:0x10232c,emissiveIntensity:.22});
+const stageGlow=new THREE.MeshBasicMaterial({color:0x228ab5,transparent:true,opacity:.65,blending:THREE.AdditiveBlending,depthWrite:false});
+const plinth=new THREE.Mesh(new THREE.CylinderGeometry(1.77,1.98,.18,72),stageMat);
+plinth.position.set(0,-1.03,-.67);stage.add(plinth);
+function floorRing(radius,tube,y,mat){let r=new THREE.Mesh(new THREE.TorusGeometry(radius,tube,4,80),mat);r.rotation.x=Math.PI/2;r.position.set(0,y,-.67);stage.add(r);return r;}
+floorRing(1.73,.012,-.938,stageTrim);floorRing(1.44,.008,-.937,stageGlow);floorRing(1.22,.004,-.937,stageTrim);
+const grid=new THREE.GridHelper(27,60,0x25536a,0x142d3d);grid.position.y=-1.132;stage.add(grid);
+const stagePillars=new THREE.Group();stagePillars.position.z=-.67;stage.add(stagePillars);
+for(let i=0;i<12;i++){
+  let a=i*Math.PI/6;
+  const g=new THREE.Mesh(new THREE.BoxGeometry(.032,.035,.09),stageTrim);
+  g.position.set(Math.sin(a)*1.59,-.926,Math.cos(a)*1.59);g.rotation.y=a;stagePillars.add(g);
+}
+const sky=new THREE.Group();scene.add(sky);
+const sparks=240;
+const coords = new Float32Array(sparks*3);
+let rng=42;
+function rand(){rng=(1664525*rng+1013904223)>>>0;return rng/4294967296;}
+for(let i=0;i<sparks;i++){
+  let a=rand()*Math.PI*2, r=3+rand()*25;
+  coords[i*3]=Math.sin(a)*r;coords[i*3+1]=rand()*14-3;coords[i*3+2]=Math.cos(a)*r-1;
+}
+const dustGeo=new THREE.BufferGeometry();dustGeo.setAttribute('position',new THREE.BufferAttribute(coords,3));
+const dust=new THREE.Points(dustGeo,new THREE.PointsMaterial({color:0x92bad2,size:.035,transparent:true,opacity:.6,sizeAttenuation:true,depthWrite:false}));sky.add(dust);
+
+// Optional scale figure for the TPS framing only, never exported.
+const mannequin=new THREE.Group();scene.add(mannequin);
+const armor=new THREE.MeshStandardMaterial({color:0x23374b,metalness:.66,roughness:.34,transparent:true,opacity:.67});
+const armorLight=new THREE.MeshStandardMaterial({color:0x83b7cb,metalness:.56,roughness:.31,transparent:true,opacity:.65});
+function dummyPart(g,x,y,z,sx,sy,sz,m=armor){const mesh=new THREE.Mesh(g,m);mesh.position.set(x,y,z);mesh.scale.set(sx,sy,sz);mannequin.add(mesh);return mesh;}
+dummyPart(new THREE.CylinderGeometry(.30,.225,.73,7),0,.91,.47,1,1,1);
+dummyPart(new THREE.IcosahedronGeometry(.22,1),0,1.50,.47,1,1.17,.95,armorLight);
+dummyPart(new THREE.BoxGeometry(1,1,1),0,1.06,.24,.28,.12,.22,armorLight);
+for (const s of [-1,1]) {
+ dummyPart(new THREE.CylinderGeometry(.113,.09,.64,7),s*.34,.91,.47,1,1,1).rotation.z=s*.36;
+ dummyPart(new THREE.CylinderGeometry(.09,.08,.58,7),s*.155,.27,.47,1,1,1).rotation.z=s*.13;
+ dummyPart(new THREE.BoxGeometry(.18,.095,.30),s*.155,-.07,.34,1,1,1,armorLight);
+}
+dummyPart(new THREE.BoxGeometry(.22,.08,.08),.52,.62,.36,1,1,1,armorLight);
+mannequin.visible=false;
+
+const weapon=createAetherModule(THREE,{quality:'high',form:'sealed',charge:.3});
+scene.add(weapon.root);
+const clock=new THREE.Clock();
+let view='gallery',quality='high',form='sealed';
+let yaw=.70,pitch=.39,distance=4.85;
+let userEngagedAt=0;
+const pointers=new Map();
+let pinchDist=0;
+const performance=document.getElementById('performance');
+const formLabel=document.getElementById('formLabel');
+const helper=document.getElementById('helper');
+function pressed(ids,active){for(const id of ids)document.getElementById(id).setAttribute('aria-pressed',String(id===active));}
+function resize(){
+ const w=window.innerWidth,h=window.innerHeight;
+ camera.aspect=w/Math.max(1,h);camera.updateProjectionMatrix();
+ const pixelRatio=quality==='low'?Math.min(devicePixelRatio||1,1.0):Math.min(devicePixelRatio||1,innerWidth<750?1.35:1.65);
+ renderer.setPixelRatio(pixelRatio);renderer.setSize(w,h,false);
+}
+function setQuality(mode){quality=mode;weapon.setQuality(mode);pressed(['low','high'],mode);resize();}
+function setForm(mode){form=mode;weapon.setForm(mode);pressed(['sealed','awakened'],mode);formLabel.textContent=mode==='sealed'?'SEALED / 通常形態':'AWAKENED / 覚醒形態';}
+function setView(mode){
+ view=mode;document.body.classList.toggle('fps',mode==='fps');pressed(['gallery','fps','tps'],mode);
+ camera.fov=mode==='fps'?64:mode==='tps'?51:48;camera.updateProjectionMatrix();
+ camera.remove(weapon.root);
+ if(mode==='fps'){
+   camera.add(weapon.root);
+   weapon.root.position.set(.70,-.52,-.93);
+   weapon.root.rotation.set(.27,-.39,-.22);
+   weapon.root.scale.setScalar(.73);
+   mannequin.visible=false;
+   stage.visible=false;
+   camera.position.set(0,1.4,2.4);camera.rotation.set(0,0,0);
+   helper.textContent='FPS構図 / 刃の動きと展開を近距離で確認';
+ } else if(mode==='tps'){
+   scene.add(weapon.root);
+   weapon.root.position.set(.51,.41,.20);
+   weapon.root.rotation.set(.08,-.15,-.08);
+   weapon.root.scale.setScalar(.72);
+   mannequin.visible=true;stage.visible=true;
+   distance=5.9;yaw=.55;pitch=.23;
+   helper.textContent='TPS構図 / プレイヤーに対する大きさを確認';
+ } else {
+   scene.add(weapon.root);
+   weapon.root.position.set(0,.45,0);
+   weapon.root.rotation.set(-.055,-.13,-.02);
+   weapon.root.scale.setScalar(1);
+   mannequin.visible=false;stage.visible=true;
+   distance=4.85;yaw=.70;pitch=.39;
+   helper.innerHTML='ドラッグ：回転 / ホイール・2本指：ズーム<br>形態切替で装甲と星環が展開';
+ }
+}
+['sealed','awakened'].forEach(id=>document.getElementById(id).addEventListener('click',()=>setForm(id)));
+['gallery','fps','tps'].forEach(id=>document.getElementById(id).addEventListener('click',()=>setView(id)));
+['low','high'].forEach(id=>document.getElementById(id).addEventListener('click',()=>setQuality(id)));
+document.getElementById('pulse').addEventListener('click',()=>weapon.playAction('pulse'));
+document.getElementById('slash').addEventListener('click',()=>weapon.playAction('slash'));
+canvas.addEventListener('pointerdown',e=>{
+  if(view==='fps')return;
+  canvas.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  userEngagedAt=performanceNow();
+});
+function performanceNow(){return window.performance.now();}
+// Performance API is deliberately referenced via window because "performance" is the visible HUD element.
+canvas.addEventListener('pointermove',e=>{
+ if(!pointers.has(e.pointerId)||view==='fps')return;
+ const p=pointers.get(e.pointerId);
+ pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ userEngagedAt=performanceNow();
+ if(pointers.size===1){
+   yaw-=(e.clientX-p.x)*.0063;
+   pitch=Math.max(-.10,Math.min(1.27,pitch+(e.clientY-p.y)*.0053));
+ }else if(pointers.size===2){
+   const pair=[...pointers.values()];
+   const d=Math.hypot(pair[0].x-pair[1].x,pair[0].y-pair[1].y);
+   if(pinchDist>0)distance=Math.max(2.5,Math.min(9,distance+(pinchDist-d)*.013));
+   pinchDist=d;
+ }
+});
+function pointerEnd(e){pointers.delete(e.pointerId);if(pointers.size<2)pinchDist=0;}
+canvas.addEventListener('pointerup',pointerEnd);
+canvas.addEventListener('pointercancel',pointerEnd);
+canvas.addEventListener('lostpointercapture',pointerEnd);
+canvas.addEventListener('wheel',e=>{
+ if(view==='fps')return;
+ e.preventDefault();distance=Math.max(2.55,Math.min(9,distance+e.deltaY*.0035));
+ userEngagedAt=performanceNow();
+},{passive:false});
+window.addEventListener('resize',resize);
+window.addEventListener('keydown',e=>{
+ if(e.key==='1')setView('gallery');
+ if(e.key==='2')setView('fps');
+ if(e.key==='3')setView('tps');
+ if(e.key.toLowerCase()==='f')setForm(form==='sealed'?'awakened':'sealed');
+ if(e.key===' ') {e.preventDefault();weapon.playAction('pulse');}
+});
+setView('gallery');resize();
+let elapsed=0,frames=0,fps=60;
+let stopped=false;
+function animate(){
+ if(stopped)return;
+ requestAnimationFrame(animate);
+ const dt=Math.min(.06,clock.getDelta());
+ const t=clock.elapsedTime;
+ weapon.update(dt);
+ if(view==='gallery'||view==='tps'){
+   if(pointers.size===0&&performanceNow()-userEngagedAt>3500)yaw+=dt*.071;
+   const cy=Math.cos(pitch),sx=Math.sin(yaw),cz=Math.cos(yaw);
+   const target=view==='gallery' ? new THREE.Vector3(0,.15,-.62):new THREE.Vector3(0,.47,-.38);
+   camera.position.set(target.x+distance*sx*cy,target.y+distance*Math.sin(pitch),target.z+distance*cz*cy);
+   camera.lookAt(target);
+   if(view==='gallery')weapon.root.position.y=.42+Math.sin(t*1.2)*.028;
+ }
+ sky.rotation.y=t*.006;
+ stagePillars.rotation.y=t*.006;
+ renderer.render(scene,camera);
+ frames++;elapsed+=dt;
+ if(elapsed>=.55){
+   fps=frames/Math.max(.01,elapsed);frames=0;elapsed=0;
+   const stats=renderer.info.render;
+   performance.textContent=`FPS ${Math.round(fps)} / DRAW ${stats.calls}\nTRIS ${stats.triangles.toLocaleString()} / ${quality.toUpperCase()}`;
+   performance.style.whiteSpace='pre-line';
+ }
+}
+requestAnimationFrame(animate);
+window.addEventListener('pagehide',()=>{
+ stopped=true;
+ weapon.dispose();
+ renderer.dispose();
+});
+</script>
+</body></html>

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#101e32">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>AF03 | SKYWARD ARCHIPELAGO</title>
+  <style>
+    :root{--ink:#f1fbff;--sub:#a9bdce;--glass:rgba(8,25,39,.71);--line:rgba(162,244,240,.23);--accent:#96f3e4;--gold:#e8cf98}
+    *{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#111f32;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;touch-action:none}
+    button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    #stage{position:absolute;inset:0;display:block;width:100%;height:100%;outline:0;touch-action:none}
+    .glass{background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 14px 35px rgba(0,0,0,.14)}
+    #topLeft{position:absolute;top:calc(18px + env(safe-area-inset-top));left:24px;pointer-events:none;z-index:3}
+    .eyebrow{font-size:10px;letter-spacing:.26em;color:var(--accent);font-weight:750}
+    .brand{font-size:20px;letter-spacing:.14em;font-weight:850;line-height:1.6;text-shadow:0 2px 10px rgba(0,0,0,.25)}
+    .edition{font-size:10px;letter-spacing:.16em;color:#c6dde8}
+    #topRight{position:absolute;top:calc(19px + env(safe-area-inset-top));right:22px;display:flex;gap:7px;z-index:3}
+    .chip{padding:8px 11px;border:1px solid var(--line);background:rgba(9,25,38,.72);border-radius:8px;font-size:11px;letter-spacing:.03em}
+    .chip:active,.chip:focus-visible{border-color:var(--accent);background:#163d4a}
+    #quest{position:absolute;left:24px;top:calc(112px + env(safe-area-inset-top));width:252px;border-radius:12px;padding:15px 17px;pointer-events:none;z-index:2}
+    .smallLabel{font-size:9px;color:var(--accent);font-weight:800;letter-spacing:.23em}
+    .questTitle{font-size:14px;font-weight:750;margin-top:7px}.questText{font-size:11px;line-height:1.7;color:#b7c9d3;margin-top:6px}
+    #beaconProgress{display:flex;gap:7px;margin-top:12px}.beacon{width:19px;height:6px;border-radius:4px;background:#365567;box-shadow:inset 0 0 0 1px #66818a}.beacon.active{background:#8cf5de;box-shadow:0 0 10px #8cf5de}
+    #areaName{position:absolute;bottom:calc(55px + env(safe-area-inset-bottom));left:24px;pointer-events:none;z-index:2}
+    #areaJp{font-weight:800;font-size:20px;letter-spacing:.12em;text-shadow:0 3px 14px #132438}
+    #areaEn{font-size:10px;letter-spacing:.24em;color:#e0e8e3;margin-top:4px}
+    #hudStats{font-size:10px;color:#e6eff6;margin-top:9px;letter-spacing:.09em}
+    #mapWrap{position:absolute;top:calc(108px + env(safe-area-inset-top));right:23px;width:194px;padding:10px 10px 7px;border-radius:13px;pointer-events:none;z-index:2}
+    #map{display:block;width:172px;height:172px}#mapLabel{text-align:center;color:#a5c6d6;font-size:9px;letter-spacing:.2em;margin-top:3px}
+    #hint{position:absolute;left:50%;bottom:calc(75px + env(safe-area-inset-bottom));transform:translateX(-50%);border-radius:10px;padding:10px 17px;text-align:center;min-width:255px;max-width:min(92vw,480px);font-size:12px;line-height:1.6;z-index:3;pointer-events:none;transition:opacity .2s}
+    #toast{position:absolute;left:50%;top:23%;transform:translateX(-50%) translateY(10px);font-size:16px;font-weight:750;line-height:1.6;letter-spacing:.05em;text-align:center;text-shadow:0 4px 12px #162a36;opacity:0;transition:opacity .24s,transform .24s;pointer-events:none;z-index:10;max-width:80vw}
+    #toast.visible{opacity:1;transform:translateX(-50%) translateY(0)}
+    #reticle{position:absolute;top:50%;left:50%;width:12px;height:12px;border:1px solid rgba(218,255,246,.7);border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:2;box-shadow:0 0 9px rgba(150,243,228,.5)}
+    #footer{position:absolute;bottom:calc(12px + env(safe-area-inset-bottom));right:22px;z-index:2;font-size:10px;color:#b9cbd2;pointer-events:none;text-shadow:0 2px 6px #142937}
+    #curtain{position:absolute;inset:0;z-index:20;background:linear-gradient(90deg,rgba(8,23,40,.89),rgba(8,23,40,.61) 57%,rgba(8,23,40,.09));display:flex;align-items:center;padding:6vw;overflow:auto;touch-action:pan-y}
+    #intro{max-width:530px;position:relative;padding:20px 0 25px 15px;border-left:2px solid #8deedd}
+    #intro h1{font-size:clamp(34px,5.3vw,62px);letter-spacing:.08em;margin:14px 0 7px;line-height:1.06;font-weight:900;text-shadow:0 4px 30px #172a36}
+    #intro .sub{font-size:clamp(16px,2vw,22px);letter-spacing:.2em;font-weight:750;color:#d5f7f2;margin:0 0 24px}
+    #intro p{max-width:440px;font-size:13px;line-height:2;color:#d7e9eb;margin:12px 0 20px}
+    #intro .tech{font-size:11px;line-height:2.1;color:#c3d6dd;margin-bottom:25px}
+    #launch{padding:14px 38px;border-radius:5px;border:1px solid #c4fff3;background:rgba(122,233,216,.16);color:#dcfff9;font-size:14px;font-weight:800;letter-spacing:.2em}
+    #launch:hover{background:rgba(122,233,216,.33)}
+    #loadState{font-size:11px;color:#a9c8d3;margin-top:18px}
+    #controls{position:absolute;inset:0;pointer-events:none;z-index:5;display:none}
+    #stickBase{position:absolute;left:max(20px,env(safe-area-inset-left));bottom:calc(30px + env(safe-area-inset-bottom));width:132px;height:132px;border-radius:50%;background:rgba(16,33,46,.22);border:1px solid rgba(210,250,245,.23);pointer-events:auto;touch-action:none}
+    #stickTip{position:absolute;top:36px;left:36px;width:60px;height:60px;border-radius:50%;background:rgba(182,253,242,.27);border:2px solid rgba(220,255,255,.54);box-shadow:0 0 22px #84ffdf22;pointer-events:none}
+    #actionColumn{position:absolute;right:max(18px,env(safe-area-inset-right));bottom:calc(26px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(2,68px);gap:10px;pointer-events:auto}
+    .action{background:rgba(13,33,48,.47);border:1px solid rgba(203,248,240,.42);border-radius:16px;height:60px;width:68px;font-size:12px;font-weight:750;backdrop-filter:blur(5px)}.action:active{background:rgba(90,190,184,.54)}
+    #mobHint{position:absolute;bottom:calc(166px + env(safe-area-inset-bottom));right:20px;font-size:10px;color:#e9f5fb;text-align:right;opacity:.7;pointer-events:none}
+    @media(max-width:800px){#topLeft{left:14px;top:calc(11px + env(safe-area-inset-top))}.brand{font-size:14px}.edition{font-size:8px}#topRight{right:10px;top:calc(12px + env(safe-area-inset-top))}.chip{font-size:10px;padding:7px 8px}#quest{left:10px;top:calc(77px + env(safe-area-inset-top));width:205px;padding:10px 12px}.questText{font-size:10px}.questTitle{font-size:12px}#mapWrap{right:10px;top:calc(80px + env(safe-area-inset-top));width:128px;padding:5px}#map{width:116px;height:116px}#mapLabel{font-size:8px}#areaName{left:13px;bottom:calc(198px + env(safe-area-inset-bottom))}#areaJp{font-size:15px}#areaEn{font-size:8px}#hint{bottom:calc(157px + env(safe-area-inset-bottom));padding:7px 11px;min-width:auto;width:max-content;max-width:90vw;font-size:10px}#footer{display:none}#intro{padding-left:13px}#intro .tech{font-size:10px}#curtain{padding:25px}#reticle{width:9px;height:9px}}
+    @media(max-width:430px){#mapWrap{top:calc(112px + env(safe-area-inset-top));width:112px}#map{width:100px;height:100px}#quest{max-width:calc(100vw - 146px)}.questText{line-height:1.35}#areaName{bottom:calc(200px + env(safe-area-inset-bottom))}}
+    @media(pointer:coarse){#controls{display:block}}
+    @media(max-height:520px){#quest{top:58px;padding:7px 10px}#mapWrap{top:60px}#areaName{bottom:110px}#hint{bottom:100px}#stickBase{bottom:15px;width:102px;height:102px}#stickTip{width:50px;height:50px;top:26px;left:26px}#actionColumn{bottom:10px;grid-template-columns:repeat(3,56px)}.action{width:56px;height:45px}}
+  </style>
+</head>
+<body>
+<canvas id="stage" aria-label="天空浮遊島の3D探索ステージ"></canvas>
+<div id="topLeft"><div class="eyebrow">TEAM 03 / OPEN-WORLD MODULE</div><div class="brand">AETHER FRONTIER</div><div class="edition">SKYWARD ARCHIPELAGO</div></div>
+<div id="topRight"><button id="quality" class="chip" title="画質切替">画質：高品質</button><button id="cameraMode" class="chip" title="視点切替 V">視点：TPS</button><button id="help" class="chip">操作</button></div>
+<div id="quest" class="glass"><div class="smallLabel">EXPEDITION / SIGNAL RESTORATION</div><div class="questTitle" id="questTitle">眠れるエーテル灯を起動せよ</div><div class="questText" id="questDesc">島々を巡り、5つの遺跡装置を再起動する。すべて起動すると天球観測院の星門が目覚める。</div><div id="beaconProgress"></div></div>
+<div id="mapWrap" class="glass"><canvas id="map" width="344" height="344"></canvas><div id="mapLabel">ARCHIPELAGO // MAP</div></div>
+<div id="areaName"><div id="areaJp">蒼風の艇庫</div><div id="areaEn">SKIFF HARBOR</div><div id="hudStats">探索者 | ALT 0m</div></div>
+<div id="reticle"></div><div id="hint" class="glass">橋を渡って進もう。飛行艇には F キーで搭乗できる。</div>
+<div id="toast"></div><div id="footer">WASD 移動 / Shift ダッシュ / Space ジャンプ / F 乗艇 / E 起動 / V 視点切替</div>
+<div id="controls"><div id="stickBase"><div id="stickTip"></div></div><div id="mobHint">画面右側をドラッグして視点移動</div><div id="actionColumn"><button id="btnUp" class="action">ジャンプ<br>上昇</button><button id="btnDown" class="action">降下</button><button id="btnInteract" class="action">起動</button><button id="btnShip" class="action">飛行艇<br>乗降</button></div></div>
+<div id="curtain"><div id="intro"><div class="eyebrow">AETHER FRONTIER / ZONE 03</div><h1>SKYWARD<br>ARCHIPELAGO</h1><div class="sub">天空環状群島</div><p>雲海を縫い、古代の魔法装置を呼び覚ませ。8つの浮遊島、空中回廊、結晶の採掘地、風車街、そして眠れる星門。地上にはないもう一つの道は、飛行艇が拓く。</p><div class="tech" id="introKeys">PC：WASD 移動 ・ マウス 視点 ・ Space ジャンプ／上昇 ・ Ctrl 降下<br>Shift 加速 ・ F 飛行艇 ・ E 調査 ・ V FPS/TPS</div><button id="launch">探索を開始する</button><div id="loadState">THREE.JS r160 · READY TO EXPLORE</div></div></div>
+<script type="module" src="./demo.js"></script>
+</body>
+</html>

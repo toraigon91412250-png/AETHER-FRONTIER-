@@ -1,0 +1,20 @@
+{
+  "project": "AETHER FRONTIER",
+  "team": "01",
+  "module": "AETHER_CROWN_CENTRAL_CITY",
+  "version": "1.0.0",
+  "threeVersion": "0.160.0",
+  "units": "meters",
+  "coordinateSystem": "Y_UP_FORWARD_NEGATIVE_Z",
+  "entrypoint": "src/aether-module.js",
+  "factory": "createAetherModule",
+  "requiredMethods": ["root", "update", "setQuality", "dispose"],
+  "qualities": ["lite", "high"],
+  "standaloneDemo": "index.html",
+  "buildRequired": false,
+  "additionalAssetsRequired": false,
+  "externalRuntimeDependency": "Three.js 0.160.0 loaded from CDN by standalone demo only",
+  "integratedCameraOrRenderer": false,
+  "tested": ["JavaScript syntax", "headless module API smoke tests"],
+  "notTested": ["iPhone 16 Safari FPS", "real WebGL rendering"]
+}

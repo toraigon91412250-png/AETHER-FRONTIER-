@@ -1,0 +1,916 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1" />
+<meta name="theme-color" content="#080c1d" />
+<title>AETHER FRONTIER | No.17 Performance Lab</title>
+<style>
+  :root{font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#eaf6ff;background:#080c1d;font-size:14px;font-synthesis:none}
+  *{box-sizing:border-box} html,body{width:100%;height:100%;overflow:hidden;margin:0;padding:0}
+  button,input{font:inherit} button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+  button:focus-visible,input:focus-visible{outline:2px solid #55e2dc;outline-offset:3px}
+  #world{width:100%;height:100%;display:block;touch-action:none;outline:0;cursor:grab}
+  #world:active{cursor:grabbing}
+  .scrim{position:fixed;pointer-events:none;inset:0;background:linear-gradient(90deg,rgba(4,7,21,.36),transparent 47%),linear-gradient(0deg,rgba(5,8,20,.32),transparent 42%)}
+  .glass{background:linear-gradient(130deg,rgba(16,26,47,.91),rgba(10,18,37,.80));border:1px solid rgba(118,194,221,.21);box-shadow:0 12px 50px #0006, inset 0 1px 0 #d9ffff12;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+  .panel{position:fixed;top:max(18px,env(safe-area-inset-top));left:max(18px,env(safe-area-inset-left));width:min(326px,calc(100vw - 36px));border-radius:18px;padding:19px 20px 18px}
+  .eyebrow{font-size:10px;letter-spacing:.24em;font-weight:800;color:#79dfe1}
+  h1{font-size:21px;letter-spacing:.05em;line-height:1.15;margin:9px 0 5px;font-weight:800}
+  .subtitle{font-size:11px;line-height:1.6;color:#99b0c5;margin-bottom:21px}
+  .section-label{font-size:10px;letter-spacing:.15em;color:#7e9cb6;font-weight:800;margin:17px 0 9px}
+  .toggle{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .toggle button{border:1px solid rgba(116,172,197,.3);background:#152238;color:#99b7cb;border-radius:11px;padding:13px 6px;font-size:12px;font-weight:850;letter-spacing:.08em;min-height:48px}
+  .toggle button[aria-pressed="true"]{color:#082029;background:linear-gradient(135deg,#80f0dc,#4ec5e8);border-color:#91ffff;box-shadow:0 0 18px #51dcd62e}
+  .row-between{display:flex;align-items:center;justify-content:space-between;gap:9px}
+  .checkbox-label{display:flex;align-items:center;gap:10px;color:#d9e9f4;font-weight:640;font-size:12px}
+  .checkbox-label input{width:19px;height:19px;accent-color:#5cddd7;margin:0}
+  .support{font-size:11px;color:#85a1b7;line-height:1.5}
+  #workload{appearance:none;-webkit-appearance:none;width:100%;height:5px;border-radius:99px;background:linear-gradient(90deg,#47d9d8,#e7b77b);margin:17px 0 11px}
+  #workload::-webkit-slider-thumb{appearance:none;width:22px;height:22px;background:#e7faff;border:4px solid #56aab9;border-radius:50%;box-shadow:0 0 8px #2bc6d8a9}
+  #workload::-moz-range-thumb{width:15px;height:15px;background:#e7faff;border:4px solid #56aab9;border-radius:50%}
+  .load-ends{display:flex;justify-content:space-between;font-size:10px;color:#7e9bb2}
+  .status-line{display:flex;align-items:center;gap:8px;border-top:1px solid #9ac3dd1b;margin-top:19px;padding-top:13px;color:#9fc5d7;font-size:11px}
+  .dot{width:7px;height:7px;background:#59d9c6;border-radius:100%;box-shadow:0 0 10px #41dcc1}
+  .label-tag{color:#56dbdc;font-weight:700;letter-spacing:.12em;margin-left:auto;font-size:10px}
+  .hud{position:fixed;right:max(18px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));width:min(345px,calc(100vw - 36px));padding:17px 20px 15px;border-radius:18px}
+  .hud-header{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#8eafc6;font-weight:750;letter-spacing:.07em}
+  .target-pill{border:1px solid #5996a349;color:#75dfde;border-radius:99px;padding:5px 10px;font-size:10px}
+  .stat-grid{display:grid;grid-template-columns:1.08fr 1fr 1fr;gap:12px;margin-top:14px;align-items:end}
+  .metric-title{font-size:10px;color:#7796ab;margin-bottom:5px;white-space:nowrap}
+  .metric-large{font-size:35px;font-weight:850;line-height:1;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+  .metric-large.good{color:#73ebcf}.metric-large.warn{color:#ffd28a}.metric-large.bad{color:#ff91a5}
+  .unit{font-size:10px;color:#aac0cc;letter-spacing:0;margin-left:3px}
+  .metric-value{font-variant-numeric:tabular-nums;font-size:19px;font-weight:750;line-height:1.4;color:#e4f1fb}
+  .chart-label{display:flex;justify-content:space-between;margin:15px 0 3px;color:#90a6ba;font-size:10px}
+  .chart-label span:last-child{color:#67879f}
+  #frameChart{width:100%;height:58px;display:block}
+  .details{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;border-top:1px solid #8fb2ce28;margin-top:9px;padding-top:13px}
+  .tiny-title{font-size:10px;color:#779bb0;margin-bottom:5px}.tiny-value{font-weight:750;font-variant-numeric:tabular-nums;font-size:13px}
+  .tuning{font-size:10px;color:#99bdd1;border-top:1px solid #8fb2ce28;margin-top:12px;padding-top:9px;display:flex;justify-content:space-between;gap:10px}
+  .small-hint{font-size:10px;color:#82a0b5;margin-top:12px;line-height:1.5}
+  .world-label{position:fixed;top:max(20px,env(safe-area-inset-top));right:max(22px,env(safe-area-inset-right));text-align:right;color:#b5e5f4;pointer-events:none}
+  .world-label strong{font-size:11px;letter-spacing:.19em;display:block}.world-label small{display:block;margin-top:5px;font-size:10px;color:#94b8ce;letter-spacing:.08em}
+  .bottom-prompt{position:fixed;left:50%;transform:translateX(-50%);bottom:max(19px,env(safe-area-inset-bottom));font-size:11px;color:#8cb2c9;text-align:center;pointer-events:none;white-space:nowrap;text-shadow:0 2px 15px #000}
+  #resetCamera{background:#18283e;color:#b6d7e7;border:1px solid #577c9554;padding:6px 10px;border-radius:8px;font-size:10px;min-height:30px}
+  #loading,#error{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:50;border-radius:16px;width:min(410px,calc(100vw - 32px));padding:25px;text-align:center;font-size:13px;line-height:1.8}
+  #error{border:1px solid #e98e98;background:#2e1c2b;color:#ffe9ea}
+  [hidden]{display:none!important}
+  @media(max-width:760px){
+    .panel{top:max(10px,env(safe-area-inset-top));left:10px;width:min(267px,calc(100vw - 20px));padding:13px 14px;border-radius:14px}
+    .panel h1{font-size:17px;margin:6px 0 2px}.eyebrow{font-size:9px}.subtitle{font-size:10px;margin-bottom:12px}
+    .section-label{margin:10px 0 7px}.toggle button{min-height:39px;padding:9px 4px;font-size:10px}
+    .checkbox-label{font-size:11px}.checkbox-label input{height:17px;width:17px}
+    .support{font-size:10px}#workload{margin:11px 0 9px}.status-line{margin-top:10px;padding-top:9px}
+    .hud{bottom:max(10px,env(safe-area-inset-bottom));right:10px;width:min(285px,calc(100vw - 20px));padding:12px 13px}
+    .stat-grid{margin-top:10px;gap:7px}.metric-large{font-size:30px}.metric-value{font-size:17px}
+    .chart-label{margin-top:10px}#frameChart{height:43px}.details{gap:6px;margin-top:5px;padding-top:8px}
+    .tiny-value{font-size:12px}.tuning{margin-top:8px;padding-top:7px}
+    .world-label{display:none}.bottom-prompt{display:none}.small-hint{display:none}
+  }
+  @media(max-height:700px) and (max-width:760px){
+    .panel .subtitle,.panel .support,.panel .status-line{display:none}
+    .panel{width:218px;padding:10px}.panel h1{font-size:14px}.panel .section-label{margin:7px 0 4px}
+    .hud{width:218px;padding:10px}.chart-label,#frameChart{display:none}
+    .stat-grid{grid-template-columns:1fr 1fr;gap:5px}.stat-grid>div:last-child{display:none}
+  }
+</style>
+</head>
+<body>
+<canvas id="world" aria-label="浮遊都市パフォーマンス検証シーン"></canvas>
+<div class="scrim" aria-hidden="true"></div>
+<aside class="panel glass" aria-label="描画設定">
+  <div class="eyebrow">AETHER FRONTIER // SYSTEM 17</div>
+  <h1>PERFORMANCE LAB</h1>
+  <div class="subtitle">共通最適化・画質制御エンジン / 統合実験場</div>
+  <div class="section-label">RENDER QUALITY</div>
+  <div class="toggle" role="group" aria-label="画質モード">
+    <button type="button" id="btnLite" aria-pressed="true">LIGHT / 軽量</button>
+    <button type="button" id="btnHigh" aria-pressed="false">HIGH / 高品質</button>
+  </div>
+  <div class="section-label">ADAPTIVE CONTROLLER</div>
+  <div class="row-between"><label class="checkbox-label" for="adaptive"><input id="adaptive" type="checkbox" checked />動的調整を有効化</label><span class="support">AUTO</span></div>
+  <div class="section-label row-between"><span>STRESS TEST</span><span id="workLabel" style="color:#8de7de;letter-spacing:0">標準</span></div>
+  <input id="workload" type="range" min="0" max="2" step="1" value="0" aria-label="負荷テストの強さ" />
+  <div class="load-ends"><span>標準</span><span>極限テスト</span></div>
+  <div class="status-line"><span class="dot"></span>レンダラー接続済 <span class="label-tag" id="qualityReadout">LIGHT</span></div>
+</aside>
+<div class="world-label"><strong>THE AETHER CROWN</strong><small>AN INTERACTIVE RENDER STRESS SCENE</small></div>
+<aside class="hud glass" aria-label="ライブ計測">
+  <div class="hud-header"><span>LIVE PERFORMANCE</span><span class="target-pill">TARGET <span id="target">60fps</span></span></div>
+  <div class="stat-grid">
+    <div><div class="metric-title">実測 FPS</div><div><span id="fps" class="metric-large">--</span></div></div>
+    <div><div class="metric-title">平均フレーム</div><div class="metric-value"><span id="frameAvg">--</span><span class="unit">ms</span></div></div>
+    <div><div class="metric-title">P95 フレーム</div><div class="metric-value"><span id="frameP95">--</span><span class="unit">ms</span></div></div>
+  </div>
+  <div class="chart-label"><span>FRAME TIME HISTORY / MS</span><span id="frameCount">0 samples</span></div>
+  <canvas id="frameChart" width="300" height="58" aria-label="直近80フレームの時間履歴"></canvas>
+  <div class="details">
+    <div><div class="tiny-title">DPR</div><div class="tiny-value" id="dpr">--</div></div>
+    <div><div class="tiny-title">DETAIL</div><div class="tiny-value" id="detail">--</div></div>
+    <div><div class="tiny-title">DRAW CALLS</div><div class="tiny-value" id="draws">--</div></div>
+    <div><div class="tiny-title">TRIANGLES</div><div class="tiny-value" id="tris">--</div></div>
+    <div><div class="tiny-title">RENDER CPU*</div><div class="tiny-value"><span id="renderCPU">--</span>ms</div></div>
+    <div><div class="tiny-title">STRESS MESHES</div><div class="tiny-value" id="visibleShards">--</div></div>
+  </div>
+  <div class="tuning"><span>自動調整</span><strong id="tuning">安定</strong><button type="button" id="resetCamera">視点リセット</button></div>
+  <div class="small-hint">ドラッグで回転、ホイール / ピンチでズーム。*CPU計測はrenderer.render()の呼び出し時間でGPU処理時間ではありません。</div>
+</aside>
+<div id="loading" class="glass">Three.js 0.160.0 を読み込み中…</div>
+<div id="error" hidden role="alert"></div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+if (!window.THREE) { document.write('<script src="https://unpkg.com/three@0.160.0/build/three.min.js"><\/script>'); }
+</script>
+<script>
+/*
+ * AETHER FRONTIER / No.17 Performance Controller v1.0.0
+ * Three.js r160 (0.160.0). No imports, no build step.
+ * Copyright (c) AETHER FRONTIER project. MIT-style usage within the project.
+ *
+ * Contract: createAetherModule(THREE, options) ->
+ *   { root, update(dt, context), setQuality(mode), dispose(), ...extras }
+ *
+ * Design:
+ * - External renderer/camera/scene ownership; never create/own/dispose them.
+ * - Never mutate renderer settings except opt-in renderer.setPixelRatio().
+ * - LOD registration changes only visibility of explicitly registered objects.
+ * - Frame interval is RAF wall time, *not* GPU time; endFrame() is CPU render time.
+ */
+(function (scope) {
+  'use strict';
+
+  const CONFIG = Object.freeze({
+    lite: Object.freeze({ name: 'lite', targetFPS: 60, maxDPR: 1.35, minDPR: 0.72, initialDetail: 0.76, minDetail: 0.30 }),
+    high: Object.freeze({ name: 'high', targetFPS: 50, maxDPR: 2.0, minDPR: 0.90, initialDetail: 1.0, minDetail: 0.44 })
+  });
+  const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+  const finite = (v) => typeof v === 'number' && Number.isFinite(v);
+  const msNow = () => typeof performance !== 'undefined' ? performance.now() : Date.now();
+  const round = (v, places = 2) => Number(v.toFixed(places));
+  const normalizeMode = (mode) => {
+    if (mode === 'lite' || mode === 'low' || mode === 'light') return 'lite';
+    if (mode === 'high' || mode === 'quality') return 'high';
+    throw new RangeError('Unknown quality mode: ' + String(mode));
+  };
+
+  function createAetherModule(THREE, options = {}) {
+    if (!THREE || typeof THREE.Group !== 'function' || typeof THREE.Vector3 !== 'function') {
+      throw new Error('A valid Three.js THREE namespace is required.');
+    }
+
+    const root = new THREE.Group();
+    root.name = 'No17_PerformanceController';
+
+    let renderer = null;
+    let originalDPR = null;
+    let changedDPR = false;
+    let camera = options.camera || null;
+    let mode = normalizeMode(options.quality || 'lite');
+    let adaptive = options.adaptive === true;
+    const manageDPR = options.managePixelRatio === true;
+    const lodRefreshFrames = clamp(Number(options.lodRefreshFrames) || 4, 1, 120);
+    const sampleLimit = clamp(Number(options.sampleLimit) || 120, 30, 600);
+    const onError = typeof options.onError === 'function' ? options.onError : null;
+
+    let detail = CONFIG[mode].initialDetail;
+    let desiredDPR = null;
+    let counter = 0;
+    let lastAdjustAt = msNow();
+    let lastFrameAt = null;
+    let renderBeginAt = null;
+    let renderCPU = 0;
+    let tuning = 'stable';
+    let disposed = false;
+    let intervalBuffer = [];
+    let cachedStats = { fps: 0, avgMs: 0, p90Ms: 0, p95Ms: 0, worstMs: 0, samples: 0 };
+    let lastStatsRecalc = 0;
+    const clients = new Map();
+    const lodEntries = new Map();
+    let autoId = 0;
+    const camPosition = new THREE.Vector3();
+    const anchorPosition = new THREE.Vector3();
+    let drawCalls = 0, triangles = 0, geometries = 0, textures = 0;
+    const externalOnChange = typeof options.onChange === 'function' ? options.onChange : null;
+
+    function sendError(error) {
+      if (onError) {
+        try { onError(error); } catch (_) { /* don't hide original error */ }
+      } else if (typeof console !== 'undefined') {
+        console.warn('[AETHER No.17]', error);
+      }
+    }
+
+    function modePreset() { return CONFIG[mode]; }
+
+    function restoreRendererDPR() {
+      if (renderer && changedDPR && originalDPR !== null && typeof renderer.setPixelRatio === 'function') {
+        try { renderer.setPixelRatio(originalDPR); } catch (error) { sendError(error); }
+      }
+      changedDPR = false;
+    }
+
+    function attachRenderer(next) {
+      if (!next || next === renderer) return;
+      restoreRendererDPR();
+      renderer = next;
+      originalDPR = typeof renderer.getPixelRatio === 'function'
+        ? renderer.getPixelRatio() : 1;
+      originalDPR = finite(originalDPR) && originalDPR > 0 ? originalDPR : 1;
+      desiredDPR = null;
+      applyDPR(true);
+    }
+
+    function capDPR() {
+      if (!renderer || originalDPR === null) return 1;
+      // Honor host initial DPR ceiling and display's native DPR.
+      let device = originalDPR;
+      if (typeof window !== 'undefined' && finite(window.devicePixelRatio)) {
+        device = Math.min(device, window.devicePixelRatio);
+      }
+      return Math.max(0.5, Math.min(device, modePreset().maxDPR));
+    }
+
+    function floorDPR() {
+      return Math.min(capDPR(), modePreset().minDPR);
+    }
+
+    function applyDPR(force = false) {
+      if (!manageDPR || !renderer || !renderer.setPixelRatio) return;
+      const cap = capDPR();
+      const next = round(clamp(desiredDPR === null ? cap : desiredDPR, floorDPR(), cap), 3);
+      const actual = typeof renderer.getPixelRatio === 'function' ? renderer.getPixelRatio() : null;
+      desiredDPR = next;
+      if (force || !finite(actual) || Math.abs(actual - next) > 0.015) {
+        try {
+          // Host opted into DPR management. Does not change camera, scene or renderer effects.
+          renderer.setPixelRatio(next);
+          changedDPR = true;
+        } catch (error) { sendError(error); }
+      }
+    }
+
+    function getDPR() {
+      return renderer && typeof renderer.getPixelRatio === 'function' ? renderer.getPixelRatio() : null;
+    }
+
+    function snapshotBudget() {
+      return {
+        mode, adaptive, detail: round(detail, 3),
+        targetFPS: modePreset().targetFPS,
+        dpr: getDPR(),
+        dprManaged: manageDPR,
+        tuning
+      };
+    }
+
+    function publishChange() {
+      const budget = snapshotBudget();
+      for (const [id, client] of clients) {
+        try {
+          if (client.setQuality && client.lastMode !== mode) {
+            client.setQuality(mode, budget);
+            client.lastMode = mode;
+          }
+          if (client.setDetail) client.setDetail(detail, budget);
+        } catch (error) { sendError(new Error('Client ' + id + ': ' + error.message)); }
+      }
+      if (externalOnChange) {
+        try { externalOnChange(budget); } catch (error) { sendError(error); }
+      }
+    }
+
+    function setQuality(nextMode) {
+      if (disposed) return;
+      mode = normalizeMode(nextMode);
+      detail = modePreset().initialDetail;
+      desiredDPR = null;
+      tuning = 'stable';
+      lastAdjustAt = msNow();
+      applyDPR();
+      publishChange();
+      refreshLODs(true);
+    }
+
+    function setAdaptive(value) {
+      if (disposed) return;
+      adaptive = Boolean(value);
+      lastAdjustAt = msNow();
+      // Turning adaptive OFF restores the selected mode's reproducible preset.
+      if (!adaptive) {
+        detail = modePreset().initialDetail;
+        desiredDPR = null;
+        tuning = 'stable';
+        applyDPR();
+      }
+      publishChange();
+    }
+
+    function registerClient(id, callbacks) {
+      if (disposed) throw new Error('Module disposed');
+      // Supports registerClient('city', {setDetail, setQuality}) and object form.
+      if (id && typeof id === 'object') { callbacks = id; id = callbacks.id; }
+      if (!id) id = 'client-' + (++autoId);
+      if (clients.has(id)) throw new Error('Duplicate client ID: ' + id);
+      if (!callbacks || (!callbacks.setQuality && !callbacks.setDetail)) {
+        throw new TypeError('Client needs setQuality() or setDetail().');
+      }
+      const entry = { setQuality: callbacks.setQuality, setDetail: callbacks.setDetail, lastMode: null };
+      clients.set(id, entry);
+      const budget = snapshotBudget();
+      try {
+        if (entry.setQuality) { entry.setQuality(mode, budget); entry.lastMode = mode; }
+        if (entry.setDetail) entry.setDetail(detail, budget);
+      } catch (error) { sendError(error); }
+      return () => { clients.delete(id); };
+    }
+
+    function registerLOD(config) {
+      if (disposed) throw new Error('Module disposed');
+      if (!config || !Array.isArray(config.levels) || config.levels.length < 2) {
+        throw new TypeError('LOD requires levels [{object, maxDistance}, ..., {object, maxDistance: Infinity}].');
+      }
+      const id = config.id || 'lod-' + (++autoId);
+      if (lodEntries.has(id)) throw new Error('Duplicate LOD ID: ' + id);
+      let lastLimit = -Infinity;
+      const levels = config.levels.map((level) => {
+        if (!level || !level.object || !('visible' in level.object)) {
+          throw new TypeError('Each LOD level must provide a Three.js Object3D.');
+        }
+        const max = level.maxDistance;
+        if (!(typeof max === 'number' && max > lastLimit)) {
+          throw new RangeError('LOD maxDistance must be strictly increasing; last can be Infinity.');
+        }
+        lastLimit = max;
+        return { object: level.object, maxDistance: max, wasVisible: level.object.visible };
+      });
+      if (levels[levels.length - 1].maxDistance !== Infinity) {
+        throw new RangeError('Last LOD maxDistance must equal Infinity.');
+      }
+      const entry = {
+        levels,
+        anchor: config.anchor || levels[0].object,
+        hysteresis: clamp(finite(config.hysteresis) ? config.hysteresis : 0.09, 0, 0.4),
+        index: -1
+      };
+      lodEntries.set(id, entry);
+      updateOneLOD(entry, true);
+      return () => unregisterLOD(id);
+    }
+
+    function unregisterLOD(id) {
+      const entry = lodEntries.get(id);
+      if (!entry) return;
+      for (const level of entry.levels) level.object.visible = level.wasVisible;
+      lodEntries.delete(id);
+    }
+
+    function updateOneLOD(entry, force = false) {
+      if (!camera || !entry.anchor || !entry.anchor.getWorldPosition) return;
+      camera.getWorldPosition(camPosition);
+      entry.anchor.getWorldPosition(anchorPosition);
+      // Lower detail -> transition to simplified meshes at shorter world distances.
+      const scaled = camPosition.distanceTo(anchorPosition) / (0.55 + detail * 0.45);
+      let index = entry.index;
+      if (index < 0 || force) {
+        index = entry.levels.findIndex((level) => scaled <= level.maxDistance);
+      } else {
+        while (index < entry.levels.length - 1 &&
+            scaled > entry.levels[index].maxDistance * (1 + entry.hysteresis)) index++;
+        while (index > 0 &&
+            scaled < entry.levels[index - 1].maxDistance * (1 - entry.hysteresis)) index--;
+      }
+      if (index < 0) index = entry.levels.length - 1;
+      if (index !== entry.index || force) {
+        entry.levels.forEach((level, i) => { level.object.visible = i === index; });
+        entry.index = index;
+      }
+    }
+
+    function refreshLODs(force = false) {
+      if (!camera || !lodEntries.size) return;
+      // Update parent/world matrices once; no forced recomputation per object.
+      if (typeof camera.updateWorldMatrix === 'function') camera.updateWorldMatrix(true, false);
+      for (const entry of lodEntries.values()) updateOneLOD(entry, force);
+    }
+
+    function calculateStats() {
+      if (!intervalBuffer.length) return;
+      const values = intervalBuffer;
+      const sorted = values.slice().sort((a, b) => a - b);
+      const sum = values.reduce((a, b) => a + b, 0);
+      const mean = sum / values.length;
+      const percentile = (p) => sorted[Math.min(sorted.length - 1, Math.ceil(p * sorted.length) - 1)];
+      cachedStats = {
+        fps: round(1000 / mean, 1), avgMs: round(mean, 2),
+        p90Ms: round(percentile(0.9), 2),
+        p95Ms: round(percentile(0.95), 2),
+        worstMs: round(sorted[sorted.length - 1], 2),
+        samples: values.length
+      };
+    }
+
+    function adjustIfNeeded(now) {
+      if (!adaptive || counter < 50 || intervalBuffer.length < 40 || now - lastAdjustAt < 1900) return;
+      const baseMs = 1000 / modePreset().targetFPS;
+      const s = cachedStats;
+      const tooSlow = s.avgMs > baseMs * 1.045 || s.p90Ms > baseMs * 1.17;
+      const lotsOfRoom = s.avgMs < baseMs * 0.85 && s.p90Ms < baseMs * 0.95;
+      let changed = false;
+      const cap = capDPR();
+      const floor = floorDPR();
+      const currentDPR = desiredDPR === null ? cap : desiredDPR;
+      if (tooSlow) {
+        // Draw-call-bound scenes should reduce scene complexity before pixel count.
+        if (drawCalls > 420 && detail > modePreset().minDetail + 0.015) {
+          detail = round(Math.max(modePreset().minDetail, detail - 0.12), 3);
+          changed = true;
+        } else if (manageDPR && currentDPR > floor + 0.02) {
+          desiredDPR = Math.max(floor, currentDPR - 0.15);
+          applyDPR();
+          changed = true;
+        } else if (detail > modePreset().minDetail + 0.015) {
+          detail = round(Math.max(modePreset().minDetail, detail - 0.12), 3);
+          changed = true;
+        }
+        tuning = changed ? 'decreased' : 'at-minimum';
+      } else if (lotsOfRoom && now - lastAdjustAt >= 4200) {
+        // Recovery deliberately slower than downshifts to prevent oscillation.
+        if (detail < modePreset().initialDetail - 0.015) {
+          detail = round(Math.min(modePreset().initialDetail, detail + 0.07), 3);
+          changed = true;
+        } else if (manageDPR && currentDPR < cap - 0.02) {
+          desiredDPR = Math.min(cap, currentDPR + 0.08);
+          applyDPR();
+          changed = true;
+        }
+        tuning = changed ? 'increased' : 'stable';
+      } else {
+        tuning = 'stable';
+      }
+      if (changed) {
+        lastAdjustAt = now;
+        publishChange();
+        refreshLODs(true);
+      }
+    }
+
+    function beginFrame() {
+      if (disposed) return;
+      renderBeginAt = msNow();
+    }
+
+    function endFrame() {
+      if (disposed) return;
+      if (renderBeginAt !== null) {
+        renderCPU = Math.max(0, msNow() - renderBeginAt);
+        renderBeginAt = null;
+      }
+      if (!renderer || !renderer.info) return;
+      const info = renderer.info;
+      drawCalls = info.render && finite(info.render.calls) ? info.render.calls : 0;
+      triangles = info.render && finite(info.render.triangles) ? info.render.triangles : 0;
+      geometries = info.memory && finite(info.memory.geometries) ? info.memory.geometries : 0;
+      textures = info.memory && finite(info.memory.textures) ? info.memory.textures : 0;
+    }
+
+    function update(dt, context = {}) {
+      if (disposed) return;
+      if (context && context.renderer) attachRenderer(context.renderer);
+      if (context && context.camera) camera = context.camera;
+      counter++;
+      const now = msNow();
+      if (!finite(dt) && lastFrameAt !== null) dt = (now - lastFrameAt) / 1000;
+      lastFrameAt = now;
+      // Ignore extreme background-tab/sleep gaps; a genuine 20-100ms frame is retained.
+      if (!(typeof document !== 'undefined' && document.hidden) && finite(dt) && dt >= 0.001 && dt < 0.25) {
+        intervalBuffer.push(dt * 1000);
+        if (intervalBuffer.length > sampleLimit) intervalBuffer.shift();
+      }
+      if (now - lastStatsRecalc >= 180 || intervalBuffer.length === 1) {
+        calculateStats();
+        lastStatsRecalc = now;
+      }
+      if (counter % lodRefreshFrames === 0) refreshLODs();
+      adjustIfNeeded(now);
+    }
+
+    function getMetrics() {
+      return {
+        ...cachedStats,
+        renderCpuMs: round(renderCPU, 2),
+        drawCalls, triangles, geometries, textures,
+        registeredClients: clients.size, registeredLODs: lodEntries.size,
+        ...snapshotBudget()
+      };
+    }
+
+    function dispose() {
+      if (disposed) return;
+      disposed = true;
+      for (const id of Array.from(lodEntries.keys())) unregisterLOD(id);
+      clients.clear();
+      restoreRendererDPR();
+      intervalBuffer.length = 0;
+      renderer = null;
+      camera = null;
+      root.clear(); // root is a non-rendered container; nothing external is disposed.
+    }
+
+    attachRenderer(options.renderer || null);
+    publishChange();
+    return {
+      root, update, setQuality, dispose,
+      setAdaptive, getMetrics, getBudget: snapshotBudget,
+      registerClient, registerLOD, unregisterLOD,
+      beginFrame, endFrame,
+      getHistory: () => intervalBuffer.slice(),
+      version: '1.0.0'
+    };
+  }
+
+  scope.createAetherModule = createAetherModule;
+  if (typeof module !== 'undefined' && module.exports) module.exports = { createAetherModule };
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+</script>
+<script>
+/* AETHER FRONTIER No.17 / interactive integration showcase. Standalone demo logic. */
+(function () {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const $error = $('error');
+  function errorMessage(text) {
+    $error.textContent = text;
+    $error.hidden = false;
+    $('loading').hidden = true;
+  }
+
+  if (!window.THREE || THREE.REVISION !== '160') {
+    errorMessage('Three.js 0.160.0 を読み込めません。インターネット接続を確認して再読み込みしてください。');
+    return;
+  }
+  if (typeof window.createAetherModule !== 'function') {
+    errorMessage('最適化モジュールが見つかりません。');
+    return;
+  }
+
+  try {
+    start();
+  } catch (err) {
+    console.error(err);
+    errorMessage('初期化に失敗しました: ' + err.message);
+  }
+
+  function start() {
+    const canvas = $('world');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: 'high-performance' });
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
+    // Demo sets this deliberately; the imported optimization module does not.
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x080c1d);
+    scene.fog = new THREE.FogExp2(0x080c1d, 0.0034);
+    const camera = new THREE.PerspectiveCamera(56, 1, 0.15, 470);
+    const world = new THREE.Group();
+    scene.add(world);
+    scene.add(new THREE.HemisphereLight(0xa8eaff, 0x1e2245, 2.05));
+    const sun = new THREE.DirectionalLight(0xbddfff, 2.5);
+    sun.position.set(-42, 76, 12);
+    scene.add(sun);
+    const warmSun = new THREE.DirectionalLight(0xffbd8d, 1.25);
+    warmSun.position.set(60, 18, -40);
+    scene.add(warmSun);
+
+    const monitor = createAetherModule(THREE, {
+      renderer, camera, scene,
+      quality: 'lite', adaptive: true,
+      managePixelRatio: true,
+      lodRefreshFrames: 5,
+      onError: console.warn
+    });
+    scene.add(monitor.root);
+
+    let randomState = 17571;
+    const rnd = () => ((randomState = (Math.imul(randomState, 1664525) + 1013904223) | 0) >>> 0) / 4294967296;
+    const rand = (min, max) => min + rnd() * (max - min);
+    const mat = (hex, metal = 0.5, rough = 0.35) => new THREE.MeshStandardMaterial({ color: hex, metalness: metal, roughness: rough });
+    const luminous = (color, strength = 1.5) => new THREE.MeshStandardMaterial({
+      color, emissive: color, emissiveIntensity: strength, metalness: 0.22, roughness: 0.32
+    });
+    const M = {
+      body: mat(0x233650, 0.68, 0.3),
+      dark: mat(0x0c162b, 0.75, 0.28),
+      silver: mat(0x7a9dc1, 0.74, 0.24),
+      gold: mat(0xdbaf6f, 0.7, 0.24),
+      aqua: luminous(0x24d9de, 2.35),
+      violet: luminous(0x7559ec, 1.55),
+      amber: luminous(0xef9f51, 2.1),
+      glass: new THREE.MeshStandardMaterial({color:0x5dcbf2,emissive:0x1398b2,emissiveIntensity:0.75,transparent:true,opacity:0.66,metalness:0.35,roughness:0.1,depthWrite:false})
+    };
+
+    function mesh(geo, material, parent, x=0, y=0, z=0) {
+      const obj = new THREE.Mesh(geo, material);
+      obj.position.set(x,y,z); parent.add(obj); return obj;
+    }
+    function ring(parent, radius, tube, color, y, rotX = Math.PI / 2) {
+      const o = mesh(new THREE.TorusGeometry(radius,tube,5,96),color,parent,0,y,0);
+      o.rotation.x = rotX;
+      return o;
+    }
+    function spire(parent,x,y,z,height,material) {
+      const body=mesh(new THREE.CylinderGeometry(0.16,0.8,height,5),material,parent,x,y + height/2,z);
+      body.rotation.y=rand(0,6);
+      mesh(new THREE.OctahedronGeometry(0.7,0),M.aqua,parent,x,y+height+0.4,z);
+      return body;
+    }
+
+    // Central levitating atlas dais.
+    const core = new THREE.Group();
+    world.add(core);
+    mesh(new THREE.CylinderGeometry(23.9,24.8,2.5,72),M.body,core,0,-1.2,0);
+    mesh(new THREE.CylinderGeometry(23.5,21,0.55,72),M.silver,core,0,0.15,0);
+    mesh(new THREE.ConeGeometry(17,18,64),M.dark,core,0,-10.8,0).rotation.x=Math.PI;
+    ring(core,23.0,0.28,M.aqua,0.55);
+    ring(core,20.9,0.12,M.gold,0.46);
+    ring(core,16.6,0.13,M.violet,0.5);
+    for (let i=0;i<36;i++) {
+      const a=i*Math.PI*2/36;
+      const x=Math.cos(a)*20.3,z=Math.sin(a)*20.3;
+      mesh(new THREE.BoxGeometry(1.15,1.15,1.15),i%3===0?M.aqua:M.gold,core,x,0.8,z).rotation.y=-a;
+    }
+    for (let i=0;i<16;i++) {
+      const a=i*Math.PI*2/16;
+      const x=Math.cos(a)*13.7,z=Math.sin(a)*13.7;
+      mesh(new THREE.CylinderGeometry(0.75,1.25,8.5,6),M.body,core,x,4.5,z);
+      mesh(new THREE.CylinderGeometry(0.95,0.95,0.4,6),M.gold,core,x,8.95,z);
+      mesh(new THREE.BoxGeometry(0.25,6.4,0.25),M.aqua,core,x,4.4,z);
+    }
+    const tower = new THREE.Group();
+    core.add(tower);
+    mesh(new THREE.CylinderGeometry(6.2,8.5,4,12),M.silver,tower,0,2,0);
+    mesh(new THREE.CylinderGeometry(3.6,5.4,28,12),M.body,tower,0,17.5,0);
+    mesh(new THREE.CylinderGeometry(4.8,4.8,1.3,12),M.gold,tower,0,8,0);
+    mesh(new THREE.CylinderGeometry(4.8,4.8,1.2,12),M.gold,tower,0,27,0);
+    mesh(new THREE.CylinderGeometry(1.6,3.7,13,8),M.silver,tower,0,38,0);
+    mesh(new THREE.OctahedronGeometry(5.3,1),M.glass,tower,0,48,0);
+    mesh(new THREE.OctahedronGeometry(2.8,0),M.aqua,tower,0,48,0);
+    const towerRings = [];
+    for (const [r, y, material] of [[6,14,M.aqua],[8,28,M.gold],[8.6,37,M.aqua],[12,47,M.violet]]) {
+      towerRings.push(ring(tower,r,0.16,material,y,0));
+    }
+    const crown = new THREE.Group(); tower.add(crown); crown.position.y=48;
+    for (let i=0;i<12;i++) {
+      const a=i*Math.PI/6;
+      const beam=mesh(new THREE.BoxGeometry(0.18,1.1,5.0),i%2?M.aqua:M.amber,crown,Math.sin(a)*8,Math.cos(a*3)*1.1,Math.cos(a)*8);
+      beam.rotation.y=a;
+    }
+
+    const islands = [];
+    const drift = [];
+    for (let i=0;i<6;i++) {
+      const a=i*Math.PI/3 + Math.PI/6;
+      const R=57;
+      const ix=Math.cos(a)*R, iz=Math.sin(a)*R;
+      const island = new THREE.Group();
+      island.position.set(ix,rand(-1.6,1.7),iz);
+      world.add(island); islands.push(island);
+      mesh(new THREE.CylinderGeometry(10.7,11.5,2,12),M.body,island,0,-1.4,0);
+      mesh(new THREE.ConeGeometry(7.5,11,10),M.dark,island,0,-7.3,0).rotation.x=Math.PI;
+      mesh(new THREE.CylinderGeometry(10.2,10.2,0.3,12),M.silver,island,0,-0.17,0);
+      ring(island,9.7,0.18,M.aqua,0.04);
+      const bridge=mesh(new THREE.BoxGeometry(33.3,0.58,3.3),M.body,world,
+        Math.cos(a)*37,0,Math.sin(a)*37);
+      bridge.rotation.y=-a;
+      const signal=mesh(new THREE.BoxGeometry(32.7,0.08,0.32),M.aqua,world,
+        Math.cos(a)*37,0.39,Math.sin(a)*37);
+      signal.rotation.y=-a;
+      const detailHigh=new THREE.Group(), detailMid=new THREE.Group(), detailLow=new THREE.Group();
+      island.add(detailHigh,detailMid,detailLow);
+      for (let j=0;j<18;j++) {
+        const b=j/18*Math.PI*2;
+        const d=(j%3===0)?8.5:6.4;
+        const height=rand(2.5,8);
+        const x=Math.cos(b)*d,z=Math.sin(b)*d;
+        mesh(new THREE.BoxGeometry(0.6,height,0.7),j%4?M.silver:M.gold,detailHigh,x,height/2,z);
+        mesh(new THREE.BoxGeometry(0.21,height*0.72,0.9),j%2?M.violet:M.aqua,detailHigh,x,height/2,z);
+      }
+      for (let j=0;j<7;j++) {
+        const b=j/7*Math.PI*2;
+        const d=6.5;
+        mesh(new THREE.BoxGeometry(1.3,4.0,1.3),M.silver,detailMid,Math.cos(b)*d,2,Math.sin(b)*d);
+      }
+      mesh(new THREE.CylinderGeometry(2,3,5,6),M.body,detailLow,0,2.7,0);
+      const base=mesh(new THREE.CylinderGeometry(2.4,3.2,6.7,8),M.silver,island,0,3.2,0);
+      base.rotation.y=rand(0,2);
+      mesh(new THREE.OctahedronGeometry(3.3,0),i%2?M.amber:M.aqua,island,0,8.3,0);
+      const annulus=ring(island,5.0,0.12,M.gold,6.6,0.2);
+      drift.push(annulus);
+      monitor.registerLOD({
+        id:'island-'+i, anchor:island, hysteresis:0.11,
+        levels:[
+          {object:detailHigh,maxDistance:57},
+          {object:detailMid,maxDistance:112},
+          {object:detailLow,maxDistance:Infinity}
+        ]
+      });
+    }
+
+    // Practical stress target: 0..900 individual draw calls, shared geometry/material.
+    // Geometries are shared to isolate draw-call pressure instead of memory growth.
+    const sharedFin=new THREE.TetrahedronGeometry(0.75,0);
+    const stress=new THREE.Group(); world.add(stress);
+    const shards=[];
+    for (let i=0;i<900;i++) {
+      const a=rand(0,Math.PI*2),radius=rand(23,76);
+      const obj=mesh(sharedFin,i%4===0?M.aqua:(i%4===1?M.violet:M.silver),stress,
+        Math.cos(a)*radius,rand(-5,24),Math.sin(a)*radius);
+      obj.rotation.set(rand(0,3),rand(0,6),rand(0,3));
+      const s=rand(0.3,1.5);obj.scale.set(s,s*rand(1,2.5),s);
+      shards.push(obj);
+    }
+    let workLevel=0;
+    let currentDetail=0.76;
+    const workBounds=[115,370,900];
+    const glowList=[...towerRings,...drift];
+    const mainDetail=new THREE.Group(); core.add(mainDetail);
+    for(let i=0;i<40;i++){
+      const a=i/40*Math.PI*2;
+      spire(mainDetail,Math.sin(a)*17.5,0,Math.cos(a)*17.5,rand(2,5),M.gold);
+    }
+    const compactGeom=new THREE.IcosahedronGeometry(1.1,1);
+    const accents=[];
+    for(let i=0;i<180;i++){
+      const a=rand(0,Math.PI*2),r=rand(23,65);
+      accents.push(mesh(compactGeom,i%2?M.violet:M.aqua,world,
+        Math.sin(a)*r,rand(-12,35),Math.cos(a)*r));
+    }
+
+    function applyVisualDetail(detail) {
+      currentDetail=detail;
+      const max = workBounds[workLevel];
+      const count = Math.min(900,Math.floor(max*(0.33+0.67*detail)));
+      shards.forEach((o,i) => { o.visible = i<count; });
+      accents.forEach((o,i) => { o.visible = i < Math.floor(180*(0.35+0.65*detail)); });
+      mainDetail.visible = detail > 0.54;
+      glowList.forEach((o,i) => { o.visible = detail >=0.57 || i%2===0; });
+      $('visibleShards').textContent=String(count);
+    }
+    const unregisterDemo = monitor.registerClient('scene-demo', {
+      setQuality: (mode) => { $('qualityReadout').textContent = mode === 'lite' ? 'LIGHT' : 'HIGH'; },
+      setDetail: applyVisualDetail
+    });
+
+    // Orbit camera: pointer drag, wheel, and two-pointer pinch, no external controls.
+    const focus = new THREE.Vector3(0,9,0);
+    let orbitYaw=0.82, orbitPitch=0.38, distance=143;
+    const activePointers=new Map();
+    let previousPinch=null;
+    let interactionSince=0;
+    function cameraPosition() {
+      const c=Math.cos(orbitPitch);
+      camera.position.set(focus.x+Math.sin(orbitYaw)*c*distance,
+        focus.y+Math.sin(orbitPitch)*distance,
+        focus.z+Math.cos(orbitYaw)*c*distance);
+      camera.lookAt(focus);
+    }
+    cameraPosition();
+    function pointerDown(e) {
+      if(e.target !== canvas) return;
+      canvas.setPointerCapture(e.pointerId);
+      activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      interactionSince=performance.now(); previousPinch=null;
+    }
+    function pointerMove(e) {
+      if(!activePointers.has(e.pointerId)) return;
+      const prev=activePointers.get(e.pointerId);
+      if(activePointers.size===1){
+        orbitYaw -= (e.clientX-prev.x)*0.005;
+        orbitPitch=THREE.MathUtils.clamp(orbitPitch+(e.clientY-prev.y)*0.004,-0.2,1.35);
+      }
+      activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      if(activePointers.size>=2){
+        const pts=[...activePointers.values()];
+        const gap=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);
+        if(previousPinch) distance=THREE.MathUtils.clamp(distance*previousPinch/gap,43,225);
+        previousPinch=gap;
+      }
+      interactionSince=performance.now();
+      cameraPosition();
+    }
+    function pointerUp(e){ activePointers.delete(e.pointerId);previousPinch=null; }
+    canvas.addEventListener('pointerdown',pointerDown);
+    canvas.addEventListener('pointermove',pointerMove);
+    canvas.addEventListener('pointerup',pointerUp);
+    canvas.addEventListener('pointercancel',pointerUp);
+    canvas.addEventListener('wheel',e=>{
+      e.preventDefault(); distance=THREE.MathUtils.clamp(distance*Math.exp(e.deltaY*0.001),43,225);
+      interactionSince=performance.now();cameraPosition();
+    },{passive:false});
+
+    function setMode(mode) {
+      monitor.setQuality(mode);
+      $('btnLite').setAttribute('aria-pressed',String(mode==='lite'));
+      $('btnHigh').setAttribute('aria-pressed',String(mode==='high'));
+    }
+    $('btnLite').addEventListener('click',()=>setMode('lite'));
+    $('btnHigh').addEventListener('click',()=>setMode('high'));
+    $('adaptive').addEventListener('change',e=>monitor.setAdaptive(e.target.checked));
+    const levelNames=['標準','高負荷','極限テスト'];
+    function setWorkload(i){
+      workLevel=i;
+      $('workload').value=String(i);
+      $('workLabel').textContent=levelNames[i];
+      applyVisualDetail(currentDetail);
+    }
+    $('workload').addEventListener('input',e=>setWorkload(Number(e.target.value)));
+    $('resetCamera').addEventListener('click',()=>{
+      orbitYaw=.82;orbitPitch=.38;distance=143;cameraPosition();
+    });
+    $('btnLite').setAttribute('aria-pressed','true');
+    $('btnHigh').setAttribute('aria-pressed','false');
+    setWorkload(0);
+
+    // Display frame times from sampled RAF deltas, not GPU timestamps.
+    const graph=$('frameChart');
+    const graphCtx=graph.getContext('2d');
+    function renderChart(samples, target) {
+      const w=graph.width,h=graph.height;
+      graphCtx.clearRect(0,0,w,h);
+      graphCtx.strokeStyle='rgba(165,201,230,0.24)'; graphCtx.lineWidth=1;
+      const scale=42, y=(v)=>h-4-Math.min(v,scale)*((h-8)/scale);
+      graphCtx.beginPath(); graphCtx.moveTo(0,y(target)); graphCtx.lineTo(w,y(target)); graphCtx.stroke();
+      const arr=samples.slice(-80);
+      if(arr.length<2)return;
+      const barWidth=w/80;
+      arr.forEach((v,i)=>{
+        graphCtx.fillStyle=v<=target*1.08?'#40d8d6':(v<=target*1.5?'#ffd28a':'#ff7896');
+        graphCtx.fillRect((80-arr.length+i)*barWidth,y(v),Math.max(1,barWidth-0.9),h-4-y(v));
+      });
+    }
+    function setText(id,value){ $(id).textContent=value; }
+    function display(m) {
+      setText('fps',m.samples ? m.fps.toFixed(1) : '--');
+      setText('frameAvg',m.samples ? m.avgMs.toFixed(1) : '--');
+      setText('frameP95',m.samples ? m.p95Ms.toFixed(1) : '--');
+      setText('renderCPU',m.renderCpuMs.toFixed(1));
+      setText('draws',m.drawCalls.toLocaleString('ja-JP'));
+      setText('tris',m.triangles.toLocaleString('ja-JP'));
+      setText('dpr',m.dpr ? m.dpr.toFixed(2)+'x':'--');
+      setText('detail',Math.round(m.detail*100)+'%');
+      setText('target',m.targetFPS+'fps');
+      setText('tuning',{
+        'stable':'安定','decreased':'負荷を軽減','increased':'画質を復帰','at-minimum':'最小設定に到達'
+      }[m.tuning]||m.tuning);
+      setText('frameCount',m.samples+' samples');
+      const cls=m.fps >= m.targetFPS-1?'good':(m.fps >= m.targetFPS-10?'warn':'bad');
+      $('fps').className='metric-large '+(m.samples > 25 ? cls:'');
+      renderChart(monitor.getHistory(),1000/m.targetFPS);
+    }
+
+    let lastRAF=performance.now(), lastUI=0, elapsed=0, running=true;
+    function resize() {
+      const w=Math.max(1,window.innerWidth), h=Math.max(1,window.innerHeight);
+      renderer.setSize(w,h,false);
+      camera.aspect=w/h; camera.updateProjectionMatrix();
+    }
+    window.addEventListener('resize',resize,{passive:true});
+    resize();
+    $('loading').hidden=true;
+
+    function frame(now) {
+      if (!running) return;
+      requestAnimationFrame(frame);
+      let dt=(now-lastRAF)/1000;
+      lastRAF=now;
+      if(!Number.isFinite(dt)||dt>0.25)dt=1/60;
+      elapsed+=Math.min(dt,0.06);
+      const t=elapsed;
+      for(let i=0;i<towerRings.length;i++)towerRings[i].rotation.z=t*(i%2?-0.18:0.12);
+      drift.forEach((o,i)=>{o.rotation.z=t*(i%2?0.13:-0.11)});
+      crown.rotation.y=t*0.17;
+      stress.rotation.y=t*0.014;
+      if(now-interactionSince>6500){orbitYaw += Math.min(dt,0.05)*0.012;cameraPosition();}
+      monitor.beginFrame();
+      renderer.render(scene,camera);
+      monitor.endFrame();
+      monitor.update(dt,{camera,renderer,scene});
+      if(now-lastUI>190){display(monitor.getMetrics());lastUI=now;}
+    }
+    requestAnimationFrame(frame);
+    window.addEventListener('pagehide',()=>{
+      // Do not permanently dispose on bfcache navigation; page may be resumed.
+      running=false;
+      unregisterDemo();
+      monitor.dispose();
+      renderer.dispose();
+    },{once:true});
+  }
+})();
+
+</script>
+</body>
+</html>

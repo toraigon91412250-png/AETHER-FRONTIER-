@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#07101f">
+  <meta name="description" content="AETHER FRONTIER No.19 Player Controller / playable Three.js FPS-TPS demo">
+  <title>AETHER FRONTIER | No.19 Movement Systems</title>
+  <style>
+    :root{color-scheme:dark;--ice:#a4edff;--cold:#45cde7;--muted:#8caac1;--line:rgba(119,190,226,.24)}
+    *{box-sizing:border-box}
+    html,body{padding:0;margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;background:#040b17;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;touch-action:none}
+    button{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    #game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+    #vignette{position:fixed;inset:0;pointer-events:none;z-index:4;background:radial-gradient(ellipse at 50% 50%,transparent 36%,rgba(2,6,16,.54) 100%)}
+    #grain{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:.15;background-image:repeating-linear-gradient(0deg,transparent 0px,rgba(120,200,255,.025) 1px,transparent 2px,transparent 4px)}
+    .hud{position:fixed;z-index:40;pointer-events:none;color:#e9f9ff;text-shadow:0 1px 4px rgba(0,0,0,.35)}
+    .topbar{left:calc(30px + env(safe-area-inset-left));top:calc(25px + env(safe-area-inset-top));display:flex;align-items:center;gap:14px}
+    .logo{display:grid;place-items:center;width:44px;height:44px;border:1px solid rgba(111,229,255,.72);transform:rotate(45deg);background:rgba(16,76,106,.25);box-shadow:0 0 18px rgba(63,188,221,.14)}
+    .logo span{font-size:18px;color:#c0f4ff;transform:rotate(-45deg);font-weight:900}
+    .brand{display:flex;flex-direction:column;gap:3px}
+    .brand strong{letter-spacing:.17em;font-size:15px;font-weight:800}
+    .brand small{font-size:9px;letter-spacing:.27em;color:#81cbe0}
+    .topright{right:calc(24px + env(safe-area-inset-right));top:calc(22px + env(safe-area-inset-top));display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+    .statline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .tag{font:700 10px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.09em;padding:7px 10px;background:rgba(5,19,38,.54);border:1px solid var(--line);border-radius:5px;backdrop-filter:blur(7px)}
+    .tag b{color:var(--ice)}
+    .btnbar{display:flex;gap:7px;pointer-events:auto}
+    .hudbtn{color:#cbefff;border:1px solid rgba(106,190,219,.4);background:rgba(8,30,51,.65);border-radius:6px;padding:9px 14px;font-size:11px;font-weight:750;letter-spacing:.05em;backdrop-filter:blur(12px)}
+    .hudbtn:hover{background:rgba(23,72,96,.83);border-color:rgba(128,225,242,.75)}
+    .status{left:calc(30px + env(safe-area-inset-left));bottom:calc(29px + env(safe-area-inset-bottom));width:276px}
+    .status .eyebrow{font-size:10px;letter-spacing:.24em;color:#7ee5ff;font-weight:700;margin-bottom:7px}
+    .status .bar{height:2px;background:linear-gradient(90deg,#67dafe 0%,#a277f5 58%,transparent 100%);width:180px;margin-bottom:10px}
+    .status .state{font:700 11px ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.1em;color:#d8efff}
+    .hudmid{left:50%;top:calc(22px + env(safe-area-inset-top));transform:translateX(-50%);font-size:10px;letter-spacing:.24em;color:#9bc4df;text-align:center;opacity:.75}
+    .objective{position:fixed;z-index:40;pointer-events:none;left:50%;bottom:calc(39px + env(safe-area-inset-bottom));transform:translateX(-50%);text-align:center;color:#e2f7ff;min-width:min(93vw,430px);padding:12px 17px;border:1px solid rgba(92,173,209,.22);background:linear-gradient(90deg,transparent,rgba(6,26,42,.52) 20%,rgba(6,26,42,.52) 80%,transparent);backdrop-filter:blur(6px)}
+    .objective .objective-title{display:block;color:#83d7ff;font-size:9px;letter-spacing:.25em;margin-bottom:5px}
+    #tip{font-size:12px}
+    #reticle{position:fixed;z-index:38;pointer-events:none;left:50%;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;opacity:.55}
+    #reticle:before,#reticle:after{content:'';position:absolute;background:rgba(170,243,255,.8);box-shadow:0 0 6px rgba(111,212,244,.35)}
+    #reticle:before{width:1px;height:11px;top:1.5px;left:6.5px}
+    #reticle:after{width:11px;height:1px;left:1.5px;top:6.5px}
+    #reticle.fps{width:20px;height:20px;opacity:.94}
+    #reticle.fps:before{left:9.5px;height:16px;top:2px}
+    #reticle.fps:after{top:9.5px;width:16px;left:2px}
+    #toast{position:fixed;z-index:90;pointer-events:none;left:50%;top:19%;transform:translate(-50%,-14px);padding:13px 20px;border-radius:6px;background:rgba(4,29,48,.87);border:1px solid rgba(110,216,239,.55);color:#e3fbff;box-shadow:0 8px 50px rgba(0,0,0,.38),0 0 32px rgba(38,190,255,.1);opacity:0;transition:opacity .22s,transform .22s;text-align:center;font-size:12px;letter-spacing:.04em;min-width:220px}
+    #toast.visible{opacity:1;transform:translate(-50%,0)}
+    .legend{right:calc(26px + env(safe-area-inset-right));bottom:calc(35px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+    .legend div{font-size:10px;color:#b9d7e5;letter-spacing:.07em}
+    kbd{display:inline-block;font:700 10px ui-monospace,Consolas,monospace;min-width:16px;text-align:center;color:#d9f7ff;border:1px solid rgba(121,194,232,.44);border-radius:3px;padding:2px 5px;margin-left:3px;background:rgba(23,55,78,.52)}
+    #intro[hidden]{display:none}
+    #intro{position:fixed;z-index:80;inset:0;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 50%,rgba(0,13,29,.73),rgba(0,5,17,.89));backdrop-filter:blur(12px);padding:24px}
+    .intro-panel{max-width:580px;width:100%;border:1px solid rgba(87,182,213,.4);border-radius:4px;padding:clamp(20px,5vw,45px);background:linear-gradient(160deg,rgba(12,40,65,.8),rgba(4,12,26,.95));box-shadow:0 20px 80px rgba(0,0,0,.55),0 0 100px rgba(33,122,166,.12);position:relative;overflow:hidden;text-align:left}
+    .intro-panel:before{content:'';position:absolute;top:0;left:0;width:180px;height:2px;background:#98edff;box-shadow:0 0 25px #4cbdf3}
+    .intro-no{letter-spacing:.35em;color:#75d6ec;font-size:10px;font-weight:800}
+    .intro-panel h1{font-size:clamp(24px,5.5vw,44px);letter-spacing:.11em;line-height:1.18;margin:13px 0 9px;color:#f3fcff}
+    .intro-panel h1 span{display:block;color:#85e7ff;font-size:.44em;letter-spacing:.26em;margin-top:12px}
+    .intro-panel p{font-size:13px;line-height:1.85;color:#a9c7d9;margin:21px 0 25px}
+    .intro-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:22px}
+    .intro-grid div{padding:11px;border:1px solid rgba(88,162,192,.22);background:rgba(18,41,65,.32);font-size:11px;color:#d7ecf4}
+    .intro-grid b{display:block;color:#7ddbef;margin-bottom:6px;font-size:9px;letter-spacing:.15em}
+    .begin{padding:15px 23px;background:linear-gradient(100deg,#5bd6f1,#b4edfa);color:#061d31;font-weight:850;font-size:13px;letter-spacing:.16em;border:none;width:100%;border-radius:3px;box-shadow:0 5px 22px rgba(82,199,231,.18)}
+    .intro-foot{display:flex;justify-content:space-between;margin-top:12px;color:#7ca4b9;font-size:9px;letter-spacing:.08em}
+    .linkbtn{border:none;background:none;color:#8bdaf2;padding:0;font-size:9px}
+    @media(pointer:coarse){
+      .status,.legend{display:none}
+      .objective{top:calc(99px + env(safe-area-inset-top));bottom:auto;width:min(90vw,360px);padding:7px 10px;background:rgba(6,26,42,.38)}
+      .objective .objective-title{font-size:8px;margin-bottom:3px}#tip{font-size:10px}
+      .topbar{left:calc(14px + env(safe-area-inset-left));top:calc(16px + env(safe-area-inset-top));gap:8px}
+      .logo{width:32px;height:32px}.logo span{font-size:13px}
+      .brand strong{font-size:11px}.brand small{font-size:7px}
+      .topright{right:calc(12px + env(safe-area-inset-right));top:calc(13px + env(safe-area-inset-top));gap:6px}
+      .tag{font-size:9px;padding:5px 6px}.statline .tag:nth-child(2),.statline .tag:nth-child(3){display:none}
+      .hudbtn{font-size:10px;padding:7px 9px}
+      .hudmid{display:none}
+      #toast{top:23%}
+      .intro-panel p{margin:13px 0 18px;font-size:12px}
+    }
+    @media(max-width:410px){.brand strong{letter-spacing:.08em}.brand small{letter-spacing:.10em}.intro-grid{grid-template-columns:1fr 1fr}.intro-grid div{padding:8px;font-size:10px}}
+  </style>
+</head>
+<body>
+  <canvas id="game" aria-label="3D exploration demo"></canvas>
+  <div id="vignette"></div><div id="grain"></div>
+  <div class="hud topbar">
+    <div class="logo"><span>A</span></div>
+    <div class="brand"><strong>AETHER FRONTIER</strong><small>EXPLORER SYSTEM // NO.19</small></div>
+  </div>
+  <div class="hud hudmid">AETHER FRONTIER · FIELD TEST / 19</div>
+  <div class="hud topright">
+    <div class="statline"><span class="tag">VIEW <b id="modeVal">TPS</b></span><span class="tag">SPEED <b id="speedVal">0.0</b> m/s</span><span class="tag"><b id="fpsVal">-- fps</b></span><span class="tag" id="qualityVal">LIGHT</span></div>
+    <div class="btnbar"><button type="button" id="qualityBtn" class="hudbtn">軽量版</button><button type="button" id="resetBtn" class="hudbtn">リセット</button></div>
+  </div>
+  <div class="hud status"><div class="eyebrow">LIVE CONTROLLER SYSTEM</div><div class="bar"></div><div class="state" id="playerState">EXPLORER / 探索</div></div>
+  <div class="hud legend"><div>移動 <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / 視点 <kbd>マウス</kbd></div><div>走る <kbd>SHIFT</kbd> / ジャンプ <kbd>SPACE</kbd></div><div>視点切替 <kbd>V</kbd> / ダッシュ <kbd>Q</kbd> / 調べる <kbd>E</kbd></div><div>クリックでマウス固定 · ESCで解除</div></div>
+  <div class="objective"><span class="objective-title">FIELD OBJECTIVE · <span id="progressVal">0 / 4</span></span><span id="tip">エーテル端末を4基探して起動しよう</span></div>
+  <div id="reticle"></div><div id="toast" aria-live="polite"></div>
+  <div id="intro">
+    <section class="intro-panel" aria-label="Demo controls">
+      <div class="intro-no">AETHER FRONTIER / TEAM 19 / SYSTEM DEMONSTRATOR</div>
+      <h1>EXPLORER<span>PLAYER CONTROL SYSTEM</span></h1>
+      <p>FPS / TPSを自由に切り替えながら、エーテル都市の外縁を探索する操作テスト。4つのエーテル端末を見つけて起動しよう。</p>
+      <div class="intro-grid">
+        <div><b>PC / KEYBOARD</b>WASD 移動 · Shift 走る<br>Space ジャンプ · Q ダッシュ</div>
+        <div><b>CAMERA / ACTION</b>マウス 視点 · V 視点切替<br>E 調べる · ESC 固定解除</div>
+        <div><b>iPHONE / TOUCH</b>左スティック 移動<br>右エリア スワイプ 視点</div>
+        <div><b>VISUAL MODES</b>軽量版 / 高品質版<br>右上から即時切替</div>
+      </div>
+      <button id="startBtn" class="begin">探索を開始する</button>
+      <div class="intro-foot"><span>THREE.JS r160 · NO BUILD · NO LOGIN</span><button type="button" id="closeIntro" class="linkbtn">案内を閉じる</button></div>
+    </section>
+  </div>
+  <script type="module" src="./demo-src/main.js"></script>
+</body>
+</html>

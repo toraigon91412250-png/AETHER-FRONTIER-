@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>No.10 Integration Example</title>
+<style>html,body{height:100%;margin:0;background:#07101d;color:white;font:14px system-ui}canvas{display:block}#ctl{position:fixed;left:12px;bottom:12px;display:flex;gap:8px}button{border:1px solid #5dbad0;background:#102d3f;border-radius:5px;color:white;padding:14px;cursor:pointer}</style>
+</head>
+<body>
+<div id="ctl"><button id="robot">人型</button><button id="flight">飛行型</button><button id="quality">軽量/高品質</button></div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+import {createAetherModule} from './src/aether_no10_robot.js';
+const scene = new THREE.Scene();scene.background=new THREE.Color(0x091524);
+const camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.1,100);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));document.body.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xc6e5ff,0x1d2736,3));const sun=new THREE.DirectionalLight(0xffffff,3);sun.position.set(-4,10,-6);scene.add(sun);
+// No.10 API starts here. No DOM/camera/renderer ownership in the module.
+const unit=createAetherModule(THREE,{quality:'high',initialForm:'robot'});
+scene.add(unit.root);
+document.getElementById('robot').onclick=()=>unit.transformTo('robot');
+document.getElementById('flight').onclick=()=>unit.transformTo('flight');
+let q='high';document.getElementById('quality').onclick=()=>unit.setQuality(q=q==='high'?'lite':'high');
+const clock=new THREE.Clock();let theta=2.6;
+function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.05);unit.update(dt);theta+=dt*.2;camera.position.set(14*Math.sin(theta),7.5,14*Math.cos(theta));camera.lookAt(0,3.4,0);renderer.render(scene,camera);}
+loop();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+addEventListener('pagehide',()=>{unit.dispose();renderer.dispose()},{once:true});
+</script>
+</body>
+</html>

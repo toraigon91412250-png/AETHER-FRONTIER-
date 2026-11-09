@@ -1,0 +1,15 @@
+<!doctype html><html lang="ja"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>No.09 Integration Example</title>
+<style>body{margin:0;background:#061526;color:white;font:14px system-ui}#info{position:fixed;top:16px;left:16px;background:#13263cae;padding:12px;z-index:2}canvas{display:block}</style>
+<div id="info">ARK VESPER | Module-only integration example<br>マウス操作は含まない。カメラ・ライト・レンダラーは外部管理。</div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+import {createAetherModule} from './src/aether-no09.js';
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x071827);
+scene.add(new THREE.HemisphereLight(0xd3eeff,0x17263a,2));
+const light=new THREE.DirectionalLight(0xffe1ad,3);light.position.set(200,200,-200);scene.add(light);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));document.body.appendChild(renderer.domElement);
+const camera=new THREE.PerspectiveCamera(55,1,.1,1500);
+const ship=createAetherModule(THREE,{quality:'low',position:[0,140,0]});scene.add(ship.root);
+function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}onresize=resize;resize();
+let time=0,last=0;function frame(now){requestAnimationFrame(frame);let dt=Math.min(.1,(now-last)/1000);last=now;time+=dt;ship.update(dt,{elapsedTime:time});camera.position.set(Math.sin(time*.07)*420,260,Math.cos(time*.07)*420);camera.lookAt(0,177,0);renderer.render(scene,camera);}requestAnimationFrame(frame);
+</script></html>

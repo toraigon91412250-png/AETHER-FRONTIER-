@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>AETHER FRONTIER : ERIDIAN-05 / No.05</title>
+<style>
+:root{color-scheme:dark;--cyan:#69e5ef;--panel:rgba(5,17,29,.78);--line:rgba(105,229,239,.3)}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#020710;color:#d7f2f4;font-family:system-ui,-apple-system,'Noto Sans JP',sans-serif;touch-action:none;user-select:none;-webkit-user-select:none}button{font:inherit;touch-action:none;-webkit-tap-highlight-color:transparent;cursor:pointer}#game{position:fixed;inset:0;display:block;width:100%;height:100%;touch-action:none}#vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,.38) 100%)}
+#hud{position:absolute;top:max(13px,env(safe-area-inset-top));left:max(14px,env(safe-area-inset-left));width:min(440px,calc(100vw - 200px));pointer-events:none;text-shadow:0 1px 5px #000}#brand{font:700 11px/1.3 ui-monospace,monospace;letter-spacing:.28em;color:#75d6dd}#subtitle{font-size:10px;letter-spacing:.15em;color:#93aeb7;margin-top:4px}#objective{margin-top:16px;font-weight:700;font-size:14px;color:#e3f7fc;line-height:1.6}#progress{font:600 11px/1.7 ui-monospace,monospace;color:#98cbd2;margin-top:7px;padding:6px 9px;background:var(--panel);border-left:2px solid #64d4e0;width:fit-content;max-width:100%}
+#miniPanel{position:absolute;right:max(12px,env(safe-area-inset-right));top:max(14px,env(safe-area-inset-top));width:180px;background:var(--panel);border:1px solid var(--line);padding:8px;backdrop-filter:blur(8px)}#miniHeader{display:flex;justify-content:space-between;align-items:center;font:700 10px ui-monospace,monospace;letter-spacing:.11em;color:#bdeef3}#minimap{width:100%;height:184px;display:block;margin-top:4px}#mapLegend{font-size:9px;color:#8fb2ba;text-align:right;letter-spacing:.06em}
+#centerDot{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:7px;height:7px;border:1px solid #a0ffff;border-radius:50%;pointer-events:none;box-shadow:0 0 8px #73eaf8}#crosshair{position:absolute;left:50%;top:50%;pointer-events:none;width:28px;height:28px;transform:translate(-50%,-50%);opacity:.54}#crosshair:before,#crosshair:after{content:'';position:absolute;top:13px;left:0;width:28px;height:1px;background:var(--cyan)}#crosshair:after{transform:rotate(90deg)}
+#prompt{position:absolute;left:50%;bottom:max(103px,calc(env(safe-area-inset-bottom) + 78px));transform:translateX(-50%);width:min(540px,84vw);text-align:center;pointer-events:none;line-height:1.45;font-size:13px;font-weight:700;color:#fff;background:rgba(4,20,31,.7);border:1px solid rgba(105,229,239,.5);padding:12px;border-radius:5px;opacity:0;transition:opacity .15s}#prompt.show{opacity:1}#toast{position:absolute;left:50%;top:23%;transform:translateX(-50%);width:min(560px,88vw);padding:14px 20px;background:rgba(3,13,27,.93);border:1px solid #54bac6;border-left:4px solid #69e5ef;color:#d5f7f8;line-height:1.65;text-align:center;opacity:0;transition:opacity .25s;pointer-events:none;font-size:13px;box-shadow:0 4px 20px #0007}#toast.on{opacity:1}#toast.success{border-left-color:#f1cc7b}#toast.warning{border-left-color:#ff6675}
+#toolbar{position:absolute;left:max(16px,env(safe-area-inset-left));bottom:max(16px,env(safe-area-inset-bottom));display:flex;gap:7px;align-items:center;flex-wrap:wrap;max-width:calc(100vw - 34px)}.smallButton{border:1px solid var(--line);border-radius:3px;color:#b8e3e9;background:rgba(2,15,26,.8);font-size:11px;letter-spacing:.03em;padding:10px 12px;min-height:38px;box-shadow:0 2px 10px #0006}.smallButton:active{background:#145362}
+#controlsHint{position:absolute;right:max(14px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));font:10px/1.6 ui-monospace,monospace;color:#b2c1ca;text-shadow:0 2px 4px black;text-align:right;pointer-events:none}
+#touchUI{display:none;position:absolute;inset:0;pointer-events:none}#joystick{position:absolute;left:max(18px,env(safe-area-inset-left));bottom:max(91px,calc(env(safe-area-inset-bottom) + 82px));width:134px;height:134px;border-radius:50%;border:2px solid rgba(105,229,239,.28);background:radial-gradient(circle,rgba(105,229,239,.07) 10%,rgba(1,13,20,.43) 75%);pointer-events:auto;touch-action:none}#joyNub{position:absolute;top:50%;left:50%;width:56px;height:56px;margin-left:-28px;margin-top:-28px;border-radius:50%;background:rgba(99,212,222,.35);border:2px solid rgba(140,240,243,.74);transform:translate(0,0)}#touchActions{position:absolute;right:max(14px,env(safe-area-inset-right));bottom:max(85px,calc(env(safe-area-inset-bottom) + 78px));display:grid;grid-template-columns:repeat(2,68px);grid-template-rows:repeat(2,68px);gap:10px;pointer-events:auto}#touchActions button{border-radius:50%;background:rgba(4,34,51,.76);color:#d5ffff;border:1px solid rgba(105,229,239,.5);font-size:12px;font-weight:700}#touchActions #act{grid-row:1;grid-column:2;border-color:#e8bf7e;background:rgba(82,59,26,.66)}#touchActions #jump{grid-row:2;grid-column:1}#touchActions #dash{grid-row:2;grid-column:2}
+#startScreen,#endScreen{position:absolute;inset:0;background:linear-gradient(135deg,rgba(1,9,19,.96),rgba(2,18,33,.92)),radial-gradient(circle at 70% 50%,#21627e,#020710);display:grid;place-items:center;padding:20px;z-index:20;overflow:auto}#endScreen{display:none;background:rgba(2,12,24,.91)}.introBox{width:min(640px,96vw);border:1px solid #347785;padding:clamp(20px,5vw,40px);background:rgba(6,19,32,.92);box-shadow:0 16px 70px #0009}.eyebrow{font:700 12px ui-monospace,monospace;letter-spacing:.22em;color:var(--cyan)}.introBox h1{font-size:clamp(33px,7vw,57px);margin:17px 0 4px;letter-spacing:.015em;line-height:1.1}.introBox h2{font-size:14px;font-weight:500;letter-spacing:.22em;color:#c5d2d7;margin:0 0 24px}.introBox p{color:#bbd1d8;font-size:14px;line-height:1.9}.tags{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 21px}.tags span{font:11px ui-monospace,monospace;letter-spacing:.05em;border:1px solid #345361;padding:5px 8px;color:#91bbc7}#startBtn,#restartBtn{display:block;width:100%;padding:15px 18px;color:#061a20;background:#8beaf1;border:none;font-size:14px;letter-spacing:.17em;font-weight:800;margin-top:21px}#startBtn:active{background:#fff}.introControls{margin-top:16px;color:#8ba8af;font-size:12px;line-height:1.7}
+@media (pointer:coarse){#touchUI{display:block}#toolbar{bottom:max(13px,env(safe-area-inset-bottom));left:14px}#controlsHint{display:none}#prompt{bottom:max(242px,calc(env(safe-area-inset-bottom) + 230px));font-size:12px;padding:9px}#hud{width:calc(100vw - 194px)}#brand{font-size:9px}#objective{font-size:11px;margin-top:8px}#progress{font-size:10px;padding:4px 6px}#minimap{height:139px}#miniPanel{width:154px}#toast{top:21%;font-size:12px}#toolbar .smallButton{font-size:10px;min-height:35px;padding:8px}}
+@media (max-width:480px){#hud{width:calc(100vw - 171px)}#subtitle{display:none}#progress{font-size:9px;line-height:1.4}#miniPanel{width:144px}#minimap{height:122px}#mapLegend{font-size:8px}#objective{line-height:1.4}#prompt{width:72vw}}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas><div id="vignette"></div><div id="crosshair"></div><div id="centerDot"></div>
+<div id="hud"><div id="brand">AETHER FRONTIER / NO.05</div><div id="subtitle">ERIDIAN RESEARCH DIVISION | DEPTH -1,840m</div><div id="objective"></div><div id="progress"></div></div>
+<div id="miniPanel"><div id="miniHeader"><span>FACILITY MAP</span><span id="coords">-- / --</span></div><canvas id="minimap" width="300" height="370"></canvas><div id="mapLegend">◆ 現在地　● 接続端末</div></div>
+<div id="prompt"></div><div id="toast"></div>
+<div id="toolbar"><button class="smallButton" id="qualityBtn">画質：高</button><button class="smallButton" id="cameraBtn">視点：FPS</button><button class="smallButton" id="mapBtn">地図：表示</button></div>
+<div id="controlsHint">WASD 移動 / Shift ダッシュ / Space ジャンプ<br>マウス 視点 / E 調べる / V 視点切替 / M 地図</div>
+<div id="touchUI"><div id="joystick"><div id="joyNub"></div></div><div id="touchActions"><button id="act">操作</button><button id="jump">跳ぶ</button><button id="dash">走る</button></div></div>
+<div id="startScreen"><div class="introBox"><div class="eyebrow">RECOVERED FILE // 05-A</div><h1>ERIDIAN-05</h1><h2>無音の合唱室</h2><p>地底1,840m。古代文明の遺構を調査していた研究施設が、突然すべての通信を停止した。<br>残されたのは、冷却回路、量子同調、記憶保管の3系統の封印。封鎖区画の先で、何が眠っているのか。</p><div class="tags"><span>EXPLORE 3 SECTORS</span><span>UNLOCK DEEP VAULT</span><span>DISCOVER HIDDEN LOG</span></div><button id="startBtn">施設へ潜入する</button><div class="introControls">PC：WASD移動・マウス視点・E操作・Spaceジャンプ・Shiftダッシュ<br>スマホ：左スティック移動・右側スワイプ視点・操作ボタン<br>※ Three.js 0.160.0 をCDNから読み込みます。初回はネット接続が必要です。</div></div></div>
+<div id="endScreen"><div class="introBox"><div class="eyebrow">SIGNAL RECEIVED // 05-Ω</div><h1>THE NULL CHOIR</h1><h2>深部探索完了</h2><p>3つの封印を解き、地下研究施設最深部へ到達した。<br>古代知性の信号が、地上にあるエーテルタワーへ向かい始めている。<br>「我々が遺跡を発見したのではない。遺跡が我々を呼んだのだ。」</p><div class="tags"><span id="endSecret">機密記録：未発見</span><span>NO.05 COMPLETE</span></div><button id="restartBtn">さらに施設を探索する</button></div></div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+/**
+ * AETHER FRONTIER / Team No.05
+ * ERIDIAN-05: THE NULL CHOIR | Underground research complex
+ * Three.js r160 / Y-up / forward -Z / 1 unit ~= 1 meter
+ * No scene, camera, renderer, input, or DOM UI ownership.
+ * SPDX-License-Identifier: MIT
+ */
+function createAetherModule(THREE, options = {}) {
+  if (!THREE || !THREE.Group) throw new Error('A Three.js namespace is required');
+  const root = new THREE.Group();
+  root.name = 'AF_No05_ERIDIAN_Underground_Research';
+  const details = new THREE.Group();
+  const effects = new THREE.Group();
+  root.add(details, effects);
+  const mats = {};
+  // One shared cube geometry + instancing keep memory and draw calls manageable.
+  const unitCube = new THREE.BoxGeometry(1,1,1);
+  const M = (name, color, metalness = 0.6, roughness = 0.55, emissive = 0, ei = 0) => {
+    const m = new THREE.MeshStandardMaterial({color, metalness, roughness, emissive, emissiveIntensity: ei});
+    mats[name] = m; return m;
+  };
+  const shell = M('shell', 0x111b2a, .7, .58);
+  const slate = M('slate', 0x1b2b3a, .66, .5);
+  const floorMat = M('floor', 0x1a2731, .54, .83);
+  const black = M('black', 0x080f19, .45, .77);
+  const steel = M('steel', 0x566878, .83, .33);
+  const brass = M('brass', 0x7d6251, .79, .37);
+  const cyan = M('cyan', 0x35d8ea, .15, .31, 0x16e9f6, 1.45);
+  const cyanDim = M('cyanDim', 0x2d9fb5, .27, .44, 0x1b8194, .55);
+  const amber = M('amber', 0xe4a66c, .22, .43, 0xff9335, 1.1);
+  const danger = M('danger', 0xbd4d58, .3, .48, 0xb52e3c, .7);
+  const purple = M('purple', 0x9067eb, .19, .35, 0x7a55ff, 1.15);
+  const gold = M('gold', 0xb6aa79, .8, .28, 0xa57d23, .19);
+  const holo = new THREE.MeshBasicMaterial({color: 0x49ddea, transparent: true, opacity: .18, depthWrite: false, side: THREE.DoubleSide});
+  const beam = new THREE.MeshBasicMaterial({color: 0x5cdaed, transparent: true, opacity: .23, depthWrite: false, side: THREE.DoubleSide});
+  const particleMat = new THREE.MeshBasicMaterial({color: 0x9be9ff, transparent: true, opacity: .85, depthWrite: false});
+  const interactables = [];
+  const wallColliders = [];
+  const occluders = [];
+  const obstacles = [{x:0,z:-37.5,r:3.2},{x:0,z:-144,r:5.8}];
+  const animations = [];
+  const qualityNodes = [];
+  let quality = 'high', t = 0, disposed = false;
+  const state = {valveA:false, valveB:false, cooling:false, tuning:0, archive:false, gateOpen:false, awakened:false, secret:false};
+  const areas = [
+    {id:'arrival', x1:-11,x2:11,z1:8,z2:25,h:7},
+    {id:'access',x1:-6,x2:6,z1:-24,z2:8,h:6},
+    {id:'hub',x1:-19,x2:19,z1:-50,z2:-24,h:12},
+    {id:'westTunnel',x1:-53,x2:-19,z1:-39,z2:-32,h:6},
+    {id:'westLab',x1:-74,x2:-53,z1:-52,z2:-19,h:9},
+    {id:'eastTunnel',x1:19,x2:53,z1:-39,z2:-32,h:6},
+    {id:'eastLab',x1:53,x2:74,z1:-52,z2:-19,h:9},
+    {id:'archiveTunnel',x1:-6,x2:6,z1:-81,z2:-50,h:6},
+    {id:'archive',x1:-21,x2:21,z1:-104,z2:-81,h:10},
+    {id:'vaultTunnel',x1:-6,x2:6,z1:-124,z2:-104,h:7},
+    {id:'vault',x1:-25,x2:25,z1:-163,z2:-124,h:17},
+    {id:'service',x1:-35,x2:-19,z1:-50,z2:-42,h:6}
+  ];
+  function box(parent, x, y, z, sx, sy, sz, material, rot = 0) {
+    const o = new THREE.Mesh(unitCube, material);
+    o.position.set(x,y,z); o.rotation.y=rot; o.scale.set(sx,sy,sz); parent.add(o); return o;
+  }
+  function cylinder(parent,x,y,z,top,bottom,h,material,segments=12) {
+    const o = new THREE.Mesh(new THREE.CylinderGeometry(top,bottom,h,segments),material);
+    o.position.set(x,y,z);parent.add(o);return o;
+  }
+  function sphere(parent,x,y,z,r,material,detail=0) {
+    const o=new THREE.Mesh(new THREE.IcosahedronGeometry(r,detail),material);
+    o.position.set(x,y,z);parent.add(o);return o;
+  }
+  function ring(parent,x,y,z,r,tube,material,rotX=0,rotY=0) {
+    const o=new THREE.Mesh(new THREE.TorusGeometry(r,tube,5,44),material);
+    o.position.set(x,y,z);o.rotation.set(rotX,rotY,0);parent.add(o);return o;
+  }
+  const seed = {v:785421};
+  const rand=()=>((seed.v=(1664525*seed.v+1013904223)>>>0)/4294967296);
+  function lineSegmentsFromEdges(x1,z1,x2,z2,axis,exclude) {
+    let intervals = [[axis==='x'?z1:x1,axis==='x'?z2:x2]];
+    const wallCoord = axis==='x'?x1:z1;
+    for (const a of areas) {
+      if(a.id===exclude)continue;
+      let touching = axis==='x' ? (a.x1 < wallCoord+.03 && a.x2 > wallCoord-.03) : (a.z1 < wallCoord+.03 && a.z2 > wallCoord-.03);
+      if (!touching) continue;
+      const cutLo=axis==='x'?a.z1:a.x1, cutHi=axis==='x'?a.z2:a.x2;
+      const next=[];
+      for(const [lo,hi] of intervals) {
+        if(cutHi<=lo+.01||cutLo>=hi-.01) next.push([lo,hi]);
+        else {if(cutLo>lo+.02)next.push([lo,Math.min(cutLo,hi)]);if(cutHi<hi-.02)next.push([Math.max(cutHi,lo),hi]);}
+      }
+      intervals=next;
+    }
+    return intervals.filter(([a,b])=>b-a>.02);
+  }
+  function wallRect(x,z,sx,sz,h) {
+    const wall = box(root,x,h/2,z,sx,h,sz,shell);
+    occluders.push(wall);
+    wallColliders.push({x1:x-sx/2,x2:x+sx/2,z1:z-sz/2,z2:z+sz/2});
+    return wall;
+  }
+  for(const a of areas) {
+    const cx=(a.x1+a.x2)/2,cz=(a.z1+a.z2)/2,w=a.x2-a.x1,d=a.z2-a.z1;
+    box(root,cx,-.24,cz,w,.48,d,floorMat);
+    box(root,cx,a.h+.25,cz,w,.5,d,black);
+    // Each room owns only its perimeter. Shared openings are carved out automatically.
+    for (const side of [a.x1,a.x2]) {
+      const sections=lineSegmentsFromEdges(side,a.z1,side,a.z2,'x',a.id);
+      for(const [lo,hi] of sections) {
+        wallRect(side,(lo+hi)/2,.48,hi-lo,a.h);
+        box(details,side+(side===a.x1?.3:-.3),.35,(lo+hi)/2,.24,.22,hi-lo,cyanDim);
+      }
+    }
+    for(const side of [a.z1,a.z2]) {
+      const sections=lineSegmentsFromEdges(a.x1,side,a.x2,side,'z',a.id);
+      for(const [lo,hi] of sections) {
+        wallRect((lo+hi)/2,side,hi-lo,.48,a.h);
+        box(details,(lo+hi)/2,.35,side+(side===a.z1?.3:-.3),hi-lo,.22,.24,cyanDim);
+      }
+    }
+    // Ribbed alloy flooring, ceiling conduits, and perimeter light channels.
+    box(details,a.x1+.5,.05,cz,.13,.14,d,steel);
+    box(details,a.x2-.5,.05,cz,.13,.14,d,steel);
+    box(details,cx,.03,a.z1+.55,w,.09,.13,brass);
+    box(details,cx,.03,a.z2-.55,w,.09,.13,brass);
+    if(d>12) {
+      const count=Math.min(14,Math.floor(d/4));
+      for(let i=1;i<count;i++){
+        const z=a.z1+(i/count)*d;
+        box(details,cx,-.015,z,w-.8,.028,.08,steel);
+      }
+    }
+    if(w>12){
+      box(details,a.x1+.95,a.h-.28,cz,.13,.14,d,cyanDim);
+      box(details,a.x2-.95,a.h-.28,cz,.13,.14,d,cyanDim);
+    }
+  }
+  function arch(x,z,w,h,axis='z',material=steel){
+    const p = new THREE.Group();p.position.set(x,0,z);root.add(p);
+    if(axis==='z') {
+      box(p,-w/2+.3,h/2,0,.45,h,.4,material);
+      box(p,w/2-.3,h/2,0,.45,h,.4,material);
+      box(p,0,h-.28,0,w,.55,.43,material);
+      box(p,0,h-.57,-.24,w-.85,.09,.11,cyanDim);
+    } else {
+      box(p,0,h/2,-w/2+.3,.4,h,.45,material);
+      box(p,0,h/2,w/2-.3,.4,h,.45,material);
+      box(p,-.24,h-.28,0,.11,.55,w,material);
+    }
+  }
+  for(const z of [5,-1,-8,-15,-22,-55,-62,-69,-76,-106,-119]) arch(0,z,11.4,5.7,'z');
+  for(const x of [-23,-31,-39,-47,23,31,39,47]) arch(x,-35.5,6.6,5.5,'x');
+  arch(0,-79,12,6.7);arch(0,-125,12,8);
+  function plinth(x,z,w=2,d=2){
+    box(root,x,.22,z,w,.44,d,slate);
+    box(root,x,.48,z,w-.19,.12,d-.19,steel);
+    box(details,x,.51,z,w-.6,.05,d-.6,cyanDim);
+  }
+  function terminal(id,title,x,z,material=cyan,run,extra={}) {
+    const g=new THREE.Group();g.position.set(x,0,z);root.add(g);
+    box(g,0,.85,0,1.2,1.7,.9,steel);
+    box(g,0,1.85,-.17,1.7,.9,.35,black);
+    const panel=box(g,0,1.85,-.39,1.4,.62,.05,material);
+    panel.rotation.x=-.16;
+    box(details,x,2.42,z-.25,1.75,.06,.17,brass);
+    const item = {id,title,position:new THREE.Vector3(x,1.5,z),range:3.1,run,mesh:panel,...extra};
+    interactables.push(item);
+    return g;
+  }
+  function scannerColumn(x,z,height=4.5,material=cyan){
+    const g=new THREE.Group();g.position.set(x,0,z);root.add(g);
+    cylinder(g,0,.28,0,1.25,1.4,.56,steel,10);
+    cylinder(g,0,height/2,0,.53,.57,height-.7,black,10);
+    cylinder(g,0,height-.2,0,1.2,1.1,.42,steel,10);
+    for(let i=0;i<4;i++){
+      ring(g,0,.75+i*(height-1.3)/3,0,.55,.055,material,Math.PI/2);
+    }
+    return g;
+  }
+  function makeSign(text,subtitle,x,y,z,width=4.4,rotate=0){
+    if(typeof document==='undefined')return;
+    const canvas=document.createElement('canvas');canvas.width=512;canvas.height=160;
+    const ctx=canvas.getContext('2d');if(!ctx)return;
+    ctx.fillStyle='#091b2a';ctx.fillRect(0,0,512,160);
+    ctx.fillStyle='#174956';ctx.fillRect(7,8,498,3);ctx.fillRect(7,148,498,3);
+    ctx.fillStyle='#7eeef0';ctx.font='bold 43px monospace';ctx.textAlign='center';ctx.fillText(text,256,69);
+    ctx.fillStyle='#c6d5da';ctx.font='21px sans-serif';ctx.fillText(subtitle,256,111);
+    const tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;
+    const mat=new THREE.MeshBasicMaterial({map:tex,transparent:false,side:THREE.DoubleSide});
+    const board=new THREE.Mesh(new THREE.PlaneGeometry(width,width*160/512),mat);
+    board.position.set(x,y,z);board.rotation.y=rotate;root.add(board);
+  }
+  makeSign('ERIDIAN-05','地下研究機構 / 第五観測層',0,4.1,14,6);
+  makeSign('CENTRAL NEXUS','中央掘削ハブ',0,6,-28,6);
+  makeSign('CRYO SECTOR','低温循環実験区',-61,5,-19.55,4);
+  makeSign('HARMONICS','量子同調実験区',62,5,-19.55,4);
+  makeSign('MNEMONIC ARCHIVE','記憶保存施設',0,6,-82,5.8);
+  makeSign('THE NULL CHOIR','古代核・最深封鎖区',0,10,-128,6);
+  // Arrival: pressure-door, light bars, containment shutters.
+  for(const x of [-8,-5,5,8]) {
+    box(root,x,3,22,.7,5.4,.9,slate);
+    box(details,x,5.2,22,.16,.8,1.2,cyanDim);
+  }
+  cylinder(details,0,.1,17,2.3,2.3,.08,brass,24);
+  for(let k=0;k<3;k++)ring(details,0,.16,17,2.4+k*.2,.044,cyanDim,Math.PI/2);
+  // Central digging shaft: ancient angular monolith beneath rotating survey rings.
+  cylinder(root,0,.35,-37.5,5.2,5.7,.7,brass,12);
+  cylinder(root,0,.68,-37.5,4.2,4.7,.34,black,12);
+  const monolith = new THREE.Group();monolith.position.set(0,2.85,-37.5);root.add(monolith);
+  const stone=sphere(monolith,0,0,0,2.55,purple,1);
+  stone.scale.set(.77,1.62,.77);
+  const shard=sphere(monolith,0,0,0,2.85,gold,0);shard.scale.set(.48,1.6,.52);shard.rotation.z=.2;
+  for(let i=0;i<6;i++){
+    const a=i*Math.PI/3;
+    const r=ring(root,Math.cos(a)*4.2,2.5,-37.5+Math.sin(a)*4.2,.56,.09,cyanDim,.5,a);
+    r.scale.set(.75,1.15,1);
+  }
+  const scanRing1=ring(root,0,5.1,-37.5,4.4,.11,amber,Math.PI/2);
+  const scanRing2=ring(root,0,5.9,-37.5,3.8,.09,cyan,Math.PI/2);
+  animations.push((dt,time)=>{
+    monolith.rotation.y=time*.16;
+    monolith.position.y=2.85+Math.sin(time*.8)*.22;
+    scanRing1.rotation.z=time*.14;
+    scanRing2.rotation.z=-time*.20;
+  });
+  for(const x of [-15,15])for(const z of [-44,-30])scannerColumn(x,z,7.8,amber);
+  for(const [x,z] of [[-12,-37],[12,-37],[-8,-46],[8,-46]]){
+    box(root,x,.8,z,2.4,1.6,1.5,slate);
+    box(details,x,1.65,z,2.1,.12,1.22,cyanDim);
+    box(details,x,1.85,z,.45,.25,.3,amber);
+  }
+  // West lab: observation cylinders, cryogenic specimens and paired coolant valves.
+  for(let i=0;i<4;i++){
+    const x=-68+(i%2)*7, z=-45+Math.floor(i/2)*18;
+    plinth(x,z,3.4,3.4);
+    const tube=new THREE.Group();tube.position.set(x,0,z);root.add(tube);
+    cylinder(tube,0,3.15,0,1.13,1.13,5.1,new THREE.MeshStandardMaterial({color:0x55a1a9,metalness:.36,roughness:.17,transparent:true,opacity:.23,depthWrite:false}),16);
+    cylinder(tube,0,5.75,0,1.42,1.38,.65,steel,12);
+    cylinder(tube,0,.65,0,1.4,1.4,.55,steel,12);
+    for(let k=0;k<5;k++)ring(tube,0,1.1+k*1.1,0,1.12,.05,cyanDim,Math.PI/2);
+    const sample=sphere(tube,0,3.3,0,.8,i%2?purple:cyan,0);
+    sample.scale.set(.55,1.55,.5);sample.rotation.z=.3+i*.4;
+    animations.push((dt,time)=>{sample.rotation.y=time*.26+i;sample.position.y=3.3+Math.sin(time*.75+i)*.15;});
+  }
+  function valve(x,z,material) {
+    plinth(x,z,2.6,2.6);
+    cylinder(root,x,1.25,z,.54,.72,2.1,steel,10);
+    ring(root,x,2.22,z,1.07,.14,material,0,0);
+    for(let i=0;i<6;i++){const a=i*Math.PI/3;box(root,x+Math.cos(a)*1.02,2.22,z+Math.sin(a)*1.02,.25,.28,.25,brass);}
+  }
+  valve(-57,-47,amber);valve(-57,-24,cyan);
+  function msg(text,type='message'){if(typeof options.onEvent==='function')options.onEvent({type,text,state:{...state}});}
+  const updatePanel=(id,mat)=>{const v=interactables.find(v=>v.id===id);if(v)v.mesh.material=mat;};
+  terminal('valveA','冷却弁 A を解放',-57,-46,amber,()=>{
+    if(state.valveA){msg('冷却弁 A はすでに解放されている。');return;}
+    state.valveA=true;updatePanel('valveA',cyan);msg('冷却弁 A：復旧。第二弁で循環を開始できる。');
+  });
+  terminal('valveB','冷却弁 B を起動',-57,-25,cyan,()=>{
+    if(state.cooling){msg('冷却回路は正常に稼働している。');return;}
+    if(!state.valveA){msg('循環圧力不足。先に冷却弁 A を解放する必要がある。','warning');return;}
+    state.valveB=true;state.cooling=true;msg('第1封印解除：低温循環系が再起動した。','success');
+  });
+  // East lab: three-phase quantum resonance array, requiring a readable sequence.
+  for(let i=0;i<3;i++){
+    const z=-46+i*10;
+    const x=66;
+    plinth(x,z,4.5,4.5);
+    scannerColumn(x,z,5.8,purple);
+    const outer=ring(root,x,3.2,z,2.2,.12,purple,.2,i*.7);
+    animations.push((dt,time)=>{outer.rotation.y=time*(i%2?-.28:.22)+i;outer.rotation.x=.25+Math.sin(time*.5+i)*.10;});
+    terminal('tone'+(i+1),'同調器 '+(i+1)+' を設定',59,z,purple,()=>{
+      if(state.tuning>=i+1){msg('同調器 '+(i+1)+'：同期済み。');return;}
+      if(state.tuning!==i){msg('位相が不一致。制御盤の番号順に 1 → 2 → 3 で同期してほしい。','warning');return;}
+      state.tuning=i+1;updatePanel('tone'+(i+1),cyan);
+      msg(i===2?'第2封印解除：三重位相が揃った。':'位相 '+(i+1)+'/3 同期完了。',i===2?'success':'message');
+    });
+  }
+  makeSign('SEQUENCE 1 > 2 > 3','位相同調は番号順に起動すること',66,6.65,-52.1,5.6);
+  // Archive: stasis memory blades, transcriber dais, optional lore cassette.
+  for(let i=0;i<8;i++){
+    const x=(i%2?16:-16),z=-85-Math.floor(i/2)*4.3;
+    box(root,x,2.5,z,3.0,4.7,1.9,steel);
+    box(root,x,2.5,z+(i%2?-1.04:1.04),2.5,3.8,.12,black);
+    box(details,x,2.5,z,1.1,2.95,2.04,purple);
+    box(details,x,4.6,z,2.6,.17,1.94,cyanDim);
+  }
+  cylinder(root,0,.3,-93,4.8,5.2,.6,steel,16);
+  cylinder(root,0,.66,-93,3.7,4.0,.17,black,16);
+  const archiveHalo=ring(root,0,4.4,-93,3.45,.09,purple,Math.PI/2);
+  animations.push((dt,time)=>{archiveHalo.rotation.z=time*.14;});
+  const glyphs=[];
+  for(let i=0;i<10;i++){
+    const a=i*Math.PI*2/10;
+    const s=box(effects,Math.cos(a)*3.15,3.5,-93+Math.sin(a)*3.15,.18,.44,.08,cyanDim);
+    glyphs.push(s);
+  }
+  animations.push((dt,time)=>{for(let i=0;i<glyphs.length;i++)glyphs[i].position.y=3.5+Math.sin(time*1.4+i*.9)*.27;});
+  terminal('archive','記憶アーカイブを復号',0,-99,purple,()=>{
+    if(state.archive){msg('記憶結晶：記録を保持中。');return;}
+    state.archive=true;updatePanel('archive',cyan);
+    msg('第3封印解除：「研究対象」は遺物ではなく、眠る古代知性だった。','success');
+  });
+  // Hidden maintenance bay, only accessible through the west side of the hub.
+  for(let i=0;i<4;i++){
+    box(root,-32+i*3,.85,-47.6,1.7,1.4,1.7,black);
+    box(details,-32+i*3,1.62,-47.6,1.5,.13,1.5,amber);
+  }
+  terminal('secret','封印された研究記録を再生',-29,-44.2,amber,()=>{
+    if(state.secret){msg('記録 No.05：この施設は研究所ではなく、巨大な受信機でもあった。');return;}
+    state.secret=true;msg('機密記録 05：観測者が遺物を見つめるとき、遺物も観測者を記録する。','secret');
+  });
+  // Actual vault barrier: fully animated physical shutter, with world collision.
+  const gate=new THREE.Group();gate.position.set(0,0,-113);root.add(gate);
+  const gateDoor=box(gate,0,3.45,0,11.6,6.9,.72,slate);
+  for(let i=-4;i<=4;i++) box(gateDoor,i*.105,0,.52,.055,.85,.22,cyanDim); // inset strip attached to door (local scale)
+  box(root,-5.65,4.2,-113,1.1,8.1,1.2,steel);
+  box(root,5.65,4.2,-113,1.1,8.1,1.2,steel);
+  box(root,0,8,-113,13,1.0,1.4,steel);
+  const gateBarrier={x1:-6,x2:6,z1:-113.55,z2:-112.45};
+  terminal('gate','最深部隔壁の解放',3.8,-108.2,amber,()=>{
+    if(state.gateOpen){msg('隔壁はすでに開放されている。');return;}
+    if(!state.cooling||state.tuning!==3||!state.archive){
+      const done=Number(state.cooling)+Number(state.tuning===3)+Number(state.archive);
+      msg('隔壁封印：'+done+'/3。低温循環・量子同調・記憶復号の3系統が必要。','warning');return;
+    }
+    state.gateOpen=true;msg('3系統の封印解除を確認。最深部「無音の合唱室」への隔壁が開いた。','success');
+  });
+  animations.push((dt,time)=>{
+    const target=state.gateOpen?8.25:3.45;
+    gateDoor.position.y+=(target-gateDoor.position.y)*Math.min(1,dt*2.5);
+  });
+  // Final chamber: cylindrical excavation ring, suspended seven-faceted core.
+  cylinder(root,0,-.02,-144,9.2,9.7,.28,brass,24);
+  for(let i=0;i<4;i++)ring(root,0,.05,-144,7.4+i*.48,.075,i%2?cyanDim:amber,Math.PI/2);
+  for(let i=0;i<8;i++) {
+    const a=i*Math.PI*2/8;
+    const x=Math.cos(a)*18,z=-144+Math.sin(a)*12;
+    scannerColumn(x,z,12,i%2?purple:amber);
+    const s=sphere(details,x,10.2,z,1.0,cyanDim,0);
+    s.scale.set(.55,1.7,.55);
+  }
+  const coreGroup=new THREE.Group();coreGroup.position.set(0,7,-144);root.add(coreGroup);
+  const core=sphere(coreGroup,0,0,0,4.4,purple,1);
+  core.scale.set(.78,1.45,.82);
+  const coreCrack=sphere(coreGroup,0,0,0,4.65,cyanDim,0);
+  coreCrack.scale.set(.58,1.24,.68);coreCrack.rotation.set(.3,.3,.1);
+  const coreRings=[];
+  for(let i=0;i<4;i++){
+    const r=ring(coreGroup,0,0,0,5.8+i*.5,.09,i%2?cyan:gold,Math.PI/2+i*.4,i*.7);
+    coreRings.push(r);
+  }
+  animations.push((dt,time)=>{
+    coreGroup.rotation.y=time*.075;
+    coreGroup.position.y=7+Math.sin(time*.65)*.35;
+    for(let i=0;i<coreRings.length;i++){
+      coreRings[i].rotation.y=time*(i%2?.19:-.15)+i*.9;
+      coreRings[i].rotation.x=Math.PI/2+i*.4+Math.sin(time*.45+i)*.11;
+    }
+    if(state.awakened)coreGroup.scale.setScalar(1.08+Math.sin(time*1.5)*.07);
+  });
+  const rays=[];
+  for(let i=0;i<8;i++){
+    const angle=i*Math.PI/4;
+    const p=box(effects,Math.cos(angle)*7.5,7.7,-144+Math.sin(angle)*7.5,.07,12,.07,cyanDim);
+    rays.push(p);
+  }
+  terminal('core','古代中枢に接続する',0,-156.6,cyan,()=>{
+    if(state.awakened){msg('中枢応答：接続は維持されている。');return;}
+    if(!state.gateOpen){msg('接続に必要な封印解除が完了していない。','warning');return;}
+    state.awakened=true;updatePanel('core',amber);
+    msg('最深部到達。古代知性「NULL CHOIR」が目覚め、都市の真下で空を呼び始めた。','complete');
+  });
+  // Small suspended motes; available only in high quality.
+  for(let i=0;i<30;i++){
+    const chamber=i<12?'hub':i<22?'archive':'vault';
+    const base=chamber==='hub'?{x:0,z:-37.5,rx:14,rz:9,h:9}:chamber==='archive'?{x:0,z:-93,rx:17,rz:8,h:7}:{x:0,z:-144,rx:19,rz:14,h:12};
+    const x=base.x+(rand()*2-1)*base.rx,z=base.z+(rand()*2-1)*base.rz;
+    const y=1.5+rand()*base.h;
+    const p=sphere(effects,x,y,z,.09+rand()*.09,particleMat);
+    const phase=rand()*7;
+    animations.push((dt,time)=>{p.position.y=y+Math.sin(time*(.6+phase*.07)+phase)*.45;});
+  }
+  // Collapse stationary boxes into material-specific GPU instancing batches.
+  // Dynamic machines, player interactions and raycast collision walls remain independent.
+  function batchStaticBoxes(group){
+    const bins=new Map();
+    for(const mesh of [...group.children]){
+      if(!mesh.isMesh||mesh.geometry!==unitCube||occluders.includes(mesh))continue;
+      let items=bins.get(mesh.material);
+      if(!items){items=[];bins.set(mesh.material,items);}
+      mesh.updateMatrix();items.push({matrix:mesh.matrix.clone(),mesh});
+    }
+    for(const [material,items] of bins){
+      if(items.length<2)continue;
+      const instanced=new THREE.InstancedMesh(unitCube,material,items.length);
+      instanced.name='Static batch / '+items.length+' elements';
+      for(let i=0;i<items.length;i++){
+        instanced.setMatrixAt(i,items[i].matrix);
+        group.remove(items[i].mesh);
+      }
+      instanced.instanceMatrix.needsUpdate=true;
+      instanced.computeBoundingSphere();
+      group.add(instanced);
+    }
+  }
+  batchStaticBoxes(root);batchStaticBoxes(details);
+  // Quality policy changes only local geometry/FX, never renderer pixel ratios or scene settings.
+  function setQuality(mode='high'){
+    quality = mode==='low'?'low':'high';
+    details.visible=quality==='high';
+    effects.visible=quality==='high';
+    root.traverse(o=>{if(o.isMesh){o.frustumCulled=true;}});
+    return quality;
+  }
+  function isWalkable(x,z,radius=.40){
+    if(disposed)return false;
+    if(!areas.some(a=>x>=a.x1&&x<=a.x2&&z>=a.z1&&z<=a.z2))return false;
+    for(const b of wallColliders){
+      const px=Math.max(b.x1,Math.min(x,b.x2)),pz=Math.max(b.z1,Math.min(z,b.z2));
+      if((x-px)**2+(z-pz)**2<radius*radius) return false;
+    }
+    if(!state.gateOpen){const b=gateBarrier;const px=Math.max(b.x1,Math.min(x,b.x2)),pz=Math.max(b.z1,Math.min(z,b.z2));if((x-px)**2+(z-pz)**2<radius*radius)return false;}
+    for(const p of obstacles){if(Math.hypot(x-p.x,z-p.z)<p.r+radius)return false;}
+    return true;
+  }
+  function getNearestInteractable(position,maxDistance=3.15){
+    if(!position)return null;
+    let found=null,dist=maxDistance;
+    for(const a of interactables){
+      const d=Math.hypot(a.position.x-position.x,a.position.z-position.z);
+      if(d<Math.min(dist,a.range||maxDistance)){found=a;dist=d;}
+    }
+    return found?{id:found.id,title:found.title,distance:dist,position:found.position.clone()}:null;
+  }
+  function interact(position,maxDistance=3.15){
+    const next=getNearestInteractable(position,maxDistance);
+    if(!next)return {ok:false,reason:'操作可能な設備が近くにない'};
+    const item=interactables.find(a=>a.id===next.id);
+    item.run();
+    return {ok:true,id:item.id,state:{...state}};
+  }
+  function getObjective(){
+    if(state.awakened)return '探索完了：古代知性との接続に成功';
+    if(state.gateOpen)return '最深部へ進み、古代中枢に接続する';
+    if(state.cooling&&state.tuning===3&&state.archive)return 'アーカイブ奥の隔壁制御盤で最深部を解放する';
+    return '3系統の封印を解除：西の冷却 / 東の同調 / 南の記憶';
+  }
+  function update(dt=0,context={}) {
+    if(disposed)return;
+    dt=Math.max(0,Math.min(.05,Number(dt)||0));t+=dt;
+    for(const a of animations)a(dt,t,context);
+  }
+  function dispose(){
+    if(disposed)return;disposed=true;
+    const gs=new Set(),ms=new Set(),ts=new Set();
+    root.traverse(obj=>{
+      if(obj.geometry)gs.add(obj.geometry);
+      const list=Array.isArray(obj.material)?obj.material:[obj.material];
+      for(const m of list){if(!m)continue;ms.add(m);if(m.map)ts.add(m.map);}
+    });
+    gs.forEach(g=>g.dispose());ts.forEach(tx=>tx.dispose());ms.forEach(m=>m.dispose());
+    root.clear();occluders.length=0;wallColliders.length=0;interactables.length=0;
+  }
+  const api={
+    root, update, setQuality, dispose, isWalkable, interact, getNearestInteractable,
+    getObjective, getState:()=>({...state}), getSpawnPoint:()=>new THREE.Vector3(0,1.72,19),
+    getAreas:()=>areas.map(a=>({...a})), getOccluders:()=>occluders,
+    getQuality:()=>quality,
+    getNavigationMarkers:()=>[
+      {label:'中央ハブ',x:0,z:-37},
+      {label:'冷却研究区画',x:-62,z:-36},
+      {label:'量子研究区画',x:63,z:-36},
+      {label:'記憶アーカイブ',x:0,z:-93},
+      {label:'最深部',x:0,z:-146}
+    ]
+  };
+  setQuality(options.quality||'high');
+  return api;
+}
+
+
+const canvas=document.getElementById('game');
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x030910);scene.fog=new THREE.FogExp2(0x06121b,.012);
+const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance',alpha:false});
+renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.34;
+const camera=new THREE.PerspectiveCamera(74,innerWidth/innerHeight,.08,260);camera.rotation.order='YXZ';
+const ambient=new THREE.HemisphereLight(0x92d6ec,0x1b2029,1.85);scene.add(ambient);
+const sun=new THREE.DirectionalLight(0xb3dded,.94);sun.position.set(8,24,10);scene.add(sun);
+const lights=[
+  [0,8,-38,0x50b8db,45,1.8],[-65,6,-35,0x52d6dd,29,1.8],[65,6,-35,0x9978f5,29,1.65],
+  [0,7,-93,0x6e66cd,35,1.9],[0,12,-143,0x62aadb,47,2.2]
+].map(([x,y,z,color,distance,intensity])=>{const l=new THREE.PointLight(color,intensity,distance,2);l.position.set(x,y,z);scene.add(l);return l;});
+let started=false,ended=false,fps=true,quality='high',showMap=true,showMessageTimer=0;
+const player=new THREE.Vector3(0,1.72,19);
+let yaw=0,pitch=0,verticalVelocity=0,jumpHeight=0,sprintToggle=false;
+let keySet=new Set(),joy={x:0,y:0},leftPointer=null,lookPointer=null,lastLookX=0,lastLookY=0;
+const colliderRay=new THREE.Raycaster();const lookDir=new THREE.Vector3();let frame=0;
+const module=createAetherModule(THREE,{quality,onEvent:e=>{
+  toast(e.text,e.type);refreshHUD();
+  if(e.type==='complete'){
+    window.setTimeout(()=>{document.getElementById('endSecret').textContent=module.getState().secret?'機密記録：発見済み':'機密記録：未発見';document.getElementById('endScreen').style.display='grid';ended=true;},3500);
+  }
+}});
+scene.add(module.root);player.copy(module.getSpawnPoint());
+const avatar=new THREE.Group();scene.add(avatar);
+const suit=new THREE.MeshStandardMaterial({color:0x3e5967,metalness:.6,roughness:.43});
+const visor=new THREE.MeshStandardMaterial({color:0x6de8fa,emissive:0x2eebfa,emissiveIntensity:.8,metalness:.25,roughness:.23});
+function cube(parent,x,y,z,sx,sy,sz,mat){const mesh=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),mat);mesh.position.set(x,y,z);parent.add(mesh);return mesh;}
+cube(avatar,0,.94,0,.84,1.18,.42,suit);cube(avatar,0,1.76,0,.48,.48,.45,suit);cube(avatar,0,1.76,-.25,.42,.26,.06,visor);
+for(const sign of [-1,1]){cube(avatar,sign*.27,.28,0,.27,.55,.27,suit);cube(avatar,sign*.56,1.02,0,.25,.77,.26,suit);}
+const beacon=new THREE.Mesh(new THREE.TorusGeometry(.18,.045,5,20),visor);beacon.rotation.x=Math.PI/2;beacon.position.set(0,1.28,.25);avatar.add(beacon);
+function setQuality(next){quality=next==='low'?'low':'high';module.setQuality(quality);renderer.setPixelRatio(Math.min(devicePixelRatio||1,quality==='low'?1.1:1.7));renderer.setSize(innerWidth,innerHeight,false);lights.forEach((light,i)=>light.visible=quality==='high'||i===0||i===4);document.getElementById('qualityBtn').textContent=quality==='high'?'画質：高':'画質：軽量';}
+setQuality('high');
+function toast(txt,type='message'){
+  const e=document.getElementById('toast');e.textContent=txt;e.className='on '+(type==='warning'?'warning':type==='success'||type==='complete'?'success':'');
+  showMessageTimer=5.2;
+}
+function refreshHUD(){const s=module.getState();document.getElementById('objective').textContent='指令｜'+module.getObjective();document.getElementById('progress').textContent=`冷却 ${s.cooling?'✓':s.valveA?'1/2':'0/2'}  |  同調 ${s.tuning}/3  |  記憶 ${s.archive?'✓':'–'}  |  隔壁 ${s.gateOpen?'開':'閉'}`;}
+refreshHUD();
+function interact(){if(!started||ended)return;const result=module.interact(player);if(!result.ok)toast(result.reason,'warning');refreshHUD();}
+const mapCanvas=document.getElementById('minimap'),mapCtx=mapCanvas.getContext('2d');
+const rx=x=>(x+80)/160*mapCanvas.width, rz=z=>(27-z)/195*mapCanvas.height;
+function drawMap(){if(!showMap)return;
+  const ctx=mapCtx,w=mapCanvas.width,h=mapCanvas.height;ctx.clearRect(0,0,w,h);ctx.fillStyle='#07111d';ctx.fillRect(0,0,w,h);
+  for(const a of module.getAreas()){
+    ctx.fillStyle=a.id==='vault'?'#14293c':a.id.includes('Lab')?'#142d37':'#112433';
+    ctx.fillRect(rx(a.x1),rz(a.z2),rx(a.x2)-rx(a.x1),rz(a.z1)-rz(a.z2));
+    ctx.strokeStyle='#3f7b8c';ctx.lineWidth=1;ctx.strokeRect(rx(a.x1),rz(a.z2),rx(a.x2)-rx(a.x1),rz(a.z1)-rz(a.z2));
+  }
+  const state=module.getState();
+  for(const marker of [
+    {x:-61,z:-35,ok:state.cooling},{x:62,z:-35,ok:state.tuning===3},
+    {x:0,z:-93,ok:state.archive},{x:0,z:-157,ok:state.awakened}
+  ]){
+    ctx.fillStyle=marker.ok?'#e1c981':'#61c8dd';ctx.beginPath();ctx.arc(rx(marker.x),rz(marker.z),4,0,Math.PI*2);ctx.fill();
+  }
+  if(!state.gateOpen){ctx.strokeStyle='#ff7283';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(rx(-6),rz(-113));ctx.lineTo(rx(6),rz(-113));ctx.stroke();}
+  const x=rx(player.x),y=rz(player.z);ctx.save();ctx.translate(x,y);ctx.rotate(yaw);
+  ctx.fillStyle='#ffffff';ctx.strokeStyle='#52e3e6';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,10);ctx.lineTo(-6,-7);ctx.lineTo(6,-7);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+  document.getElementById('coords').textContent=`${Math.round(player.x)} / ${Math.round(player.z)}`;
+}
+function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight,false);}
+addEventListener('resize',resize,{passive:true});
+function jump(){if(jumpHeight<=0.005){verticalVelocity=7.5;jumpHeight=.005;}}
+function toggleFPS(){fps=!fps;document.getElementById('cameraBtn').textContent=fps?'視点：FPS':'視点：TPS';}
+document.getElementById('cameraBtn').addEventListener('click',toggleFPS);
+document.getElementById('qualityBtn').addEventListener('click',()=>setQuality(quality==='high'?'low':'high'));
+document.getElementById('mapBtn').addEventListener('click',()=>{showMap=!showMap;document.getElementById('miniPanel').style.display=showMap?'block':'none';document.getElementById('mapBtn').textContent=showMap?'地図：表示':'地図：非表示';});
+document.getElementById('startBtn').addEventListener('click',()=>{started=true;document.getElementById('startScreen').style.display='none';toast('中央ハブ：左は冷却研究区、右は量子研究区、奥は記憶アーカイブ。');});
+document.getElementById('restartBtn').addEventListener('click',()=>{ended=false;document.getElementById('endScreen').style.display='none';toast('最深部に接続完了。引き続き探索できる。','success');});
+addEventListener('keydown',e=>{if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();keySet.add(e.code);if(!e.repeat){if(e.code==='KeyE')interact();if(e.code==='KeyV')toggleFPS();if(e.code==='Space'&&started)jump();if(e.code==='KeyM')document.getElementById('mapBtn').click();if(e.code==='KeyQ')document.getElementById('qualityBtn').click();}});
+addEventListener('keyup',e=>keySet.delete(e.code));addEventListener('blur',()=>{keySet.clear();joy={x:0,y:0};leftPointer=null;lookPointer=null;});
+canvas.addEventListener('click',()=>{if(started&&matchMedia('(pointer:fine)').matches&&!document.pointerLockElement){try{const promise=canvas.requestPointerLock?.();if(promise?.catch)promise.catch(()=>{});}catch(e){}}});
+canvas.addEventListener('pointerdown',e=>{if(!started||ended||e.pointerType==='mouse'&&document.pointerLockElement)return;if(e.pointerType==='touch'&&e.clientX<innerWidth*.33)return;lookPointer=e.pointerId;lastLookX=e.clientX;lastLookY=e.clientY;canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointermove',e=>{if(!started||ended)return;
+  if(document.pointerLockElement===canvas){yaw-=e.movementX*.00215;pitch=Math.max(-1.36,Math.min(1.36,pitch-e.movementY*.00215));return;}
+  if(lookPointer!==e.pointerId)return;
+  yaw-=(e.clientX-lastLookX)*.0041;pitch=Math.max(-1.36,Math.min(1.36,pitch-(e.clientY-lastLookY)*.0041));lastLookX=e.clientX;lastLookY=e.clientY;
+});
+function releaseLook(e){if(lookPointer===e.pointerId)lookPointer=null;}
+canvas.addEventListener('pointerup',releaseLook);canvas.addEventListener('pointercancel',releaseLook);
+const joystick=document.getElementById('joystick'),nub=document.getElementById('joyNub');
+function joyMove(e){if(e.pointerId!==leftPointer)return;const b=joystick.getBoundingClientRect();let dx=e.clientX-(b.left+b.width/2),dy=e.clientY-(b.top+b.height/2);const mag=Math.hypot(dx,dy);if(mag>43){dx=dx/mag*43;dy=dy/mag*43;}joy.x=dx/43;joy.y=dy/43;nub.style.transform=`translate(${dx}px, ${dy}px)`;}
+joystick.addEventListener('pointerdown',e=>{leftPointer=e.pointerId;joystick.setPointerCapture(e.pointerId);joyMove(e);});joystick.addEventListener('pointermove',joyMove);
+function joyRelease(e){if(leftPointer!==e.pointerId)return;leftPointer=null;joy={x:0,y:0};nub.style.transform='translate(0,0)';}
+joystick.addEventListener('pointerup',joyRelease);joystick.addEventListener('pointercancel',joyRelease);
+document.getElementById('act').addEventListener('pointerdown',e=>{e.preventDefault();interact();});
+document.getElementById('jump').addEventListener('pointerdown',e=>{e.preventDefault();if(started)jump();});
+document.getElementById('dash').addEventListener('pointerdown',e=>{e.preventDefault();sprintToggle=!sprintToggle;document.getElementById('dash').style.borderColor=sprintToggle?'#ffc981':'#69e5ef';document.getElementById('dash').textContent=sprintToggle?'走行中':'走る';});
+let previous=performance.now(),fpsT=0,fpsCounter=0;
+function tick(time){requestAnimationFrame(tick);const dt=Math.min(.05,Math.max(0,(time-previous)/1000));previous=time;
+  if(started&&!ended){
+    let side=(keySet.has('KeyD')||keySet.has('ArrowRight')?1:0)-(keySet.has('KeyA')||keySet.has('ArrowLeft')?1:0)+joy.x;
+    let forward=(keySet.has('KeyW')||keySet.has('ArrowUp')?1:0)-(keySet.has('KeyS')||keySet.has('ArrowDown')?1:0)-joy.y;
+    const length=Math.hypot(side,forward);if(length>1){side/=length;forward/=length;}
+    const speed=keySet.has('ShiftLeft')||keySet.has('ShiftRight')||sprintToggle?13.2:8.2;
+    const dx=(Math.cos(yaw)*side-Math.sin(yaw)*forward)*speed*dt;
+    const dz=(-Math.sin(yaw)*side-Math.cos(yaw)*forward)*speed*dt;
+    const steps=Math.max(1,Math.ceil(Math.hypot(dx,dz)/.19));
+    for(let i=0;i<steps;i++){
+      if(module.isWalkable(player.x+dx/steps,player.z,.43))player.x+=dx/steps;
+      if(module.isWalkable(player.x,player.z+dz/steps,.43))player.z+=dz/steps;
+    }
+    verticalVelocity-=19*dt;jumpHeight+=verticalVelocity*dt;
+    if(jumpHeight<0){jumpHeight=0;verticalVelocity=0;}
+    module.update(dt,{playerPosition:player,quality});
+    const near=module.getNearestInteractable(player);
+    const prompt=document.getElementById('prompt');prompt.classList.toggle('show',!!near);
+    if(near)prompt.textContent=near.title+(matchMedia('(pointer:coarse)').matches?'  [右の操作ボタン]':'  [ E ]');
+    showMessageTimer-=dt;if(showMessageTimer<=0)document.getElementById('toast').className='';
+  }
+  const bob=started&&!ended?Math.sin(time*.013)*.022:0;
+  const eye=new THREE.Vector3(player.x,player.y+jumpHeight+bob,player.z);
+  const cp=Math.cos(pitch);lookDir.set(-Math.sin(yaw)*cp,Math.sin(pitch),-Math.cos(yaw)*cp);
+  avatar.position.set(player.x,jumpHeight,player.z);avatar.rotation.y=yaw;avatar.visible=!fps;
+  if(fps){camera.position.copy(eye);camera.rotation.y=yaw;camera.rotation.x=pitch;}
+  else{
+    const desired=eye.clone().addScaledVector(lookDir,-5.1).add(new THREE.Vector3(0,1.3,0));
+    const delta=desired.clone().sub(eye);const distance=delta.length();delta.normalize();
+    colliderRay.set(eye,delta);colliderRay.far=distance;
+    const hits=colliderRay.intersectObjects(module.getOccluders(),false);
+    if(hits.length){const allowed=Math.max(.38,hits[0].distance-.3);desired.copy(eye).addScaledVector(delta,allowed);}
+    camera.position.copy(desired);
+    camera.lookAt(eye.clone().addScaledVector(lookDir,5));
+  }
+  frame++;if(frame%7===0)drawMap();
+  fpsT+=dt;fpsCounter++;
+  renderer.render(scene,camera);
+}
+requestAnimationFrame(tick);
+window.__AF_NO05_TEST__={getModule:()=>module,getPlayer:()=>player,setPlayer:(x,z)=>{player.x=x;player.z=z;},getStarted:()=>started,getQuality:()=>quality};
+</script>
+</body>
+</html>

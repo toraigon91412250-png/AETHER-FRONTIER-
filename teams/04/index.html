@@ -1,0 +1,63 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><title>AF04 | ASTRAEUM 星環神殿</title><style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif}*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#080f1a;touch-action:none}canvas{display:block;touch-action:none}
+#hud{position:absolute;inset:0;pointer-events:none;color:#d9f5ff}#top{position:absolute;left:16px;top:12px;background:#06121bba;border:1px solid #70b8cf55;border-radius:12px;padding:11px 14px;max-width:min(420px,calc(100% - 32px));font-size:12px;line-height:1.65;backdrop-filter:blur(8px)}#top b{font-size:16px;letter-spacing:.12em;color:#bceeff}#hint{position:absolute;left:50%;bottom:112px;transform:translateX(-50%);text-align:center;background:#05121bdc;border:1px solid #4fc8de70;border-radius:10px;padding:9px 16px;white-space:nowrap;max-width:92vw;font-size:13px}#reticle{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#a7edfa88;font-size:20px}#status{position:absolute;left:50%;top:23%;transform:translateX(-50%);padding:10px 17px;border-radius:9px;background:#061a28dd;color:#9befff;font-weight:700;opacity:0;transition:opacity .3s;text-align:center;max-width:90vw}#status.show{opacity:1}
+#panel{position:absolute;top:12px;right:12px;display:flex;gap:7px;pointer-events:auto}button{font:inherit;color:#d9f7ff;background:#112b3de8;border:1px solid #4b9cb1;border-radius:9px;padding:9px 11px;cursor:pointer}button:active{background:#22718c}#touch{display:none;position:absolute;inset:0;pointer-events:none}#stickZone{position:absolute;bottom:18px;left:14px;width:155px;height:155px;pointer-events:auto;touch-action:none}#stickBase{position:absolute;left:22px;top:23px;width:110px;height:110px;border:2px solid #83d9ef55;border-radius:50%;background:#0b263e66}#stickKnob{position:absolute;left:57px;top:58px;width:40px;height:40px;border-radius:50%;background:#8bdbef88;border:1px solid #e3fcff}#actions{position:absolute;right:14px;bottom:25px;display:grid;grid-template-columns:repeat(2,70px);gap:9px;pointer-events:auto}#actions button{width:70px;height:64px;background:#13384ebc;font-weight:700}#help{position:absolute;left:15px;bottom:12px;background:#06141bac;padding:7px 10px;border-radius:7px;font-size:11px;color:#b0d4e4}
+@media(pointer:coarse){#touch{display:block}#help{display:none}#top{font-size:11px;max-width:calc(100% - 124px);padding:8px 10px}#top b{font-size:12px}#panel{top:8px;right:8px;flex-direction:column}#panel button{font-size:11px;padding:7px}#hint{bottom:189px;font-size:12px;white-space:normal}#reticle{font-size:16px}}@media(max-height:550px){#top{padding:5px 9px;line-height:1.3}#hint{bottom:100px}#stickZone{bottom:0}#actions{bottom:10px}}
+</style></head><body><div id="hud"><div id="top"><b>ASTRAEUM / 星環神殿</b><div>三つの星印を起動し、地下に眠る記録へ。</div><div id="seals">封印　西 ◇　東 ◇　中央 ◇　｜　深層：封鎖</div></div><div id="panel"><button id="quality">画質 HIGH</button><button id="view">視点 TPS</button><button id="reset">最初へ</button></div><div id="reticle">＋</div><div id="status"></div><div id="hint">神殿の入口へ進もう</div><div id="touch"><div id="stickZone"><div id="stickBase"></div><div id="stickKnob"></div></div><div id="actions"><button id="jump">ジャンプ</button><button id="use">調べる</button><button id="run">走る</button><button id="mobileView">視点</button></div></div><div id="help">WASD 移動 / Shift 走る / Space ジャンプ / E 調べる / V 視点 / ドラッグ 見回す / 画面クリックでマウス固定</div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script><script src="./aether-temple.js"></script><script>
+(()=>{'use strict';
+const status=document.getElementById('status'), hint=document.getElementById('hint'), seals=document.getElementById('seals');
+const mobile=matchMedia('(pointer:coarse)').matches;
+if(!window.THREE||!window.createAetherModule){hint.textContent='読み込みエラー：Three.js CDNとの接続を確認してね';return;}
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x081321);scene.fog=new THREE.FogExp2(0x081321,.009);
+const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.08,280);
+const renderer=new THREE.WebGLRenderer({antialias:!mobile,powerPreference:'high-performance'});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,mobile?1.55:2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.24;document.body.prepend(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0x8ac6ec,0x14222c,2.5));const sun=new THREE.DirectionalLight(0xffdfad,3);sun.position.set(-26,55,40);scene.add(sun);const accent=new THREE.PointLight(0x45cde9,32,38,2);accent.position.set(0,15,-14);scene.add(accent);const accent2=new THREE.PointLight(0x5ad6ff,19,32,2);accent2.position.set(0,2,-85);scene.add(accent2);
+let toastTimer=0;
+function announce(t){status.textContent=t;status.classList.add('show');toastTimer=3.6;}
+const temple=createAetherModule(THREE,{quality:mobile?'low':'high',onEvent(e){if(e.type==='gateUnlocked')announce('三つの星印が共鳴した。奥の封印が開く！');else if(e.type==='archiveRead')announce('古代記録：空は、大地が忘れたものを覚えている。');}});scene.add(temple.root);
+let pos=temple.getSpawnPoint();pos.y=temple.getFloorHeight(pos.x,pos.z)+1.72;
+let yaw=0,pitch=-.03,velY=0, grounded=true,third=true,quality=mobile?'low':'high';
+const keys={},stick={x:0,y:0}, touches=new Map();let runTouch=false,doJump=false,doUse=false;
+const onKey=(e,down)=>{if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();keys[e.code]=down;if(down&&!e.repeat){if(e.code==='KeyV')toggleView();if(e.code==='KeyE')doUse=true;if(e.code==='Space')doJump=true;}};
+window.addEventListener('keydown',e=>onKey(e,true));window.addEventListener('keyup',e=>onKey(e,false));window.addEventListener('blur',()=>{for(const k in keys)keys[k]=false;stick.x=stick.y=0;});
+function toggleView(){third=!third;document.getElementById('view').textContent='視点 '+(third?'TPS':'FPS');}
+function toggleQuality(){quality=quality==='high'?'low':'high';temple.setQuality(quality);renderer.setPixelRatio(Math.min(devicePixelRatio,quality==='low'?1.15:(mobile?1.55:2)));document.getElementById('quality').textContent='画質 '+quality.toUpperCase();}
+document.getElementById('quality').textContent='画質 '+quality.toUpperCase();
+document.getElementById('quality').onclick=toggleQuality;document.getElementById('view').onclick=toggleView;document.getElementById('mobileView').onclick=toggleView;
+document.getElementById('reset').onclick=()=>{pos.copy(temple.getSpawnPoint());pos.y=temple.getFloorHeight(pos.x,pos.z)+1.72;velY=0;yaw=0;pitch=0;announce('入口に戻った（封印状態は保持）');};
+document.getElementById('jump').onpointerdown=e=>{e.preventDefault();doJump=true;};document.getElementById('use').onpointerdown=e=>{e.preventDefault();doUse=true;};document.getElementById('run').onpointerdown=e=>{e.preventDefault();runTouch=!runTouch;document.getElementById('run').style.borderColor=runTouch?'#ffe39a':'#4b9cb1';};
+const stickZone=document.getElementById('stickZone'),knob=document.getElementById('stickKnob');let stickId=null;
+function updateStick(e){const r=stickZone.getBoundingClientRect(),xx=e.clientX-r.left-77,yy=e.clientY-r.top-78,mag=Math.max(1,Math.hypot(xx,yy));stick.x=xx/mag*Math.min(1,mag/48);stick.y=yy/mag*Math.min(1,mag/48);knob.style.transform=`translate(${stick.x*37}px,${stick.y*37}px)`;}
+stickZone.addEventListener('pointerdown',e=>{e.preventDefault();stickId=e.pointerId;stickZone.setPointerCapture(e.pointerId);updateStick(e);});stickZone.addEventListener('pointermove',e=>{if(e.pointerId===stickId)updateStick(e);});function stopStick(e){if(e.pointerId===stickId){stickId=null;stick.x=stick.y=0;knob.style.transform='';}}stickZone.addEventListener('pointerup',stopStick);stickZone.addEventListener('pointercancel',stopStick);
+let dragging=false,lastX=0,lastY=0,lookTouch=null;
+renderer.domElement.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&document.pointerLockElement!==renderer.domElement){renderer.domElement.requestPointerLock?.();}dragging=true;lastX=e.clientX;lastY=e.clientY;lookTouch=e.pointerId;});
+window.addEventListener('pointerup',e=>{if(e.pointerId===lookTouch)dragging=false;});
+window.addEventListener('pointermove',e=>{if(document.pointerLockElement===renderer.domElement||dragging&&e.pointerId===lookTouch){const dx=document.pointerLockElement===renderer.domElement?e.movementX:e.clientX-lastX,dy=document.pointerLockElement===renderer.domElement?e.movementY:e.clientY-lastY;yaw-=dx*.0034;pitch=Math.max(-1.2,Math.min(1.08,pitch-dy*.003));lastX=e.clientX;lastY=e.clientY;}});
+// Lightweight expedition avatar, only rendered in TPS.
+const avatar=new THREE.Group();scene.add(avatar);function avBox(w,h,d,y,mat){let a=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);a.position.y=y;avatar.add(a);return a;}
+const armor=new THREE.MeshStandardMaterial({color:0x273f55,metalness:.65,roughness:.38}),trim=new THREE.MeshStandardMaterial({color:0xa2e8ff,emissive:0x287f9a,emissiveIntensity:1.25});avBox(.63,.84,.33,1.05,armor);avBox(.38,.32,.36,1.65,trim);avBox(.7,.12,.37,1.45,trim);avBox(.29,.7,.3,.38,armor).position.x=-.19;avBox(.29,.7,.3,.38,armor).position.x=.19;const beacon=new THREE.PointLight(0x5de0fe,1.4,6);avatar.add(beacon);beacon.position.y=1.3;
+const clock=new THREE.Clock();let prev=performance.now();function frame(){requestAnimationFrame(frame);const dt=Math.min(.045,clock.getDelta());
+ let f=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)-stick.y;
+ let r=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+stick.x;
+ let norm=Math.hypot(f,r);if(norm>1){f/=norm;r/=norm;}let speed=(keys.ShiftLeft||keys.ShiftRight||runTouch)?8.5:5.2;
+ let dx=(Math.sin(yaw)*f+Math.cos(yaw)*r)*speed*dt,dz=(-Math.cos(yaw)*f+Math.sin(yaw)*r)*speed*dt;
+ const floorNow=temple.getFloorHeight(pos.x,pos.z),foot=pos.y-1.72;
+ function moveAxis(axis,delta){if(!delta)return;let x=pos.x+(axis==='x'?delta:0),z=pos.z+(axis==='z'?delta:0),floor=temple.getFloorHeight(x,z);
+  if(!temple.isBlocked(x,z,foot,.36)&&floor<=foot+.65){pos[axis]+=delta;}}
+ moveAxis('x',dx);moveAxis('z',dz);
+ if((keys.Space||doJump)&&grounded){velY=6.8;grounded=false;}doJump=false;velY-=17.5*dt;
+ pos.y+=velY*dt;let floor=temple.getFloorHeight(pos.x,pos.z)+1.72;if(pos.y<=floor){pos.y=floor;velY=0;grounded=true;}
+ const eye=new THREE.Vector3(pos.x,pos.y+.02,pos.z);const look=new THREE.Vector3(Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch));
+ if(third){const desired=eye.clone().addScaledVector(look,-5.8).add(new THREE.Vector3(0,2.05,0));camera.position.lerp(desired,Math.min(1,dt*9));camera.lookAt(eye.clone().addScaledVector(look,10));}else{camera.position.copy(eye);camera.lookAt(eye.clone().add(look));}
+ avatar.visible=third;avatar.position.set(pos.x,pos.y-1.72,pos.z);avatar.rotation.y=yaw;
+ if(doUse){let result=temple.interact(pos);if(result.ok)announce(result.message);else announce('近くに操作できる装置がない');doUse=false;}
+ temple.update(dt,{playerPosition:pos});
+ const near=temple.nearest(pos);hint.textContent=near?`${mobile?'調べる':'E'}：${near.label}`:(pos.z>-29?'西・東の祭室と中央の星核を探そう':temple.getState().gate?'最深部の星霊記録を探そう':'三つの星印で奥の封印を解こう');
+ const s=temple.getState();seals.textContent=`封印　西 ${s.west?'◆':'◇'}　東 ${s.east?'◆':'◇'}　中央 ${s.heart?'◆':'◇'}　｜　深層：${s.gate?'解放':'封鎖'}`;
+ if(toastTimer>0){toastTimer-=dt;if(toastTimer<=0)status.classList.remove('show');}
+ renderer.render(scene,camera);
+}frame();
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+})();
+</script></body></html>

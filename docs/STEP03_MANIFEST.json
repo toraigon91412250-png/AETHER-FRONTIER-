@@ -1,0 +1,142 @@
+[
+  {
+    "id": "01",
+    "source_zip": "AETHER_01_source_v1.0(1).zip",
+    "source_zip_sha256": "579f696591490cc431018cbc07b8a012e467d211df33b0abca8c703918d39c18",
+    "file_count": 8,
+    "bytes": 130891
+  },
+  {
+    "id": "02",
+    "source_zip": "AETHER_FRONTIER_No02_LUMEN_QUARTER_v1.0.0(1).zip",
+    "source_zip_sha256": "47ecf15d09b686441d9ab36558942bb39cfd79e46cc6595a20222e37520adb26",
+    "file_count": 4,
+    "bytes": 118014
+  },
+  {
+    "id": "03",
+    "source_zip": "AETHER_FRONTIER_No03_Skyward_Archipelago_v1.0.0-source(1).zip",
+    "source_zip_sha256": "5ff8c5ddb844fdd8e57fb7d33fade2df5564335f02de51fe99733a93d8e398e0",
+    "file_count": 7,
+    "bytes": 149720
+  },
+  {
+    "id": "04",
+    "source_zip": "AETHER_FRONTIER_No04_ASTRAEUM_Source(1).zip",
+    "source_zip_sha256": "0dca563522a21126309e8cfa9d3282fcd969d19f601927e7b1d527a3513d2018",
+    "file_count": 4,
+    "bytes": 62789
+  },
+  {
+    "id": "05",
+    "source_zip": "AETHER_FRONTIER_No05_Integration(1).zip",
+    "source_zip_sha256": "0352cbe531000e5afb2154f7497f40719a844d809964416dc588aace8eb00abf",
+    "file_count": 5,
+    "bytes": 82219
+  },
+  {
+    "id": "06",
+    "source_zip": "AETHER_FRONTIER_No06_Source(1).zip",
+    "source_zip_sha256": "a2a222d00b2d82e1c8c617b2485d416f2de774698e464c6d548cf605f7a8aeb1",
+    "file_count": 6,
+    "bytes": 112662
+  },
+  {
+    "id": "07",
+    "source_zip": "AETHER_FRONTIER_No07_Starvein_Wilds_SOURCE(1).zip",
+    "source_zip_sha256": "6faed9730048af462dd27cff2e76031f3cf31b41f97ed8c79026d14184a8ec1c",
+    "file_count": 5,
+    "bytes": 133271
+  },
+  {
+    "id": "08",
+    "source_zip": "AETHER_FRONTIER_No08_LUMEN_KESTREL_Source_v1.0(1).zip",
+    "source_zip_sha256": "3eb481a22e2801a88dbb80b98cee7f2988fea5533a9542f45790955a88aeac4c",
+    "file_count": 7,
+    "bytes": 129645
+  },
+  {
+    "id": "09",
+    "source_zip": "AETHER_FRONTIER_No09_ARK_VESPER_SOURCE(1).zip",
+    "source_zip_sha256": "00ba1dfec9ce7f1f7e411589f59ac66f77a01e5b3a619305a28bd77a64e24121",
+    "file_count": 5,
+    "bytes": 136260
+  },
+  {
+    "id": "10",
+    "source_zip": "AETHER_FRONTIER_No10_Source(1).zip",
+    "source_zip_sha256": "2a50dd8f5c667dbbb87d47ac87669d9f31e629d1f7d3fe7b7715ba943e0d3315",
+    "file_count": 4,
+    "bytes": 73069
+  },
+  {
+    "id": "11",
+    "source_zip": "AETHER_FRONTIER_No11_SERAPH_11_SOURCE_v1.0.0(1).zip",
+    "source_zip_sha256": "a2ab73f5262922ceebd1334bb6bf1829ea31a4cbfa76f5b05d196cd9f24059b3",
+    "file_count": 15,
+    "bytes": 275632
+  },
+  {
+    "id": "12",
+    "source_zip": "AETHER_FRONTIER_No12_RiftHound_Source(1).zip",
+    "source_zip_sha256": "c0efdb2be37b767e0c9d0b7f0c88ab969bee94564948bb500e89bee198b2fba2",
+    "file_count": 8,
+    "bytes": 192699
+  },
+  {
+    "id": "13",
+    "source_zip": "AETHER_FRONTIER_No13_VHALKOR_SOURCE(1).zip",
+    "source_zip_sha256": "ebb81e4f5f277aba1bf46013f99a25a1829928d84e4369c21451547118718a04",
+    "file_count": 6,
+    "bytes": 83089
+  },
+  {
+    "id": "14",
+    "source_zip": "AETHER_FRONTIER_No14_VESTIGE_OMEGA_source(1).zip",
+    "source_zip_sha256": "710dfea0239fecd7626b468d5553f35cc44aa492f7fc0a91532f0338b78eae09",
+    "file_count": 3,
+    "bytes": 73708
+  },
+  {
+    "id": "15",
+    "source_zip": "AETHER_15_VESPER_PRISM_source_v1.0(1).zip",
+    "source_zip_sha256": "cb9f7a1e175b1da028dd97d9cf68a8d425decb009b356d18206fb398d51f69a3",
+    "file_count": 6,
+    "bytes": 100621
+  },
+  {
+    "id": "16",
+    "source_zip": "AETHER_FRONTIER_No16_Integration_v1.0(1).zip",
+    "source_zip_sha256": "39674a8b2e4dffa18c8aa7651db390f883770b7620fdd50072b8610d7e676699",
+    "file_count": 7,
+    "bytes": 141501
+  },
+  {
+    "id": "17",
+    "source_zip": "AETHER_No17_Source_v1.0(1).zip",
+    "source_zip_sha256": "14fff8bbf52236fd3aca34875b405b96cf43914fac7404b60e2b943879004255",
+    "file_count": 5,
+    "bytes": 89468
+  },
+  {
+    "id": "18",
+    "source_zip": "AETHER_FRONTIER_No18_ETHERWEAVE_v1_source(1).zip",
+    "source_zip_sha256": "cffde3d5f2c4f9ba8b69c648d8d139f9e65232272071b334f0e98f7b142f79fa",
+    "file_count": 4,
+    "bytes": 77092
+  },
+  {
+    "id": "19",
+    "source_zip": "AETHER_FRONTIER_No19_Integration(1).zip",
+    "source_zip_sha256": "1d8070773a6da7becdbe55916065e0c663c6a30794d3112c0d81e89d2c958f58",
+    "file_count": 9,
+    "bytes": 161396
+  },
+  {
+    "id": "20",
+    "source_zip": "AETHER_FRONTIER_No20_SOURCE_v1.0(1).zip",
+    "source_zip_sha256": "214d2912cd30cf642b555484416d03ebcd01c604774dcd0a66ed1a9785f0a415",
+    "file_count": 10,
+    "bytes": 214660
+  }
+]
