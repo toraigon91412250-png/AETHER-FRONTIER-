@@ -1,3 +1,4 @@
+import {addVehicles} from './vehicles.js';
 import {createExploration} from './exploration.js';
 import * as THREE from './vendor/three.module.js';
 import {createAetherModule as createCity} from './modules/city.js';
@@ -18,6 +19,7 @@ export const arenaSpawn = V(345,39,-413);
 
 export async function createWorld(scene) {
   const exploration=await createExploration(THREE,scene);
+  const vehicles=await addVehicles(THREE,scene,exploration);
   const city = createCity(THREE,{quality:'lite'});
   const district = createDistrict(THREE,{quality:'low',origin:{x:0,y:.1,z:-214}});
   const islands = createIslands(THREE,{quality:'lite',includeSky:false});
@@ -167,6 +169,6 @@ export async function createWorld(scene) {
     arenaGroup.visible=zone==='arena'||(flying&&x>140);
     scene.fog.density=high?.0021:.0031;
   }
-  return {exploration,city,district,islands,ship,drone,dragon,vault,sky,marker,markerMesh,zoneAt,ground,resolve,updateVisibility,
+  return {exploration,vehicles,city,district,islands,ship,drone,dragon,vault,sky,marker,markerMesh,zoneAt,ground,resolve,updateVisibility,
     dock,dockRelay,launchRelay,recoveryRelay,vaultExit,vaultReturn};
 }

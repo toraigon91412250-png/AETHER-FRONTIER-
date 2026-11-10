@@ -34,7 +34,7 @@ async function boot(renderer) {
   const camera=new THREE.PerspectiveCamera(66,1,.09,1450);
   scene.add(camera);
   const world=await createWorld(scene);
-  const {exploration}=world;
+  const {exploration,vehicles}=world;
   const {city,district,islands,ship,drone,dragon,vault}=world;
   const weapon=createWeapon(THREE,{quality:'low'});
   const avatar=new THREE.Group();
@@ -72,6 +72,7 @@ async function boot(renderer) {
     perf.registerClient(id,{setQuality:mode=>part.setQuality(mode==='lite'&&(id==='district'||id==='weapon')?'low':mode)});
   }
   for(const {module} of exploration.areas.values())perf.registerClient(module.id,module);
+  for(const module of [vehicles.robot,vehicles.rover])perf.registerClient(module.id,module);
   const progressKey='aether-frontier-work20-v1';
   const defaults=()=>({unlocked:false,beacons:[],vaultCleared:false,won:false});
   let progress=defaults();
@@ -88,7 +89,7 @@ async function boot(renderer) {
     try {localStorage.setItem(progressKey,JSON.stringify({...progress,vault:vault.getState(),wilds:exploration.areas.get('wilds').module.instance.getState()}));} catch {}
   }
 
-  let playing=false,started=false,flying=false,quality='lite',attackPressed=false;
+  let playing=false,started=false,flying=false,driving=false,quality='lite',attackPressed=false;
   let prevInput={},health=100,noticeUntil=0,damageUntil=0;
   let lastTime=0,time=0,walkPhase=0,fireCooldown=0,swing=0,hudTimer=0;
   let droneHP=100,bossHP=360,droneTimer=2,bossTimer=2,bossPhase='idle';
@@ -117,7 +118,7 @@ async function boot(renderer) {
   for(const {key,label} of exploration.areas.values())destination.add(new Option(label,key));
   travel.addEventListener('submit',event=>{
     event.preventDefault();
-    if(!playing||flying||player.root.position.distanceTo(exploration.hub)>5)return;
+    if(!playing||flying||driving||player.root.position.distanceTo(exploration.hub)>5)return;
     const area=exploration.areas.get(destination.value);
     if(!area)return;
     warp(area.spawn);travel.hidden=true;notify(area.label);
@@ -162,10 +163,10 @@ async function boot(renderer) {
     if(!mobileButtons)return;
     mobileButtons.hidden=!playing;
     mobileButtons.querySelector('.jump').textContent=flying?'上昇':'ジャンプ';
-    mobileButtons.querySelector('.dash').textContent=flying?'下降':'ダッシュ';
-    mobileButtons.querySelector('.sprint').textContent=flying?'加速':'走る';
-    mobileButtons.querySelector('.action').textContent=flying?'着陸':'調べる';
-    touchAttack.hidden=flying;
+    mobileButtons.querySelector('.dash').textContent=flying?'下降':driving?'ドリフト':'ダッシュ';
+    mobileButtons.querySelector('.sprint').textContent=flying||driving?'加速':'走る';
+    mobileButtons.querySelector('.action').textContent=flying?'着陸':driving?'降りる':'調べる';
+    touchAttack.hidden=flying||driving;
   }
   function pause() {
     playing=false;input.setEnabled(false);attackPressed=false;
@@ -216,7 +217,7 @@ async function boot(renderer) {
     const p=flight.position;
     const g=world.ground(p.x,p.z,p.y);
     const zone=world.zoneAt(p.x,p.z,p.y);
-    if(!Number.isFinite(g)||!['city','district','islands','temple','plant','wilds'].includes(zone)||p.y-g>8.5||p.y-g<.25)return false;
+    if(!Number.isFinite(g)||!['city','district','islands','temple','plant','wilds','carrier'].includes(zone)||p.y-g>8.5||p.y-g<.25)return false;
     if(zone==='city'&&(Math.hypot(p.x,p.z)<26||g>10))return false;
     if(zone==='district'&&g>2)return false;
     landPoint.set(p.x,g,p.z);
@@ -241,9 +242,15 @@ async function boot(renderer) {
     ship.root.position.copy(shipParking);
   }
   function currentAction(pos,zone) {
-    if(flying)return null;
+    if(flying||driving)return null;
     const near=(p,r=4.5)=>p.distanceToSquared(pos)<r*r;
     if(zone==='city'&&near(exploration.hub,5))return {label:'探索ゲートを開く',run:()=>{travel.hidden=!travel.hidden;}};
+    const vehicleAction=vehicles.action(pos,zone);
+    if(vehicleAction)return vehicleAction;
+    if(zone==='wilds'&&near(vehicles.rover.root.position,5))return {label:'RIFT HOUNDに乗る',run:()=>{
+      driving=true;player.setEnabled(false);player.root.visible=false;updateButtons();
+      notify('前後で加減速・左右で旋回。停止してE／降りる');
+    }};
     const area=exploration.areas.get(zone);
     if(area){
       if(near(area.spawn,4))return {label:'中央都市へ戻る',run:()=>{warp(exploration.hub);notify('中央都市');}};
@@ -325,7 +332,7 @@ async function boot(renderer) {
     return out.copy(drone.root.position);
   }
   function attack(zone,pos) {
-    if(fireCooldown>0||flying)return;
+    if(fireCooldown>0||flying||driving)return;
     fireCooldown=.37;swing=.32;weapon.playAction('slash');
     camera.getWorldDirection(direction);
     point.copy(pos).y+=1.35;
@@ -487,9 +494,10 @@ async function boot(renderer) {
     ui.enemy.hidden=!enemy;
     if(enemy){ui.enemyName.textContent=enemy==='boss'?'VHALKOR':'SERAPH-11 / 防衛機';ui.enemyHP.value=enemy==='boss'?bossHP/3.6:droneHP;}
     ui.health.value=health;
-    ui.flight.hidden=!flying;
+    ui.flight.hidden=!flying&&!driving;
+    if(driving)ui.flight.textContent=Math.round(Math.abs(vehicles.driver.state.speed)*3.6)+' km/h  ·  RIFT HOUND';
     if(flying)ui.flight.textContent=Math.round(flight.speed*3.6)+' km/h  ·  高度 '+Math.round(flight.position.y)+' m  ·  Tier '+flight.tier;
-    const hint=flying?(landingCandidate()?'着陸可能':'Space / Q  上昇・下降'):action?.label||'';
+    const hint=driving?'停止して降りる':flying?(landingCandidate()?'着陸可能':'Space / Q  上昇・下降'):action?.label||'';
     if(hint!==currentHint) {
       currentHint=hint;ui.prompt.hidden=!hint;
       ui.prompt.textContent=hint?(!touch&&action?'E  ·  ':'')+(touch&&hint.startsWith('Space')?'上昇・下降で高度調整':hint):'';
@@ -556,6 +564,24 @@ async function boot(renderer) {
       if(flying){
         pos=updateFlight(dt,controls);
         if(actionEdge){land();if(!flying)pos=player.root.position;}
+      } else if(driving){
+        pos=vehicles.drive(dt,controls);
+        const yaw=vehicles.driver.state.yaw;
+        const fps=player.getMode()==='fps';
+        flightEye.set(0,fps?1.6:3.5,fps?-.6:7).applyAxisAngle(THREE.Object3D.DEFAULT_UP,yaw).add(pos);
+        flightFocus.set(0,1,-10).applyAxisAngle(THREE.Object3D.DEFAULT_UP,yaw).add(pos);
+        camera.position.copy(flightEye);camera.lookAt(flightFocus);
+        weaponPivot.visible=false;
+        if(actionEdge){
+          if(Math.abs(vehicles.driver.state.speed)>2)notify('減速してから降りる');
+          else {
+            driving=false;player.setEnabled(true);player.root.visible=true;
+            point.copy(pos).add(V(2.6,0,0));
+            if(world.zoneAt(point.x,point.z,point.y)!=='wilds')point.copy(pos);
+            point.y=vehicles.height(point.x,point.z);
+            warp(point,-yaw);pos=player.root.position;updateButtons();
+          }
+        }
       } else {
         const state=player.update(dt,{...movement,input:{...controls,toggleView:false,action:false}});
         if(actionEdge)currentAction(pos,world.zoneAt(pos.x,pos.z,pos.y))?.run();
@@ -589,6 +615,7 @@ async function boot(renderer) {
     }
     if(!playing||flying||pos.distanceTo(exploration.hub)>5)travel.hidden=true;
     exploration.update(dt,pos,world.zoneAt(pos.x,pos.z,pos.y),quality);
+    vehicles.update(dt,world.zoneAt(pos.x,pos.z,pos.y),quality);
     world.sky.position.copy(camera.position);
     if(playing||!started)perf.update(raw);
     perf.beginFrame();
@@ -596,7 +623,7 @@ async function boot(renderer) {
     perf.endFrame();
   }
   // Read-only diagnostics for repeatable input and rendering checks in the browser.
-  window.aetherStatus=()=>({position:(flying?flight.position:player.root.position).toArray(),flying,zone:world.zoneAt(...[player.root.position.x,player.root.position.z,player.root.position.y]),view:player.getMode(),quality,
+  window.aetherStatus=()=>({position:(flying?flight.position:driving?vehicles.rover.root.position:player.root.position).toArray(),flying,driving,robot:vehicles.robot.instance.getState().form,view:player.getMode(),quality,
     ...progress,beacons:[...progress.beacons],vault:vault.getProgress(),health,bossHP,droneHP,metrics:perf.getMetrics()});
   if(progress.won){bossHP=0;dragon.setPhase('land');}
   setQuality('lite');

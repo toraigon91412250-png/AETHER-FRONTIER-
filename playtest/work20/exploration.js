@@ -35,7 +35,8 @@ export async function createExploration(THREE, scene) {
   beacon(hub,markers);
 
   function zoneAt(x,z,y) {
-    for (const [key,{module}] of areas) {
+    for (const [key,{module,contains}] of areas) {
+      if(contains?.(x,z,y))return key;
       const p=module.root.position;
       const dx=x-p.x,dz=z-p.z;
       if (key==='temple' && Math.abs(dx)<=49 && dz>=-97 && dz<=60) return key;
@@ -50,7 +51,7 @@ export async function createExploration(THREE, scene) {
     const before=zoneAt(previous.x,previous.z,previous.y);
     const area=areas.get(zoneAt(proposed.x,proposed.z,previous.y));
     if (!area && !areas.has(before)) return null;
-    if (!area || area.module.isBlockedWorld(proposed.x,proposed.z,previous.y,radius)) {
+    if (!area || (area.blocked||area.module.isBlockedWorld)(proposed.x,proposed.z,previous.y,radius)) {
       proposed.x=previous.x;
       proposed.z=previous.z;
     }
@@ -66,7 +67,7 @@ export async function createExploration(THREE, scene) {
     }
   }
 
-  return {areas,hub,zoneAt,resolve,update,dispose(){
+  return {areas,hub,beacon:position=>beacon(position,markers),zoneAt,resolve,update,dispose(){
     for (const {module} of areas.values()) {module.root.removeFromParent();module.dispose();}
     markers.removeFromParent();
     geometry.dispose();
