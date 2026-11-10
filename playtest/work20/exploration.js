@@ -60,10 +60,12 @@ export async function createExploration(THREE, scene) {
     return proposed;
   }
 
-  function update(dt,position,zone,quality) {
-    const range=quality==='high'?620:460;
+  function update(dt,position,zone,quality,flying) {
+    const range=quality==='high'?620:flying?460:190;
+    const indoors=zone==='lab'||zone==='vault';
     for (const {key,module,relay} of areas.values()) {
-      module.root.visible=key==='lab'?zone===key:zone===key||module.root.position.distanceToSquared(position)<range**2;
+      module.root.visible=zone===key||(!indoors&&key!=='lab'&&
+        module.root.position.distanceToSquared(position)<range**2);
       relay.visible=module.root.visible;
       if(module.root.visible)module.update(dt,{playerPosition:position,quality});
     }

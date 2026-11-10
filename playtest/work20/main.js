@@ -154,7 +154,10 @@ async function boot(renderer) {
   }
   function resize(){
     const w=innerWidth,h=innerHeight;
-    renderer.setSize(w,h,false);
+    // Keep lightweight mode's pixel budget bounded on large or high-DPI displays.
+    const liteDpr=Math.min(devicePixelRatio||1,1.35);
+    const scale=quality==='lite'?Math.min(1,Math.sqrt((1280*720)/(w*h*liteDpr**2))):1;
+    renderer.setSize(Math.max(1,Math.floor(w*scale)),Math.max(1,Math.floor(h*scale)),false);
     camera.aspect=w/h;camera.updateProjectionMatrix();
   }
   resize();
@@ -162,6 +165,7 @@ async function boot(renderer) {
   function setQuality(mode) {
     quality=mode;
     perf.setQuality(mode);
+    resize();
     ui.quality.textContent=mode==='lite'?'軽量':'高品質';
     camera.far=mode==='lite'?1000:1450;camera.updateProjectionMatrix();
     if(playing)notify(mode==='lite'?'軽量モード':'高品質モード',1.4);
@@ -662,7 +666,7 @@ async function boot(renderer) {
       if(!started){city.update(dt);ship.update(dt,{flight:{landing:true,speed:0,throttle:0}});dragon.root.visible=false;drone.root.visible=false;}
     }
     if(!playing||flying||pos.distanceTo(exploration.hub)>5)travel.hidden=true;
-    exploration.update(dt,pos,world.zoneAt(pos.x,pos.z,pos.y),quality);
+    exploration.update(dt,pos,world.zoneAt(pos.x,pos.z,pos.y),quality,flying);
     vehicles.update(dt,world.zoneAt(pos.x,pos.z,pos.y),quality);
     atmosphere.update(dt,camera,world.zoneAt(pos.x,pos.z,pos.y),quality,world.ambient,world.sun);
     if(playing||!started)perf.update(raw);
