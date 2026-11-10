@@ -30,7 +30,10 @@ export async function createExploration(THREE, scene) {
     if (key === 'wilds') spawn = module.toWorld({x:0,y:module.instance.surfaceHeight(0,23),z:23});
     spawn.y = module.sampleGroundWorld(spawn.x,spawn.z,spawn.y) ?? spawn.y;
     const relay = beacon(spawn,markers);
-    areas.set(key,{key,label,module,spawn,relay});
+    const bounds=key==='lab'?module.instance.getAreas():null;
+    const contains=bounds?(x,z,y)=>y<module.root.position.y+6&&bounds.some(b=>
+      x>=origin[0]+b.x1&&x<=origin[0]+b.x2&&z>=origin[2]+b.z1&&z<=origin[2]+b.z2):null;
+    areas.set(key,{key,label,module,spawn,relay,contains});
   }
   beacon(hub,markers);
 
@@ -40,7 +43,6 @@ export async function createExploration(THREE, scene) {
       const p=module.root.position;
       const dx=x-p.x,dz=z-p.z;
       if (key==='temple' && Math.abs(dx)<=49 && dz>=-97 && dz<=60) return key;
-      if (key==='lab' && Math.abs(dx)<=30 && Math.abs(dz)<=50 && y<p.y+6) return key;
       if (key==='plant' && Math.abs(dx)<=45 && Math.abs(dz)<=49) return key;
       if (key==='wilds' && Math.abs(dx)<=344 && Math.abs(dz)<=344) return key;
     }

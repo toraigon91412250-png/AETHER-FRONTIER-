@@ -130,6 +130,13 @@ async function boot(renderer) {
     if(!area)return;
     warp(area.spawn);travel.hidden=true;notify(area.label);
   });
+  const nav=document.getElementById('nav');
+  const waypoints=[null,...Array.from(exploration.areas.values()).filter(area=>area.key!=='lab')];
+  let waypointIndex=0;
+  nav.addEventListener('click',()=>{
+    waypointIndex=(waypointIndex+1)%waypoints.length;
+    nav.textContent=waypoints[waypointIndex]?.label??'航路';
+  });
   const missionNames=['飛行艇を起動する','浮遊島で共鳴碑を1基起動する','星環遺構を開く','VHALKORを撃破する','航路を確保した'];
   const mobileButtons=input.ui;
   let touchAttack=null;
@@ -475,7 +482,9 @@ async function boot(renderer) {
   function renderHUD(zone,pos,action) {
     const [chapter,primaryTarget]=currentMission(zone,pos);
     const area=exploration.areas.get(zone);
-    const target=area?null:primaryTarget;
+    const waypoint=flying?waypoints[waypointIndex]:null;
+    const target=waypoint?.spawn??(area?null:primaryTarget);
+    nav.hidden=!flying;
     ui.region.textContent=labels[zone];
     ui.chapter.textContent='0'+(chapter+1)+' / 05';
     const v=vault.getProgress();
@@ -484,7 +493,7 @@ async function boot(renderer) {
       zone==='temple'?'東西の星印と中央の星核を起動':
       zone==='plant'?'補助設備を3つ起動し、主制御盤へ':
       area?.module.instance.getObjective?.();
-    ui.objective.textContent=localObjective??(zone==='vault'&&!progress.vaultCleared
+    ui.objective.textContent=waypoint?'航路目標 · '+waypoint.label:localObjective??(zone==='vault'&&!progress.vaultCleared
       ?'星核と位相盤を揃える　'+v.aligned+'/'+v.total+'　'+(v.coreDocked?'星核接続済':v.coreHeld?'星核運搬中':'星核を回収')
       :missionNames[chapter]);
     if(flying&&target){
@@ -644,8 +653,13 @@ async function boot(renderer) {
     perf.endFrame();
   }
   // Read-only diagnostics for repeatable input and rendering checks in the browser.
-  window.aetherStatus=()=>({position:(flying?flight.position:driving?vehicles.rover.root.position:player.root.position).toArray(),flying,driving,robot:vehicles.robot.instance.getState().form,view:player.getMode(),quality,
-    ...progress,beacons:[...progress.beacons],vault:vault.getProgress(),health,bossHP,droneHP,metrics:perf.getMetrics()});
+  window.aetherStatus=()=>{
+    const position=flying?flight.position:driving?vehicles.rover.root.position:player.root.position;
+    return {position:position.toArray(),zone:world.zoneAt(position.x,position.z,position.y),
+      flying,driving,robot:vehicles.robot.instance.getState().form,view:player.getMode(),quality,
+      ...progress,beacons:[...progress.beacons],vault:vault.getProgress(),
+      weather:atmosphere.module.instance.getState().weather,health,bossHP,droneHP,metrics:perf.getMetrics()};
+  };
   if(progress.won){bossHP=0;dragon.setPhase('land');}
   setQuality('lite');
   addEventListener('pagehide',event=>{

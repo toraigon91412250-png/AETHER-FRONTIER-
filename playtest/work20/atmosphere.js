@@ -20,9 +20,7 @@ export async function createAtmosphere(THREE,scene,city) {
     skyline.add(mesh);
   }
   scene.add(skyline);
-  const weather=['clear','overcast','storm','mist'].filter(name=>module.instance.setWeather(name,0));
-  if(!weather.length)throw new Error('No.18 has no supported weather presets');
-  module.instance.setWeather(weather[0],0);
+  const weather=['clear','cloudy','rain','storm','mist'];
   let climate=0,elapsed=0;
   let detail=true;
   function update(dt,camera,zone,quality,ambient,sun) {
