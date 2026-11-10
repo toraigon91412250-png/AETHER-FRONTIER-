@@ -1,3 +1,4 @@
+import {createSword} from './sword.js';
 import * as THREE from './vendor/three.module.js';
 import {createWorld,V,cityStart,shipBerth,islandOffset,vaultOffset,arena,arenaSpawn} from './world.js';
 import {AetherFlightController} from './modules/flight.js';
@@ -34,7 +35,8 @@ async function boot(renderer) {
   const camera=new THREE.PerspectiveCamera(66,1,.09,1450);
   scene.add(camera);
   const world=await createWorld(scene);
-  const {exploration,vehicles}=world;
+  const {exploration,vehicles,encounters}=world;
+  const sword=createSword(THREE);
   const {city,district,islands,ship,drone,dragon,vault}=world;
   const weapon=createWeapon(THREE,{quality:'low'});
   const avatar=new THREE.Group();
@@ -59,7 +61,10 @@ async function boot(renderer) {
   });
   const arms=[-.35,.35].map(x=>{
     const joint=new THREE.Group();joint.position.set(x,1.39,0);avatar.add(joint);
-    piece([.16,.51,.18],[0,-.25,0],suit,joint);
+    piece([.16,.34,.18],[0,-.17,0],suit,joint);
+    const elbow=new THREE.Group();elbow.position.y=-.32;joint.add(elbow);
+    piece([.14,.32,.15],[0,-.16,0],suit,elbow);
+    joint.userData.elbow=elbow;
     piece([.17,.17,.23],[0,-.02,0],plate,joint);
     return joint;
   });
@@ -72,29 +77,31 @@ async function boot(renderer) {
     perf.registerClient(id,{setQuality:mode=>part.setQuality(mode==='lite'&&(id==='district'||id==='weapon')?'low':mode)});
   }
   for(const {module} of exploration.areas.values())perf.registerClient(module.id,module);
-  for(const module of [vehicles.robot,vehicles.rover])perf.registerClient(module.id,module);
+  for(const module of [vehicles.robot,vehicles.rover,...encounters.modules])perf.registerClient(module.id,module);
   const progressKey='aether-frontier-work20-v1';
-  const defaults=()=>({unlocked:false,beacons:[],vaultCleared:false,won:false});
+  const defaults=()=>({unlocked:false,beacons:[],vaultCleared:false,won:false,golem:false,aegis:false});
   let progress=defaults();
   try {
     const saved=JSON.parse(localStorage.getItem(progressKey));
     if(saved&&typeof saved==='object') {
-      progress={unlocked:saved.unlocked===true,beacons:Array.isArray(saved.beacons)?saved.beacons.filter(id=>islands.metadata.beaconIds.includes(id)):[],vaultCleared:saved.vaultCleared===true,won:saved.won===true};
+      progress={unlocked:saved.unlocked===true,beacons:Array.isArray(saved.beacons)?saved.beacons.filter(id=>islands.metadata.beaconIds.includes(id)):[],vaultCleared:saved.vaultCleared===true,won:saved.won===true,golem:saved.golem===true,aegis:saved.aegis===true};
       for(const id of progress.beacons)islands.activateBeacon(id);
       if(saved.vault)vault.setState(saved.vault);
       if(saved.wilds)exploration.areas.get('wilds').module.instance.loadState(saved.wilds);
     }
   } catch {}
+  encounters.restore(progress);
+  encounters.setHandlers({damage:hurt,report:notify,defeated(id){progress[id]=true;save();notify(id==='golem'?'VESTIGE-Ω 撃破':'AEGIS-IX 撃破',5);}});
   function save() {
     try {localStorage.setItem(progressKey,JSON.stringify({...progress,vault:vault.getState(),wilds:exploration.areas.get('wilds').module.instance.getState()}));} catch {}
   }
 
   let playing=false,started=false,flying=false,driving=false,quality='lite',attackPressed=false;
   let prevInput={},health=100,noticeUntil=0,damageUntil=0;
-  let lastTime=0,time=0,walkPhase=0,fireCooldown=0,swing=0,hudTimer=0;
+  let lastTime=0,time=0,walkPhase=0,hudTimer=0;
   let droneHP=100,bossHP=360,droneTimer=2,bossTimer=2,bossPhase='idle';
-  let breathHit=false,flightCameraReady=false;
-  const droneHome=V(-9,3.2,-171),bossHome=arena.clone().add(V(0,0,-4));
+  let bossFlinch=0,breathHit=false,flightCameraReady=false;
+  const droneHome=V(-9,2.15,-171),bossHome=arena.clone().add(V(0,0,-4));
   const shipParking=shipBerth.clone(),playerDirection=V(),flightFocus=V(),flightEye=V();
   const bossAim=V(),beamDirection=V(0,0,1),direction=V(),point=V(),scratch=V(),landPoint=V(),playerEye=V();
   const boltGeometry=new THREE.SphereGeometry(.21,8,5);
@@ -179,7 +186,7 @@ async function boot(renderer) {
   ui.start.addEventListener('click',()=>{
     playing=true;ui.cover.hidden=true;document.body.classList.add('playing');
     input.setEnabled(true);prevInput={};updateButtons();
-    if(!started){started=true;warp(cityStart,-.10);notify('金色のマーカーを目指して進もう',4);}
+    if(!started){started=true;warp(cityStart,-.10);notify('金色のマーカーで飛行艇解放。右手の探索ゲートで各地へ',5);}
   });
   ui.reset.addEventListener('click',()=>{
     try {localStorage.removeItem(progressKey);} catch {}
@@ -291,7 +298,7 @@ async function boot(renderer) {
     if(zone==='vault'){
       if(near(world.vaultExit,3))return {label:'機械竜の闘技場へ転移',run:()=>{
         if(!progress.vaultCleared){notify('星環転送門を起動しよう');return;}
-        health=100;warp(arenaSpawn);notify('VHALKOR出現。金色に光る胸部を狙え');
+        health=100;warp(arenaSpawn);notify('VHALKOR出現。ブレスの横から接近して剣で斬れ');
       }};
       if(near(world.vaultReturn,2.6))return {label:'艇庫へ戻る',run:returnToDock};
       camera.getWorldDirection(direction);
@@ -327,26 +334,33 @@ async function boot(renderer) {
     bolt.velocity.copy(dir).multiplyScalar(speed);
     bolt.life=1.55;bolt.hostile=hostile;bolt.enemy=enemy;bolts.push(bolt);
   }
-  function targetPoint(enemy,out) {
-    if(enemy==='boss')return dragon.anchors.core.getWorldPosition(out);
-    return out.copy(drone.root.position);
+  function attack(){
+    if(!flying&&!driving&&sword.start())weapon.playAction('slash');
   }
-  function attack(zone,pos) {
-    if(fireCooldown>0||flying||driving)return;
-    fireCooldown=.37;swing=.32;weapon.playAction('slash');
-    camera.getWorldDirection(direction);
-    point.copy(pos).y+=1.35;
-    const target=zone==='arena'&&bossHP>0?'boss':zone==='district'&&droneHP>0?'drone':null;
-    let locked=null;
-    if(target) {
-      targetPoint(target,scratch).sub(camera.position);
-      const range=scratch.length();
-      if(range<62&&scratch.normalize().dot(direction)>(touch?.78:.88)){
-        direction.copy(targetPoint(target,scratch).sub(point).normalize());
-        locked=target;
+  function slash(dt,zone,pos){
+    const active=encounters.active(pos,zone);
+    let target=null;
+    if(zone==='arena'&&bossHP>0){
+      target={position:scratch.set(bossHome.x,bossHome.y+1.65,bossHome.z),radius:4.2};
+    }else if(zone==='district'&&drone.root.visible&&droneHP>0){
+      target={position:drone.root.position,radius:1.55};
+    }else if(active)target=encounters.target(active);
+    sword.update(dt,pos,player.getState().yaw,target,amount=>{
+      if(active){
+        const hit=encounters.hit(active,amount);
+        if(progress[active])return;
+        notify(hit.accepted?'命中 '+Math.round(hit.damage)+(hit.weakness?'　弱点':''):'装甲が硬化中',1.2);
+      }else if(zone==='arena'){
+        const damage=bossPhase==='recover'?Math.round(amount*1.5):amount;
+        bossHP=Math.max(0,bossHP-damage);bossFlinch=.25;
+        if(!bossHP){progress.won=true;save();dragon.setPhase('land');notify('VHALKOR撃破。空環航路を確保した',8);}
+        else notify('VHALKOR 命中 '+damage+(bossPhase==='recover'?'　硬直中':''),
+          bossPhase==='charge'?.8:1.2);
+      }else{
+        droneHP=Math.max(0,droneHP-amount);
+        notify(droneHP?'防衛ドローン 命中 '+amount:'防衛ドローンを停止した',1.2);
       }
-    }
-    emitBolt(point,direction,65,false,locked);
+    },()=>{if(target)notify('空振り。近づいて正面から斬る',.8);});
   }
   function hurt(damage) {
     health=Math.max(0,health-damage);
@@ -358,19 +372,6 @@ async function boot(renderer) {
       b.mesh.position.addScaledVector(b.velocity,dt);
       if(b.hostile&&!flying&&b.mesh.position.distanceToSquared(scratch.copy(pos).add(playerEye.set(0,1,0)))<1.1){
         hurt(13);b.life=0;
-      } else if(!b.hostile) {
-        const target=b.enemy||(zone==='arena'?'boss':zone==='district'?'drone':null);
-        if(target&&b.mesh.position.distanceToSquared(targetPoint(target,scratch))<(target==='boss'?5.6:2.25)){
-          b.life=0;
-          if(target==='boss'&&bossHP>0){
-            bossHP=Math.max(0,bossHP-(bossPhase==='charge'?40:24));
-            if(!bossHP){progress.won=true;save();dragon.setPhase('land');notify('VHALKOR撃破。空環航路を確保した',8);}
-          }
-          if(target==='drone'&&droneHP>0){
-            droneHP=Math.max(0,droneHP-34);
-            if(!droneHP)notify('防衛ドローンを停止した');
-          }
-        }
       }
       if(b.life<=0){b.life=0;b.mesh.visible=false;bolts.splice(i,1);}
     }
@@ -383,7 +384,7 @@ async function boot(renderer) {
     const droneActive=zone==='district'&&droneHP>0&&pos.distanceToSquared(droneHome)<48*48;
     drone.root.visible=droneActive;
     if(droneActive) {
-      drone.root.position.copy(droneHome).add(point.set(Math.sin(time*.62)*5,Math.sin(time*1.35)*.6,Math.cos(time*.62)*4.3));
+      drone.root.position.copy(droneHome).add(point.set(Math.sin(time*.62)*5,Math.sin(time*1.35)*.38,Math.cos(time*.62)*4.3));
       drone.root.rotation.y=Math.atan2(drone.root.position.x-pos.x,drone.root.position.z-pos.z);
       drone.update(dt);
       if((droneTimer-=dt)<=0&&!flying){
@@ -400,7 +401,8 @@ async function boot(renderer) {
         bossTimer-=dt;
         if(bossTimer<=0){
           if(bossPhase==='charge'){bossPhase='breath';bossTimer=.9;breathHit=false;}
-          else if(bossPhase==='breath'){bossPhase='idle';bossTimer=2.25;}
+          else if(bossPhase==='breath'){bossPhase='recover';bossTimer=1.6;notify('ブレス後の硬直。懐を狙え',1.4);}
+          else if(bossPhase==='recover'){bossPhase='idle';bossTimer=1.1;}
           else {bossPhase='charge';bossTimer=1.38;notify('ブレス予告。光る帯から横へ離れろ',1.8);}
         }
         if(bossPhase==='idle'||(bossPhase==='charge'&&bossTimer>.64)){
@@ -419,8 +421,10 @@ async function boot(renderer) {
           const side=Math.abs(bossAim.x*beamDirection.z-bossAim.z*beamDirection.x);
           if(along>0&&along<49&&side<2.5){breathHit=true;hurt(34);}
         }
-        dragon.setPhase(bossPhase);
+        dragon.setPhase(bossPhase==='recover'?'idle':bossPhase);
       }
+      bossFlinch=Math.max(0,bossFlinch-dt);
+      dragon.root.rotation.z=Math.sin(bossFlinch*Math.PI/.25)*.055;
       dragon.update(dt);
     }
     updateBolts(dt,pos,zone);
@@ -490,9 +494,11 @@ async function boot(renderer) {
       world.markerMesh.position.y=2.4+Math.sin(time*2.2)*.35;
       world.markerMesh.rotation.y=time*.9;
     } else world.marker.visible=false;
-    const enemy=zone==='arena'&&bossHP>0?'boss':world.drone.root.visible?'drone':null;
+    const extra=encounters.active(pos,zone);
+    const enemy=zone==='arena'&&bossHP>0?'boss':world.drone.root.visible?'drone':extra;
     ui.enemy.hidden=!enemy;
-    if(enemy){ui.enemyName.textContent=enemy==='boss'?'VHALKOR':'SERAPH-11 / 防衛機';ui.enemyHP.value=enemy==='boss'?bossHP/3.6:droneHP;}
+    if(extra&&enemy===extra){const status=encounters.hud(extra);ui.enemyName.textContent=status.name;ui.enemyHP.value=status.ratio*100;}
+    else if(enemy){ui.enemyName.textContent=enemy==='boss'?'VHALKOR':'SERAPH-11 / 防衛機';ui.enemyHP.value=enemy==='boss'?bossHP/3.6:droneHP;}
     ui.health.value=health;
     ui.flight.hidden=!flying&&!driving;
     if(driving)ui.flight.textContent=Math.round(Math.abs(vehicles.driver.state.speed)*3.6)+' km/h  ·  RIFT HOUND';
@@ -506,7 +512,7 @@ async function boot(renderer) {
     ui.metrics.textContent=m.samples>1?Math.round(m.fps)+' FPS · '+m.p95Ms.toFixed(1)+' ms P95':'';
   }
   function resetEncounter(zone) {
-    clearBolts();health=100;
+    clearBolts();sword.reset();health=100;
     if(zone==='arena'){
       if(!progress.won)bossHP=360;
       bossTimer=2;bossPhase='idle';dragon.setPhase('idle');warp(arenaSpawn);
@@ -524,6 +530,7 @@ async function boot(renderer) {
     notify('耐久を回復し、チェックポイントに戻った');
   }
   const weaponPivot=new THREE.Group();
+  const elbow=arms[1].userData.elbow;
   camera.add(weaponPivot);weaponPivot.add(weapon.root);
   let lastWeaponMode='';
   function animatePlayer(dt,state) {
@@ -531,21 +538,25 @@ async function boot(renderer) {
     walkPhase+=dt*(state.sprinting?12:8);
     const stride=moving?Math.sin(walkPhase)*.48:0;
     legs[0].rotation.x=stride;legs[1].rotation.x=-stride;
-    arms[0].rotation.x=-stride*.52;arms[1].rotation.x=stride*.32;
+    arms[0].rotation.x=-stride*.52;
     const mode=player.getMode();
-    if(mode!==lastWeaponMode) {
+    if(mode!==lastWeaponMode){
       lastWeaponMode=mode;
-      (mode==='fps'?camera:avatar).add(weaponPivot);
-      weapon.root.scale.setScalar(mode==='fps'?.25:.43);
+      (mode==='fps'?camera:elbow).add(weaponPivot);
+      weapon.root.scale.setScalar(mode==='fps'?.29:.94);
+      weapon.root.position.z=-.57*weapon.root.scale.z;
     }
-    weaponPivot.visible=!flying;
-    swing=Math.max(0,swing-dt);
+    weaponPivot.visible=true;
+    const {yaw,pitch}=sword.pose;
     if(mode==='fps'){
-      weaponPivot.position.set(.46,-.37+(moving?Math.cos(walkPhase)*.019:0),-.59);
-      weaponPivot.rotation.set(-.26+swing*.7,-.35-swing*2.2,-.12);
-    } else {
-      weaponPivot.position.set(.50,.96,-.20);
-      weaponPivot.rotation.set(-.38+swing*1.9,-.31-swing*2,.22);
+      const bob=moving?Math.cos(walkPhase)*.019:0;
+      weaponPivot.position.set(.34+yaw*.21,-.42+pitch*.15+bob,-.66);
+      weaponPivot.rotation.set(-.35-pitch,.22-yaw*.76,-.21-yaw*.36,'YXZ');
+    }else{
+      arms[1].rotation.set(-1.2-pitch+stride*.10,-yaw,.12,'YXZ');
+      elbow.rotation.x=-.36-Math.abs(yaw)*.27;
+      weaponPivot.position.set(0,-.31,0);
+      weaponPivot.rotation.set(1.54-1.2-pitch+elbow.rotation.x,0,.08);
     }
     weapon.update(dt,{form:progress.beacons.length?'awakened':'sealed'});
   }
@@ -558,7 +569,6 @@ async function boot(renderer) {
     let pos=player.root.position;
     if(playing) {
       time+=dt;
-      fireCooldown=Math.max(0,fireCooldown-dt);
       const actionEdge=controls.action&&!prevInput.action;
       if(controls.toggleView&&!prevInput.toggleView)toggleView();
       if(flying){
@@ -590,8 +600,11 @@ async function boot(renderer) {
       prevInput=controls;
       let zone=world.zoneAt(pos.x,pos.z,pos.y);
       if(!flying&&zone!=='air')safeZone=zone;
-      if(attackPressed){attack(zone,pos);attackPressed=false;}
+      if(attackPressed){attack();attackPressed=false;}
+      if(!flying&&!driving)slash(dt,zone,pos);
+      else sword.reset();
       combat(dt,zone,pos);
+      encounters.update(dt,pos,zone,!flying&&!driving,quality);
       if(health<=0||(!flying&&pos.y< -9)){
         resetEncounter(safeZone);zone=world.zoneAt(pos.x,pos.z,pos.y);
       }
