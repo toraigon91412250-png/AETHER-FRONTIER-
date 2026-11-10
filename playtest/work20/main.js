@@ -135,7 +135,7 @@ async function boot(renderer) {
   let waypointIndex=0;
   nav.addEventListener('click',()=>{
     waypointIndex=(waypointIndex+1)%waypoints.length;
-    nav.textContent=waypoints[waypointIndex]?.label??'航路';
+    nav.setAttribute('aria-label','航路目標 '+(waypoints[waypointIndex]?.label??'任務'));
   });
   const missionNames=['飛行艇を起動する','浮遊島で共鳴碑を1基起動する','星環遺構を開く','VHALKORを撃破する','航路を確保した'];
   const mobileButtons=input.ui;
@@ -191,6 +191,9 @@ async function boot(renderer) {
   ui.help.addEventListener('click',pause);
   ui.start.disabled=false;ui.start.textContent='探索を開始';
   ui.start.addEventListener('click',()=>{
+    if(window.AudioContext){
+      try{audio??=new AudioContext();audio.resume().catch(()=>{});}catch{}
+    }
     playing=true;ui.cover.hidden=true;document.body.classList.add('playing');
     input.setEnabled(true);prevInput={};updateButtons();
     if(!started){started=true;warp(cityStart,-.10);notify('金色のマーカーで飛行艇解放。右手の探索ゲートで各地へ',5);}
@@ -341,8 +344,22 @@ async function boot(renderer) {
     bolt.velocity.copy(dir).multiplyScalar(speed);
     bolt.life=1.55;bolt.hostile=hostile;bolt.enemy=enemy;bolts.push(bolt);
   }
+  let audio;
+  function swordSound(hit){
+    if(!audio||audio.state!=='running')return;
+    const start=audio.currentTime;
+    const tone=audio.createOscillator(),volume=audio.createGain();
+    tone.type=hit?'triangle':'sine';
+    tone.frequency.setValueAtTime(hit?210:580,start);
+    tone.frequency.exponentialRampToValueAtTime(hit?72:185,start+.12);
+    volume.gain.setValueAtTime(hit?.08:.035,start);
+    volume.gain.exponentialRampToValueAtTime(.001,start+.14);
+    tone.connect(volume);volume.connect(audio.destination);
+    tone.start();tone.stop(start+.15);
+  }
   function attack(){
-    if(!flying&&!driving&&sword.start())weapon.playAction('slash');
+    if(flying||driving||!sword.start())return;
+    weapon.playAction('slash');swordSound(false);
   }
   function slash(dt,zone,pos){
     const active=encounters.active(pos,zone);
@@ -353,6 +370,7 @@ async function boot(renderer) {
       target={position:drone.root.position,radius:1.55};
     }else if(active)target=encounters.target(active);
     sword.update(dt,pos,player.getState().yaw,target,amount=>{
+      swordSound(true);
       if(active){
         const hit=encounters.hit(active,amount);
         if(progress[active])return;
@@ -670,6 +688,7 @@ async function boot(renderer) {
     perf.dispose();
     for(const part of [city,district,islands,ship,drone,dragon,vault,player,weapon])part.dispose();
     exploration.dispose();vehicles.dispose();encounters.dispose();atmosphere.dispose();
+    audio?.close().catch(()=>{});
     renderer.dispose();
   });
   return {frame};

@@ -18,7 +18,10 @@ export function createAetherInputAdapter(options={}) {
     const movementKeys=['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight',
       'ShiftLeft','ShiftRight','Space','KeyE','KeyQ','KeyF','KeyV','KeyC'];
     if (!movementKeys.includes(e.code)) return;
-    if (pressed) keys.add(e.code); else keys.delete(e.code);
+    if (pressed) {
+      keys.add(e.code);
+      if (!e.repeat && (e.code==='KeyE'||e.code==='KeyF')) tapEdges.add('action');
+    } else keys.delete(e.code);
     if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
   }
   on(window,'keydown',e=>keyboard(e,true));
