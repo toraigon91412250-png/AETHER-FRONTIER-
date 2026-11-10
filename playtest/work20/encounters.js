@@ -3,6 +3,7 @@ import {loadAetherCompat} from '../../integration/aether-compat.mjs';
 export async function createEncounters(THREE,scene,wilds) {
   let player, damage=()=>{}, report=()=>{}, defeated=()=>{};
   let golemHP=180, cooldown=1.5, next='slam';
+  let enemyCorpseTime=0;
   const aim=new THREE.Vector3(), impact=new THREE.Vector3();
   const spawn=wilds.spawn;
   const at=(dx,dz)=>{
@@ -25,7 +26,7 @@ export async function createEncounters(THREE,scene,wilds) {
       if(type==='playerHit')damage(raw.damage);
       if(type==='telegraph')report('AEGIS-IX '+raw.label+'。予兆範囲から離れろ');
       if(type==='phaseChanged')report('AEGIS-IX 第二形態');
-      if(type==='enemyDefeated')defeated('aegis');
+      if(type==='enemyDefeated'){enemyCorpseTime=1.8;defeated('aegis');}
     }}),
   ]);
   golem.root.position.copy(golemHome);
@@ -34,7 +35,7 @@ export async function createEncounters(THREE,scene,wilds) {
   function setHandlers(handlers){({damage,report,defeated}=handlers);}
   function restore(cleared) {
     if(cleared.golem){golemHP=0;golem.root.rotation.z=-1.2;}
-    if(cleared.aegis){enemy.instance.receiveHit({damage:9999});enemy.root.visible=false;}
+    if(cleared.aegis){enemy.instance.receiveHit({damage:9999});enemyCorpseTime=0;enemy.root.visible=false;}
   }
   function active(pos,zone) {
     if(zone!=='wilds')return null;
@@ -45,7 +46,8 @@ export async function createEncounters(THREE,scene,wilds) {
   function update(dt,pos,zone,onFoot,quality) {
     player=onFoot?pos:null;
     golem.root.visible=zone==='wilds'&&pos.distanceToSquared(golemHome)<140**2;
-    enemy.root.visible=zone==='wilds'&&pos.distanceToSquared(enemyHome)<140**2;
+    enemyCorpseTime=Math.max(0,enemyCorpseTime-dt);
+    enemy.root.visible=zone==='wilds'&&pos.distanceToSquared(enemyHome)<140**2&&(enemy.instance.isAlive||enemyCorpseTime>0);
     const selected=onFoot?active(pos,zone):null;
     if(golem.root.visible){
       if(selected==='golem'&&golem.instance.getStatus().action==='none'){
@@ -57,7 +59,7 @@ export async function createEncounters(THREE,scene,wilds) {
     if(enemy.root.visible){
       enemy.update(dt,{quality,player:selected==='aegis'?{position:pos}:undefined});
       const p=enemy.root.position;
-      if(p.distanceToSquared(enemyHome)>31**2)enemy.instance.reset({position:enemyHome});
+      if(enemy.instance.isAlive&&p.distanceToSquared(enemyHome)>31**2)enemy.instance.reset({position:enemyHome});
       p.y=wilds.module.sampleGroundWorld(p.x,p.z,p.y)??enemyHome.y;
     }
   }

@@ -98,6 +98,12 @@ const stage=process.argv[3]||'final';
   assert.ok(await p.evaluate(()=>qaWork20.world.encounters.hud('aegis').ratio>0));
  }
  if(stage==='final'){
+  // Browser regression: dragon portal zone remains arena after updates.
+  await warp([345,39,-413,0]);
+  assert.equal((await status()).zone,'arena','dragon portal exit');
+  assert.equal(await p.evaluate(()=>qaWork20.world.ground(345,-413,39)),39);
+  await p.waitForTimeout(200);
+  assert.equal((await status()).zone,'arena','arena persists after physics');
   await warp([0,.42,-111.5,0]);
   await tap('e');
   assert.equal((await status()).flying,true,'board flight craft with normal input');

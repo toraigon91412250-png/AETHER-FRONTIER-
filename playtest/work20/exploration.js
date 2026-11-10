@@ -1,4 +1,5 @@
 import {loadAetherCompat} from '../../integration/aether-compat.mjs';
+import {isArenaFootprint} from './region-guards.js';
 
 export async function createExploration(THREE, scene) {
   const vec = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -38,6 +39,8 @@ export async function createExploration(THREE, scene) {
   beacon(hub,markers);
 
   function zoneAt(x,z,y) {
+    // VHALKOR arena overlaps the northern wilderness boundary.
+    if(isArenaFootprint(x,z))return null;
     for (const [key,{module,contains}] of areas) {
       if(contains?.(x,z,y))return key;
       const p=module.root.position;
@@ -50,6 +53,8 @@ export async function createExploration(THREE, scene) {
   }
 
   function resolve(previous,proposed,radius) {
+    // Crossing wilderness into the original arena is not a blocked boundary.
+    if(isArenaFootprint(proposed.x,proposed.z))return null;
     const before=zoneAt(previous.x,previous.z,previous.y);
     const area=areas.get(zoneAt(proposed.x,proposed.z,previous.y));
     if (!area && !areas.has(before)) return null;

@@ -82,7 +82,8 @@ async function boot(renderer) {
   const defaults=()=>({unlocked:false,beacons:[],vaultCleared:false,won:false,golem:false,aegis:false});
   let progress=defaults();
   try {
-    const saved=JSON.parse(localStorage.getItem(progressKey));
+    // Prefer the new save, but import original-game progress when upgrading.
+    const saved=JSON.parse(localStorage.getItem(progressKey) ?? localStorage.getItem('aether-frontier-00-v01') ?? 'null');
     if(saved&&typeof saved==='object') {
       progress={unlocked:saved.unlocked===true,beacons:Array.isArray(saved.beacons)?saved.beacons.filter(id=>islands.metadata.beaconIds.includes(id)):[],vaultCleared:saved.vaultCleared===true,won:saved.won===true,golem:saved.golem===true,aegis:saved.aegis===true};
       for(const id of progress.beacons)islands.activateBeacon(id);
@@ -550,6 +551,12 @@ async function boot(renderer) {
     ui.metrics.textContent=m.samples>1?Math.round(m.fps)+' FPS · '+m.p95Ms.toFixed(1)+' ms P95':'';
   }
   function resetEncounter(zone) {
+    // Recover player input and camera ownership after vehicle/flying death.
+    if(flying||driving){
+      flying=false;driving=false;flightCameraReady=false;
+      player.setEnabled(true);player.root.visible=true;
+      updateButtons();
+    }
     clearBolts();sword.reset();health=100;
     if(zone==='arena'){
       if(!progress.won)bossHP=360;
@@ -645,7 +652,7 @@ async function boot(renderer) {
       combat(dt,zone,pos);
       encounters.update(dt,pos,zone,!flying&&!driving,quality);
       if(health<=0||(!flying&&pos.y< -9)){
-        resetEncounter(safeZone);zone=world.zoneAt(pos.x,pos.z,pos.y);
+        resetEncounter(safeZone);pos=player.root.position;zone=world.zoneAt(pos.x,pos.z,pos.y);
       }
       if(time>noticeUntil&&ui.notice.textContent)ui.notice.textContent='';
       if(time>damageUntil&&ui.damage.style.opacity!=='0')ui.damage.style.opacity='0';

@@ -1,13 +1,25 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import * as THREE from '../playtest/work20/vendor/three.module.js';
-import {createWorld} from '../playtest/work20/world.js';
+import {createWorld,arena,arenaSpawn} from '../playtest/work20/world.js';
 import {createSword} from '../playtest/work20/sword.js';
 
 test('real Three.js module instances expose reachable floors and legal spawns',async()=>{
   const world=await createWorld(new THREE.Scene());
   const {exploration,vehicles,encounters,atmosphere}=world;
   try {
+    // Regression: portal exit lies inside the STARVEIN WILDS rectangle.
+    assert.equal(world.zoneAt(arenaSpawn.x,arenaSpawn.z,arenaSpawn.y),'arena');
+    assert.equal(exploration.zoneAt(arenaSpawn.x,arenaSpawn.z,arenaSpawn.y),null);
+    assert.equal(world.ground(arenaSpawn.x,arenaSpawn.z,arenaSpawn.y),arena.y);
+    assert.equal(world.zoneAt(345,-401,39),'arena');
+    assert.equal(world.zoneAt(345,-390,39),'wilds');
+    const source=arenaSpawn.clone(),step=source.clone().add(new THREE.Vector3(0,0,.5));
+    world.resolve({previous:source,proposed:step,radius:.4,height:1.8});
+    assert.ok(step.z>source.z+.2,'arena walk ignores wilderness collision');
+    const wildsEdge=new THREE.Vector3(345,39,-395),enterArena=new THREE.Vector3(345,39,-401);
+    world.resolve({previous:wildsEdge,proposed:enterArena,radius:.4,height:1.8});
+    assert.equal(enterArena.z,-401,'the arena must be enterable from the wilderness');
     for(const [key,{spawn}] of exploration.areas){
       assert.equal(world.zoneAt(spawn.x,spawn.z,spawn.y),key);
       assert.equal(world.ground(spawn.x,spawn.z,spawn.y),spawn.y);

@@ -1,4 +1,5 @@
 import {createAtmosphere} from './atmosphere.js';
+import {ARENA_CENTER,isArenaFootprint} from './region-guards.js';
 import {createEncounters} from './encounters.js';
 import {addVehicles} from './vehicles.js';
 import {createExploration} from './exploration.js';
@@ -16,7 +17,7 @@ export const cityStart = V(3,.42,-88);
 export const shipBerth = V(0,1.65,-114);
 export const islandOffset = V(0,13,-440);
 export const vaultOffset = V(440,45,-470);
-export const arena = V(345,39,-445);
+export const arena = V(ARENA_CENTER.x,39,ARENA_CENTER.z);
 export const arenaSpawn = V(345,39,-413);
 
 export async function createWorld(scene) {
@@ -97,10 +98,11 @@ export async function createWorld(scene) {
   scene.add(sun);
 
   function zoneAt(x,z,feet) {
+    // Built-in quest locations override overlapping new open-world regions.
+    if (feet>32 && Math.abs(x-vaultOffset.x)<21 && z<vaultOffset.z+17 && z>vaultOffset.z-51) return 'vault';
+    if (isArenaFootprint(x,z)) return 'arena';
     const added=exploration.zoneAt(x,z,feet);
     if(added)return added;
-    if (feet>32 && Math.abs(x-vaultOffset.x)<21 && z<vaultOffset.z+17 && z>vaultOffset.z-51) return 'vault';
-    if (Math.hypot(x-arena.x,z-arena.z)<45.5) return 'arena';
     const b=district.bounds;
     if (x>=b.minX&&x<=b.maxX&&z>=b.minZ&&z<=b.maxZ) return 'district';
     if (Math.abs(x)<=6.4&&z>=-145&&z<=-126) return 'bridge';
@@ -155,7 +157,7 @@ export async function createWorld(scene) {
     islands.root.visible=outdoors && x<275 && z<(high?-83:-183);
     link.visible=outdoors&&Math.hypot(x,z)<380;
     vault.root.visible=zone==='vault';
-    arenaGroup.visible=zone==='arena'||(flying&&x>140);
+    arenaGroup.visible=zone==='arena'||(flying&&Math.hypot(x-arena.x,z-arena.z)<480);
     scene.fog.density=high?.00165:.00215;
   }
   return {exploration,vehicles,encounters,atmosphere,ambient,sun,city,district,islands,ship,drone,dragon,vault,marker,markerMesh,zoneAt,ground,resolve,updateVisibility,
