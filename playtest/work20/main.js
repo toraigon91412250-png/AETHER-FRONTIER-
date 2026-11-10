@@ -35,7 +35,7 @@ async function boot(renderer) {
   const camera=new THREE.PerspectiveCamera(66,1,.09,1450);
   scene.add(camera);
   const world=await createWorld(scene);
-  const {exploration,vehicles,encounters}=world;
+  const {exploration,vehicles,encounters,atmosphere}=world;
   const sword=createSword(THREE);
   const {city,district,islands,ship,drone,dragon,vault}=world;
   const weapon=createWeapon(THREE,{quality:'low'});
@@ -74,10 +74,10 @@ async function boot(renderer) {
   const flight=new AetherFlightController(THREE,{minAltitude:1.65,maxAltitude:160,maxSpeedByTier:[46,58,69]});
   const perf=createPerformance(THREE,{renderer,camera,quality:'lite',adaptive:true,managePixelRatio:true});
   for (const [id,part] of Object.entries({city,district,islands,ship,drone,dragon,vault,player,weapon})) {
-    perf.registerClient(id,{setQuality:mode=>part.setQuality(mode==='lite'&&(id==='district'||id==='weapon')?'low':mode)});
+    perf.registerClient(id,{setQuality:mode=>part.setQuality(mode==='lite'&&id!=='city'?'low':mode)});
   }
   for(const {module} of exploration.areas.values())perf.registerClient(module.id,module);
-  for(const module of [vehicles.robot,vehicles.rover,...encounters.modules])perf.registerClient(module.id,module);
+  for(const module of [vehicles.robot,vehicles.rover,...encounters.modules,atmosphere.module])perf.registerClient(module.id,module);
   const progressKey='aether-frontier-work20-v1';
   const defaults=()=>({unlocked:false,beacons:[],vaultCleared:false,won:false,golem:false,aegis:false});
   let progress=defaults();
@@ -473,13 +473,20 @@ async function boot(renderer) {
   }
   let currentHint='';
   function renderHUD(zone,pos,action) {
-    const [chapter,target]=currentMission(zone,pos);
+    const [chapter,primaryTarget]=currentMission(zone,pos);
+    const area=exploration.areas.get(zone);
+    const target=area?null:primaryTarget;
     ui.region.textContent=labels[zone];
     ui.chapter.textContent='0'+(chapter+1)+' / 05';
     const v=vault.getProgress();
-    ui.objective.textContent=zone==='vault'&&!progress.vaultCleared
+    const localObjective=zone==='wilds'?`星脈の記憶 ${area.module.instance.getState().progress}/5 · 北にゴーレム／西にAEGIS-IX`:
+      zone==='carrier'?'後部右舷のスロープから格納庫へ':
+      zone==='temple'?'東西の星印と中央の星核を起動':
+      zone==='plant'?'補助設備を3つ起動し、主制御盤へ':
+      area?.module.instance.getObjective?.();
+    ui.objective.textContent=localObjective??(zone==='vault'&&!progress.vaultCleared
       ?'星核と位相盤を揃える　'+v.aligned+'/'+v.total+'　'+(v.coreDocked?'星核接続済':v.coreHeld?'星核運搬中':'星核を回収')
-      :missionNames[chapter];
+      :missionNames[chapter]);
     if(flying&&target){
       direction.copy(target).sub(pos);
       const relative=Math.atan2(direction.x,-direction.z)+flight.yaw;
@@ -561,8 +568,9 @@ async function boot(renderer) {
     weapon.update(dt,{form:progress.beacons.length?'awakened':'sealed'});
   }
   let safeZone='city';
+  let animationFrame;
   function frame(now) {
-    requestAnimationFrame(frame);
+    animationFrame=requestAnimationFrame(frame);
     const raw=(now-lastTime)/1000||1/60;lastTime=now;
     const dt=Math.min(raw,.045);
     const controls=input.sample();
@@ -629,7 +637,7 @@ async function boot(renderer) {
     if(!playing||flying||pos.distanceTo(exploration.hub)>5)travel.hidden=true;
     exploration.update(dt,pos,world.zoneAt(pos.x,pos.z,pos.y),quality);
     vehicles.update(dt,world.zoneAt(pos.x,pos.z,pos.y),quality);
-    world.sky.position.copy(camera.position);
+    atmosphere.update(dt,camera,world.zoneAt(pos.x,pos.z,pos.y),quality,world.ambient,world.sun);
     if(playing||!started)perf.update(raw);
     perf.beginFrame();
     renderer.render(scene,camera);
@@ -640,5 +648,15 @@ async function boot(renderer) {
     ...progress,beacons:[...progress.beacons],vault:vault.getProgress(),health,bossHP,droneHP,metrics:perf.getMetrics()});
   if(progress.won){bossHP=0;dragon.setPhase('land');}
   setQuality('lite');
+  addEventListener('pagehide',event=>{
+    if(event.persisted)return;
+    cancelAnimationFrame(animationFrame);
+    removeEventListener('resize',resize);
+    input.dispose();
+    perf.dispose();
+    for(const part of [city,district,islands,ship,drone,dragon,vault,player,weapon])part.dispose();
+    exploration.dispose();vehicles.dispose();encounters.dispose();atmosphere.dispose();
+    renderer.dispose();
+  });
   return {frame};
 }

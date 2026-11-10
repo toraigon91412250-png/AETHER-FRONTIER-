@@ -1,3 +1,4 @@
+import {createAtmosphere} from './atmosphere.js';
 import {createEncounters} from './encounters.js';
 import {addVehicles} from './vehicles.js';
 import {createExploration} from './exploration.js';
@@ -23,6 +24,7 @@ export async function createWorld(scene) {
   const vehicles=await addVehicles(THREE,scene,exploration);
   const encounters=await createEncounters(THREE,scene,exploration.areas.get('wilds'));
   const city = createCity(THREE,{quality:'lite'});
+  const atmosphere=await createAtmosphere(THREE,scene,city);
   const district = createDistrict(THREE,{quality:'low',origin:{x:0,y:.1,z:-214}});
   const islands = createIslands(THREE,{quality:'lite',includeSky:false});
   islands.root.position.copy(islandOffset);
@@ -82,28 +84,14 @@ export async function createWorld(scene) {
   terminal(recoveryRelay,light,arenaGroup);
   ring(6.3,.13,shipBerth.clone().setY(.49),light,link);
   ring(5.3,.10,dock.clone().add(V(0,.04)),light);
-  const sky = new THREE.Mesh(new THREE.SphereGeometry(1350,24,15),new THREE.ShaderMaterial({
-    side:THREE.BackSide,depthWrite:false,
-    uniforms:{},
-    vertexShader:'varying vec3 d; void main(){d=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-    fragmentShader:`varying vec3 d; void main(){
-      vec3 v=normalize(d);
-      vec3 color=mix(vec3(.63,.77,.86),vec3(.08,.20,.39),smoothstep(.0,.74,v.y));
-      color=mix(color,vec3(.50,.61,.76),smoothstep(.02,.55,-v.y));
-      float s=max(dot(v,normalize(vec3(-.61,.29,-.69))),0.);
-      color+=vec3(.33,.21,.13)*pow(s,18.)+vec3(.62,.52,.37)*smoothstep(.997,.999,s);
-      gl_FragColor=vec4(color,1.);
-    }`
-  }));
-  sky.renderOrder=-100;
-  scene.add(sky);
   const marker = new THREE.Group();
   const markerMesh = new THREE.Mesh(new THREE.OctahedronGeometry(.53),gold);
   marker.add(markerMesh);
   ring(1.32,.055,V(),gold,marker);
   scene.add(marker);
   scene.fog = new THREE.FogExp2(0x9ab6cf,.00265);
-  scene.add(new THREE.HemisphereLight(0xd6edff,0x5c5b80,2.1));
+  const ambient=new THREE.HemisphereLight(0xd6edff,0x5c5b80,2.1);
+  scene.add(ambient);
   const sun = new THREE.DirectionalLight(0xffe7c6,2.1);
   sun.position.set(-100,160,-80);
   scene.add(sun);
@@ -162,15 +150,14 @@ export async function createWorld(scene) {
   }
   function updateVisibility(position,zone,flying,high) {
     const z=position.z,x=position.x;
-    const outdoors=zone!=='vault';
-    city.root.visible=outdoors && x<190 && z>(high?-530:-415);
+    const outdoors=zone!=='vault'&&zone!=='lab';
     district.root.visible=outdoors && x<190 && z>-475 && (flying||z<(high?-72:-101));
     islands.root.visible=outdoors && x<275 && z<(high?-83:-183);
-    link.visible=city.root.visible;
+    link.visible=outdoors&&Math.hypot(x,z)<380;
     vault.root.visible=zone==='vault';
     arenaGroup.visible=zone==='arena'||(flying&&x>140);
-    scene.fog.density=high?.0021:.0031;
+    scene.fog.density=high?.00165:.00215;
   }
-  return {exploration,vehicles,encounters,city,district,islands,ship,drone,dragon,vault,sky,marker,markerMesh,zoneAt,ground,resolve,updateVisibility,
+  return {exploration,vehicles,encounters,atmosphere,ambient,sun,city,district,islands,ship,drone,dragon,vault,marker,markerMesh,zoneAt,ground,resolve,updateVisibility,
     dock,dockRelay,launchRelay,recoveryRelay,vaultExit,vaultReturn};
 }
