@@ -1,0 +1,635 @@
+/**
+ * AETHER FRONTIER / Team No.01 - Crown of the Aether
+ * Three.js 0.160.0, ES module, no build step, no assets.
+ * World: Y-up, forward -Z, 1 unit ~= 1 meter.
+ * Integration: import { createAetherModule } from './aether-module.js';
+ * Root is scene-agnostic. The host owns scene, renderer, camera, and input.
+ * Copyright (c) 2026. Original procedural environment.
+ */
+export function createAetherModule(THREE, options = {}) {
+  if (!THREE?.Group || !THREE?.Mesh || !THREE?.InstancedMesh) {
+    throw new Error('createAetherModule requires Three.js (tested against 0.160.0).');
+  }
+  const root = new THREE.Group();
+  root.name = 'AF01_AETHER_CROWN_CITY';
+  const base = new THREE.Group(); base.name = 'base_lite'; root.add(base);
+  const detail = new THREE.Group(); detail.name = 'detail_high'; root.add(detail);
+  const highAtmosphere = new THREE.Group(); highAtmosphere.name = 'atmosphere_high'; root.add(highAtmosphere);
+  const animated = new THREE.Group(); animated.name = 'animated_landmarks'; root.add(animated);
+  const dynamicRings = [], floating = [], energyNodes = [], interactables = [];
+  const disposables = new Set();
+  const quality = { mode: 'lite' };
+  const PI = Math.PI, TAU = Math.PI * 2, GROUND = 0.42, DECK = 64.16;
+  let elapsed = 0, awakened = false, disposed = false;
+  const discovery = new Set();
+  let seed = Number.isFinite(options.seed) ? (options.seed >>> 0) : 1001;
+  function rand() { seed = (Math.imul(1664525, seed) + 1013904223) >>> 0; return seed / 4294967296; }
+  const C = {
+    basalt: 0x102433, blueStone: 0x1b3746, stone: 0x31505c,
+    stoneLight: 0x54707a, steel: 0x6e8792, night: 0x091823,
+    bronze: 0xb08c55, gold: 0xf1c985, lightGold: 0xffe1ac,
+    cyan: 0x63f5ec, sky: 0x87f5ff, blue: 0x3bb3e6,
+    magenta: 0xcaa4ff, darkGlass: 0x103542
+  };
+  const standard = (hex, metallic = .35, roughness = .65, extra = {}) =>
+    new THREE.MeshStandardMaterial({ color: hex, metalness: metallic, roughness, ...extra });
+  const basic = (hex, extra = {}) => new THREE.MeshBasicMaterial({ color: hex, ...extra });
+  const m = {
+    basalt: standard(C.basalt, .25, .88),
+    floor: standard(C.blueStone, .3, .78),
+    floor2: standard(C.stone, .28, .74),
+    steel: standard(C.steel, .66, .38),
+    lighter: standard(C.stoneLight, .5, .5),
+    night: standard(C.night, .52, .59),
+    bronze: standard(C.bronze, .7, .37),
+    gold: standard(C.gold, .64, .34),
+    goldLight: basic(C.lightGold),
+    glow: basic(C.cyan, { toneMapped: false, side: THREE.DoubleSide }),
+    cyanDim: basic(0x229d9f, { toneMapped: false, side: THREE.DoubleSide }),
+    blueGlow: basic(C.blue, { toneMapped: false }),
+    magenta: basic(C.magenta, { toneMapped: false }),
+    glass: standard(C.darkGlass, .57, .22, { transparent: true, opacity: .78, depthWrite: false }),
+    halo: basic(C.cyan, { transparent: true, opacity: .27, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }),
+    beam: basic(0x7bfcf3, { transparent: true, opacity: .3, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }),
+    water: basic(0x3cdcd9, { transparent: true, opacity: .46, side: THREE.DoubleSide, depthWrite: false, toneMapped: false }),
+    leaf: standard(0x244d51, .12, .86),
+    rock: standard(0x233d4c, .12, .92),
+  };
+  const geoCache = new Map();
+  function shared(key, create) { if (!geoCache.has(key)) geoCache.set(key, create()); return geoCache.get(key); }
+  const gBox = (w, h, d) => shared(`box:${w}:${h}:${d}`, () => new THREE.BoxGeometry(w, h, d));
+  const gCylinder = (rt, rb, h, n = 8) => shared(`cyl:${rt}:${rb}:${h}:${n}`, () => new THREE.CylinderGeometry(rt, rb, h, n));
+  const gTorus = (r, t, seg = 64, tube = 6, arc = TAU) => shared(`tor:${r}:${t}:${seg}:${tube}:${arc}`, () => new THREE.TorusGeometry(r, t, tube, seg, arc));
+  const gOct = (r, detailLevel = 0) => shared(`oct:${r}:${detailLevel}`, () => new THREE.OctahedronGeometry(r, detailLevel));
+  function mesh(group, name, geometry, material, x=0, y=0, z=0, rx=0, ry=0, rz=0) {
+    const o = new THREE.Mesh(geometry, material);
+    o.name=name; o.position.set(x,y,z); o.rotation.set(rx,ry,rz); group.add(o); return o;
+  }
+  function inst(group, name, geometry, material, transforms) {
+    const o = new THREE.InstancedMesh(geometry, material, transforms.length);
+    o.name = name;
+    const dummy = new THREE.Object3D();
+    transforms.forEach((t,i) => {
+      dummy.position.set(t.x||0,t.y||0,t.z||0);
+      dummy.rotation.set(t.rx||0,t.ry||0,t.rz||0);
+      dummy.scale.set(t.sx??1,t.sy??1,t.sz??1);
+      dummy.updateMatrix(); o.setMatrixAt(i,dummy.matrix);
+      if (t.color !== undefined) o.setColorAt(i,new THREE.Color(t.color));
+    });
+    o.instanceMatrix.needsUpdate = true;
+    if (o.instanceColor) o.instanceColor.needsUpdate=true;
+    o.frustumCulled = false;
+    group.add(o); return o;
+  }
+  function horizontalRing(group,name,r,t,y,mat,segments=96) {
+    return mesh(group,name,gTorus(r,t,segments,6),mat,0,y,0,PI/2);
+  }
+  function beam(group,name,a,b,r,mat,n=6) {
+    const start = new THREE.Vector3(...a), end = new THREE.Vector3(...b);
+    const v = end.clone().sub(start);
+    const o = mesh(group,name,gCylinder(r,r,v.length(),n),mat);
+    o.position.copy(start).add(end).multiplyScalar(.5);
+    o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.normalize());
+    return o;
+  }
+  function placeRingTiles(group, name, radius, num, mat, size, y, phase=0) {
+    const list=[];
+    for(let i=0;i<num;i++){
+      const a=TAU*i/num+phase;
+      list.push({x:Math.sin(a)*radius,z:Math.cos(a)*radius,y,ry:a,sx:size[0],sy:size[1],sz:size[2]});
+    }
+    // The base geometry is a unit block so scaling is in meters.
+    return inst(group,name,gBox(1,1,1),mat,list);
+  }
+  function canvasPattern() {
+    if (typeof document==='undefined') return null;
+    const c=document.createElement('canvas');c.width=c.height=256;
+    const ctx=c.getContext('2d');
+    if(!ctx)return null;
+    ctx.fillStyle='#254450';ctx.fillRect(0,0,256,256);
+    for(let i=0;i<3600;i++){
+      const v=Math.floor(25+rand()*45), a=.025+rand()*.07;
+      ctx.fillStyle=`rgba(${v+25},${v+44},${v+51},${a})`;
+      const x=rand()*256,y=rand()*256,w=1+rand()*14;
+      ctx.fillRect(x,y,w,1+rand()*2);
+    }
+    ctx.strokeStyle='rgba(137,188,189,.12)';ctx.lineWidth=2;
+    for(let x=0;x<=256;x+=64){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,256);ctx.stroke();}
+    for(let y=0;y<=256;y+=64){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(256,y);ctx.stroke();}
+    const texture=new THREE.CanvasTexture(c);
+    texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
+    texture.repeat.set(14,14);
+    texture.colorSpace=THREE.SRGBColorSpace;
+    disposables.add(texture);
+    return texture;
+  }
+  const stonePattern=canvasPattern();
+  if(stonePattern) {m.floor.map=stonePattern;m.floor.needsUpdate=true;}
+
+  // 1. Circular foundation with four district connection roads.
+  mesh(base,'floating_city_foundation',gCylinder(153,146,4.2,96),m.basalt,0,-2.05,0);
+  mesh(base,'promenade_walkable_floor',gCylinder(138,138,.28,96),m.floor,0,.26,0);
+  mesh(base,'sunken_outer_strata',gCylinder(152,143,2,96),m.floor2,0,-5.2,0);
+  horizontalRing(base,'outer_ceremonial_border',137.4,.38,.48,m.gold,128);
+  horizontalRing(base,'outer_guard_inlay',132,.08,.5,m.glow,128);
+  horizontalRing(base,'outer_promenade_ring',115,.13,.49,m.bronze,96);
+  horizontalRing(base,'outer_promenade_rune',110,.07,.5,m.cyanDim,96);
+  // Cardial boulevards stay unobstructed and open to other teams' future districts.
+  mesh(base,'north_south_concourse',gBox(19,.06,272),m.floor2,0,.465,0);
+  mesh(base,'east_west_concourse',gBox(272,.06,19),m.floor2,0,.468,0);
+  for (const ax of [-1,1]) {
+    for(const offset of [-7.85,7.85]){
+      mesh(base,'north_road_lane',gBox(.11,.015,246),m.cyanDim,offset,.508,0);
+      mesh(base,'east_road_lane',gBox(246,.015,.11),m.cyanDim,0,.508,offset);
+    }
+  }
+  mesh(base,'central_sundial_disc',gCylinder(40,40,.17,96),m.night,0,.45,0);
+  mesh(base,'central_stone_medallion',gCylinder(34,34,.21,96),m.floor2,0,.56,0);
+  for(const [r,t,mat] of [[39,.14,m.gold],[36,.11,m.glow],[31.5,.09,m.bronze],[29,.12,m.cyanDim],[23.7,.14,m.gold]]) {
+    horizontalRing(base,'sigil_in_pavement',r,t,.685,mat,96);
+  }
+  placeRingTiles(base,'plaza_gold_dashes',36.8,96,m.gold,[.15,.025,1.2],.7);
+  placeRingTiles(detail,'fine_runes_on_plaza',31,120,m.cyanDim,[.15,.025,.82],.7);
+  // Broad radial geometries, separate from the through roads.
+  for(let i=0;i<12;i++){
+    const a=TAU*i/12+PI/12;
+    if(i%3===0)continue;
+    const x=Math.sin(a)*31.5,z=Math.cos(a)*31.5;
+    mesh(base,'compass_stone',gBox(1.3,.07,2.7),m.bronze,x,.7,z,0,a,0);
+  }
+  // Water/energy aqueducts weaving through the quadrants.
+  for (let q=0;q<4;q++){
+    const a0=q*PI/2+.18,a1=(q+1)*PI/2-.18;
+    const points=[];
+    for(let j=0;j<=22;j++){
+      const a=a0+(a1-a0)*j/22;
+      points.push(new THREE.Vector3(Math.sin(a)*91,.53,Math.cos(a)*91));
+    }
+    const curve=new THREE.CatmullRomCurve3(points);
+    mesh(base,'quarter_aether_channel',new THREE.TubeGeometry(curve,48,.32,5,false),m.water);
+    mesh(detail,'quarter_aether_channel_rim',new THREE.TubeGeometry(curve,48,.09,5,false),m.gold);
+  }
+  // Exterior buttresses are visual, the center remains walkable.
+  const edgeButtress=[],edgeLamps=[],edges=[];
+  for(let i=0;i<64;i++){
+    const a=TAU*i/64,co=Math.cos(a),si=Math.sin(a);
+    edgeButtress.push({x:si*143.7,z:co*143.7,y:-2.5,ry:a,sy:5,sx:1.8,sz:4.8});
+    if(i%2===0) edgeLamps.push({x:si*132.4,z:co*132.4,y:1.5,sx:.18,sy:2.3,sz:.18});
+    if(i%4===0) edges.push({x:si*147,z:co*147,y:-5.1,ry:a,sy:4.1,sx:1.7,sz:2.7});
+  }
+  inst(base,'foundation_radial_armoring',gBox(1,1,1),m.steel,edgeButtress);
+  inst(base,'safe_promenade_lamp_posts',gBox(1,1,1),m.bronze,edgeLamps);
+  inst(base,'bottom_anchor_blades',gBox(1,1,1),m.basalt,edges);
+  const brightCaps=[];
+  for (let i=0;i<32;i++){
+    const a=TAU*i/32;
+    brightCaps.push({x:Math.sin(a)*132.4,y:2.73,z:Math.cos(a)*132.4,sx:.52,sy:.35,sz:.52});
+  }
+  inst(base,'lantern_caps',gOct(1),m.glow,brightCaps);
+  placeRingTiles(detail,'outer_terrace_floor_mosaics',117,128,m.gold,[.12,.025,.85],.51);
+
+  // 2. Aether Tower. Base ring, eight-sided shaft, visible energy spine.
+  mesh(base,'tower_primary_plinth',gCylinder(19,22,5.4,16),m.basalt,0,2.85,0);
+  mesh(base,'tower_secondary_plinth',gCylinder(16.3,18.4,3.8,16),m.steel,0,6,0);
+  mesh(base,'tower_ceremonial_step',gCylinder(13.2,16.2,2.8,16),m.bronze,0,9.1,0);
+  mesh(base,'tower_lower_inner_ring',gCylinder(11.3,12.3,13,12),m.night,0,17,0);
+  mesh(base,'lower_pier',gCylinder(7.8,10.5,36,8),m.basalt,0,38,0,0,PI/8);
+  mesh(base,'middle_pier',gCylinder(6.4,8.4,54,8),m.floor2,0,83,0,0,PI/8);
+  mesh(base,'upper_pier',gCylinder(5.1,7.2,65,8),m.basalt,0,142,0,0,PI/8);
+  mesh(base,'crown_neck',gCylinder(3.8,5.4,32,8),m.steel,0,191.5,0,0,PI/8);
+  mesh(base,'spire_capital',gCylinder(.9,4,31,8),m.gold,0,219.5,0,0,PI/8);
+  mesh(base,'spire_needle',gCylinder(.1,.85,37,6),m.goldLight,0,253,0);
+  mesh(base,'central_reactor_core',gCylinder(2.15,2.15,146,8),m.glow,0,105,0);
+  mesh(base,'soft_core_light',gCylinder(3.6,3.6,151,12),m.beam,0,104,0);
+  const collars = [[20,11.9],[55.5,9.45],[65,8.7],[108.5,7.65],[117,7.3],[171,5.75],[178,5.6],[205,5.15]];
+  for(const [y,r] of collars){
+    mesh(base,'ornamental_tower_collar',gCylinder(r+.15,r+.45,1.8,12),m.bronze,0,y,0);
+    horizontalRing(base,'collar_luminescence',r+.45,.12,y+.95,m.cyanDim,56);
+  }
+  // Eight long diagonal structural forks, visible from plaza and from far away.
+  for(let i=0;i<8;i++){
+    const a=i*TAU/8+PI/8,dx=Math.sin(a),dz=Math.cos(a);
+    beam(base,'flying_ancient_buttress',[dx*18,6.5,dz*18],[dx*8.1,72,dz*8.1],.92,m.bronze,6);
+    beam(base,'higher_raking_rib',[dx*8,70,dz*8],[dx*5.8,164,dz*5.8],.56,m.steel,5);
+    beam(detail,'tension_arc_detail',[dx*15,11,dz*15],[dx*12,45,dz*12],.15,m.glow,4);
+  }
+  // Layered staggered armor plates on the octagonal tower.
+  const armor=[],glassWindows=[],tinyLights=[];
+  for(let row=0;row<14;row++){
+    const y=27+row*12.2;
+    const r=y<67?9.1:y<113?7.8:y<177?6.3:4.9;
+    for(let i=0;i<8;i++){
+      const a=TAU*(i+.5)/8+((row%2)*.03);
+      armor.push({x:Math.sin(a)*r,y,z:Math.cos(a)*r,ry:a,sx:3.5,sy:4.8,sz:.34});
+      if(row<12)glassWindows.push({x:Math.sin(a)*(r+.25),y:y+1.1,z:Math.cos(a)*(r+.25),ry:a,sx:1.05,sy:2.3,sz:.16});
+      tinyLights.push({x:Math.sin(a)*(r+.42),y:y-2.7,z:Math.cos(a)*(r+.42),ry:a,sx:.22,sy:.18,sz:.2});
+    }
+  }
+  inst(base,'braided_shaft_armor',gBox(1,1,1),m.steel,armor);
+  inst(base,'high_windows_energy_well',gBox(1,1,1),m.cyanDim,glassWindows);
+  inst(detail,'small_tower_window_lights',gBox(1,1,1),m.glow,tinyLights);
+  // Monumental levitating crowns at multiple altitudes.
+  function orbitalCrown(y,r,thick,mat,rotationSpeed,reverse=false,showHighOnly=false){
+    const group=new THREE.Group();group.name='orbital_architecture';group.position.y=y;
+    (showHighOnly?detail:animated).add(group);
+    mesh(group,'hovering_rune_ring',gTorus(r,thick,120,8),mat,0,0,0,PI/2);
+    mesh(group,'interior_cyan_trace',gTorus(r-.8,.09,120,5),m.glow,0,.12,0,PI/2);
+    placeRingTiles(group,'radial_writing',r,64,m.gold,[.2,.28,1.7],.13);
+    const pylons=[];
+    for(let i=0;i<12;i++){
+      const a=TAU*i/12;
+      pylons.push({x:Math.sin(a)*r,y:1.4,z:Math.cos(a)*r,ry:a,sx:1.9,sy:3.9,sz:.9});
+    }
+    inst(group,'crown_gemstones',gOct(1),m.magenta,pylons);
+    dynamicRings.push({obj:group,speed:reverse?-rotationSpeed:rotationSpeed,highOnly:showHighOnly});
+    return group;
+  }
+  orbitalCrown(83,26,1.05,m.bronze,.07);
+  orbitalCrown(158,21.5,.88,m.steel,.045,true);
+  orbitalCrown(199,14.5,.65,m.gold,.1,false,true);
+  const levitating=[];
+  for(let i=0;i<12;i++){
+    const a=TAU*i/12;
+    levitating.push({x:Math.sin(a)*31,y:85+(i%3)*1.8,z:Math.cos(a)*31,ry:a,sx:2.2,sy:4.3,sz:1.6});
+  }
+  inst(base,'tower_drifting_anchoring_stones',gOct(1),m.stone,levitating);
+  // A deliberately open observation deck with a 360-degree promenade.
+  mesh(base,'observation_deck_slab',gCylinder(24.8,25.3,1.65,64),m.floor2,0,63.32,0);
+  mesh(base,'observation_deck_paving',gCylinder(24.1,24.1,.09,64),m.night,0,64.11,0);
+  horizontalRing(base,'observation_outer_bronze',24.35,.25,64.19,m.gold,96);
+  horizontalRing(base,'observation_inner_light',10,.16,64.19,m.glow,96);
+  const balusters=[],balusterTops=[];
+  for(let i=0;i<64;i++){
+    const a=TAU*i/64;
+    balusters.push({x:Math.sin(a)*24.2,y:65.05,z:Math.cos(a)*24.2,ry:a,sx:.43,sy:1.8,sz:.44});
+    balusterTops.push({x:Math.sin(a)*24.2,y:66.08,z:Math.cos(a)*24.2,sx:.35,sy:.3,sz:.35});
+  }
+  inst(base,'observation_deck_balusters',gBox(1,1,1),m.bronze,balusters);
+  inst(base,'observation_deck_rail_caps',gOct(1),m.glow,balusterTops);
+  // Some deliberately asymmetrical crown blades make the tower recognizable in silhouette.
+  for(let i=0;i<4;i++){
+    const a=TAU*i/4+PI/4,dx=Math.sin(a),dz=Math.cos(a);
+    beam(base,'crown_wing',[dx*4.8,177,dz*4.8],[dx*15.2,200,dz*15.2],1.3,m.steel,5);
+    beam(base,'crown_counter_rib',[dx*15.2,200,dz*15.2],[dx*4.5,213,dz*4.5],.55,m.gold,5);
+    mesh(base,'levitating_crown_diamond',gOct(2.8),m.glow,dx*15.2,201,dz*15.2,0,a,0);
+  }
+  const crownCrystal=mesh(animated,'top_heart_crystal',gOct(8),m.glow,0,228,0);
+  floating.push({o:crownCrystal,y:228,amplitude:.8,speed:.6,phase:0});
+  for(let i=0;i<12;i++){
+    const a=TAU*i/12,dx=Math.sin(a),dz=Math.cos(a);
+    beam(detail,'high_frequency_energy_threads',[dx*4,68,dz*4],[dx*2.8,180,dz*2.8],.11,m.beam,4);
+  }
+
+  // 3. Four signature civic pavilions. Empty district exits stay open.
+  function pavilion(x,z,index){
+    const group=new THREE.Group();group.name=`civic_pavilion_${index}`;
+    group.position.set(x,0,z);base.add(group);
+    mesh(group,'foundation',gCylinder(11.8,12.8,.65,12),m.basalt,0,.52,0);
+    mesh(group,'walkable_ring',gCylinder(10.4,10.4,.09,12),m.floor2,0,.93,0);
+    mesh(group,'inner_altar',gCylinder(3.9,4.6,2.2,8),m.steel,0,1.85,0);
+    horizontalRing(group,'ritual_circuit',9.35,.14,1.08,m.gold,64);
+    const supports=[],tips=[];
+    for(let i=0;i<8;i++){
+      const a=TAU*i/8,dx=Math.sin(a),dz=Math.cos(a);
+      supports.push({x:dx*9,y:6.2,z:dz*9,ry:a,sx:1.2,sy:10.8,sz:1.25});
+      tips.push({x:dx*9,y:12.1,z:dz*9,ry:a,sx:.82,sy:1.35,sz:.82});
+    }
+    inst(group,'minaret_columns',gBox(1,1,1),m.steel,supports);
+    inst(group,'minaret_glow_caps',gOct(1),m.glow,tips);
+    for(let i=0;i<4;i++){
+      const a=TAU*i/4+PI/4,dx=Math.sin(a),dz=Math.cos(a);
+      beam(group,'tracery_roof',[dx*9,11.1,dz*9],[dx*3.3,18.9,dz*3.3],.42,m.gold,5);
+    }
+    mesh(group,'hanging_seal',gOct(3.2),m.magenta,0,15,0);
+    mesh(detail,'pavilion_aurora',gTorus(5.6,.11,64,5),m.glow,x,17,z,PI/2);
+  }
+  pavilion(-67,-66,0);pavilion(67,-66,1);pavilion(67,66,2);pavilion(-67,66,3);
+  // Atmospheric and structural side towers that do not duplicate the district teams.
+  const miniTowerBases=[],miniTowerTops=[],miniTowerAntennae=[];
+  for(let i=0;i<24;i++){
+    const a=TAU*(i+.5)/24;
+    if(Math.abs(Math.sin(a))<.17||Math.abs(Math.cos(a))<.17)continue;
+    const r=116+(i%3)*4;
+    const height=9+(i%4)*3;
+    miniTowerBases.push({x:Math.sin(a)*r,y:height*.5,z:Math.cos(a)*r,sx:2.1,sy:height,sz:2.1,ry:a});
+    miniTowerTops.push({x:Math.sin(a)*r,y:height+.8,z:Math.cos(a)*r,sx:2.5,sy:1.6,sz:2.5,ry:a});
+    miniTowerAntennae.push({x:Math.sin(a)*r,y:height+2.8,z:Math.cos(a)*r,sx:.23,sy:3.1,sz:.23});
+  }
+  inst(base,'street_sentinal_towers',gBox(1,1,1),m.steel,miniTowerBases);
+  inst(base,'sentinel_prism_crowns',gOct(1),m.bronze,miniTowerTops);
+  inst(detail,'sentinel_turquoise_antennae',gBox(1,1,1),m.glow,miniTowerAntennae);
+
+  // 4. Four gates are connection stubs for other teams, not sealed boundaries.
+  function createGate(name, x, z, ry, label){
+    const gate=new THREE.Group();gate.name=name;gate.position.set(x,0,z);gate.rotation.y=ry;base.add(gate);
+    for(const s of [-1,1]){
+      mesh(gate,'threshold_tower',gBox(2.3,11.6,2.65),m.steel,s*11,6.2,0);
+      mesh(gate,'threshold_inlay',gBox(1.4,7.5,.15),m.cyanDim,s*11,6.1,1.41);
+      mesh(gate,'pylon_capital',gOct(2.25),m.gold,s*11,12.9,0);
+    }
+    mesh(gate,'open_mystic_arch',gTorus(11,.73,64,8,PI),m.bronze,0,11.5,0);
+    mesh(gate,'arch_inner_light',gTorus(10.2,.13,64,5,PI),m.glow,0,11.5,.1);
+    mesh(gate,'threshold_marker',gBox(17,.09,.7),m.gold,0,.53,0);
+    if(typeof document!=='undefined'){
+      const c=document.createElement('canvas');c.width=512;c.height=128;
+      const g=c.getContext('2d');
+      if(g){
+        g.clearRect(0,0,512,128);
+        g.fillStyle='#052833';g.fillRect(2,3,508,122);
+        g.strokeStyle='#d8ba84';g.lineWidth=7;g.strokeRect(9,9,494,110);
+        g.fillStyle='#b5f7ef';g.font='700 38px sans-serif';g.textAlign='center';g.textBaseline='middle';
+        g.fillText(label,256,65);
+        const tx=new THREE.CanvasTexture(c);tx.colorSpace=THREE.SRGBColorSpace;disposables.add(tx);
+        const tm=basic(0xffffff,{map:tx,transparent:true,side:THREE.DoubleSide});
+        mesh(gate,'gateway_route_marker',gBox(12,2.9,.12),m.night,0,18.4,0);
+        mesh(gate,'gateway_label',shared('plane-label',()=>new THREE.PlaneGeometry(11.7,2.75)),tm,0,18.4,.1);
+      }
+    }
+  }
+  createGate('north_aerial_district_interface',0,-112,0,'SKY TRANSIT · N');
+  createGate('east_foundry_district_interface',112,0,PI/2,'FORGE · E');
+  createGate('south_arrival_district_interface',0,112,0,'ARRIVAL · S');
+  createGate('west_archive_district_interface',-112,0,PI/2,'ARCHIVES · W');
+  // Avoid trapping future connected content under artificial boundary walls.
+
+  // 5. Three accessible ley nodes, and a two-way tower elevator.
+  function leyNode(id,label,x,z,color){
+    const group=new THREE.Group();group.name='ley_console_'+id;
+    group.position.set(x,0,z);base.add(group);
+    mesh(group,'plinth',gCylinder(2.3,2.7,1.1,8),m.bronze,0,.77,0);
+    mesh(group,'mid_stack',gCylinder(1.5,1.8,.75,8),m.night,0,1.7,0);
+    const localCrystalMaterial=basic(color,{toneMapped:false});
+    disposables.add(localCrystalMaterial);
+    const crystal=mesh(group,'hover_prism',gOct(1.45),localCrystalMaterial,0,3.2,0);
+    const guard=mesh(group,'orbit_rune',gTorus(2.35,.16,48,6),m.glow,0,3.2,0,PI/2);
+    horizontalRing(group,'plinth_footlight',2.3,.09,1.35,m.glow,48);
+    const o={id,label,type:'sigil',position:{x,y:GROUND,z},state:'dormant'};
+    interactables.push(o);
+    energyNodes.push({id,group,crystal,guard,crystalMat:crystal.material,baseY:3.2,activated:false});
+    floating.push({o:crystal,y:3.2,amplitude:.23,speed:1.5,phase:rand()*TAU});
+    return o;
+  }
+  leyNode('ley-01','南の共鳴碑',0,81,C.cyan);
+  leyNode('ley-02','西の共鳴碑',-55,-35,C.blue);
+  leyNode('ley-03','東の共鳴碑',55,-35,C.magenta);
+  // For visibility from a long distance each node has a thin vertical beacon.
+  for(const node of energyNodes){
+    mesh(detail,'charged_ley_beacon',gCylinder(.075,.075,19,5),m.beam,node.group.position.x,10,node.group.position.z);
+  }
+  function liftConsole(x,z,y,id,label){
+    const group=new THREE.Group();group.name=id;group.position.set(x,y,z);base.add(group);
+    mesh(group,'elevator_shaft_marker',gCylinder(2,2,.6,12),m.steel,0,.25,0);
+    horizontalRing(group,'elevator_glowing_glyph',1.65,.18,.61,m.glow,48);
+    mesh(group,'elevator_levitating_hex',gOct(.85),m.gold,0,2.3,0);
+    interactables.push({id,label,type:'lift',position:{x,y:y+(id==='lift-up'?GROUND:.1),z},state:'ready'});
+  }
+  liftConsole(29.2,0,GROUND,'lift-up','エーテルタワー展望環へ');
+  liftConsole(18.5,0,DECK,'lift-down','中央広場に戻る');
+  interactables.push({id:'observatory',label:'空都の記録を観測する',type:'lore',position:{x:0,y:DECK,z:-19.5},state:'ready'});
+  interactables.push({id:'archive',label:'古代碑文を読む',type:'lore',position:{x:-45,y:GROUND,z:56},state:'ready'});
+  function loreMonument(x,z){
+    const group=new THREE.Group();group.name='ancient_history_tablet';group.position.set(x,0,z);base.add(group);
+    mesh(group,'carved_tablet',gBox(4.8,6.5,1.1),m.basalt,0,3.9,0,0,PI/8,0);
+    mesh(group,'tablet_plate',gBox(3.6,3.9,.19),m.bronze,.1,4.2,.67,0,PI/8,0);
+    const signs=[];
+    for(let i=0;i<9;i++)signs.push({x:((i%3)-1)*.75,y:3+Math.floor(i/3)*.87,z:.84,sx:.35,sy:.28,sz:.15});
+    inst(group,'archaic_script',gBox(1,1,1),m.glow,signs);
+  }
+  loreMonument(-45,56);
+
+  // 6. Floating skyline. These are background silhouettes, not walkable game map.
+  const islands=[],islandRim=[],skyline=[];
+  for(let i=0;i<9;i++){
+    const a=TAU*i/9+.19,r=210+(i%3)*20;
+    const x=Math.sin(a)*r,z=Math.cos(a)*r;
+    const y=-16+(i%4)*9;
+    const radius=18+(i%4)*7;
+    islands.push({x,y,z,sx:radius,sy:12,sz:radius});
+    islandRim.push({x,y:y+6.5,z,sx:radius*1.06,sy:1.8,sz:radius*1.06});
+    for(let j=0;j<3;j++){
+      const aa=TAU*j/3+i*.8;
+      skyline.push({x:x+Math.sin(aa)*radius*.55,y:y+7+(j+2)*4,z:z+Math.cos(aa)*radius*.55,sx:2.5+j,sy:10+j*8,sz:2.5+j});
+    }
+  }
+  inst(base,'distant_bedrock_islands',gCylinder(1,.38,1,7),m.rock,islands);
+  inst(base,'distant_floating_terraces',gCylinder(1,1,.9,9),m.stone,islandRim);
+  inst(base,'distant_skyline_silhouettes',gCylinder(1,.65,1,6),m.basalt,skyline);
+  // High graphics pass adds hundreds of small geometry instances, with 5 draw calls.
+  const pathTiles=[],goldInsets=[],smallObelisks=[],courtyardPlants=[];
+  for(let i=0;i<360;i++){
+    const a=rand()*TAU,r=42+rand()*86,x=Math.cos(a)*r,z=Math.sin(a)*r;
+    if (Math.abs(x)<12||Math.abs(z)<12) continue;
+    if(Math.abs(x)>48&&Math.abs(z)>48&&Math.abs(Math.abs(x)-67)<15&&Math.abs(Math.abs(z)-66)<15)continue;
+    const s=.7+rand()*2.8;
+    pathTiles.push({x,y:.51,z,ry:rand()*TAU,sx:s,sy:.015,sz:s*.3});
+  }
+  for(let i=0;i<140;i++){
+    const a=rand()*TAU,r=45+rand()*85;
+    goldInsets.push({x:Math.cos(a)*r,y:.51,z:Math.sin(a)*r,ry:a,sx:.1,sy:.025,sz:.6+rand()*2});
+  }
+  for(let i=0;i<44;i++){
+    const a=TAU*i/44+.13,r=126;
+    smallObelisks.push({x:Math.cos(a)*r,y:3.5,z:Math.sin(a)*r,ry:a,sx:.65,sy:5.8+rand()*2,sz:.8});
+  }
+  for(let i=0;i<72;i++){
+    const a=rand()*TAU,r=98+rand()*26;
+    const x=Math.sin(a)*r,z=Math.cos(a)*r;
+    if(Math.abs(x)<14||Math.abs(z)<14)continue;
+    courtyardPlants.push({x,y:1.65,z,ry:a,sx:1+rand()*1.5,sy:2+rand()*2,sz:1+rand()*1.5});
+  }
+  inst(detail,'high_detail_pavement_scoring',gBox(1,1,1),m.steel,pathTiles);
+  inst(detail,'etched_gold_filigree',gBox(1,1,1),m.gold,goldInsets);
+  inst(detail,'garden_obelisks',gOct(1),m.steel,smallObelisks);
+  inst(detail,'shaped_planted_trees',gOct(1),m.leaf,courtyardPlants);
+  // Distant particles: high quality only, a single Points draw call.
+  {
+    const count=950;
+    const pos=new Float32Array(count*3),col=new Float32Array(count*3);
+    const c0=new THREE.Color(C.cyan),c1=new THREE.Color(C.gold);
+    for(let i=0;i<count;i++){
+      const a=rand()*TAU,r=22+Math.sqrt(rand())*170;
+      pos[i*3]=Math.cos(a)*r;pos[i*3+1]=5+rand()*170;pos[i*3+2]=Math.sin(a)*r;
+      const c=c0.clone().lerp(c1,rand()*.7);
+      col[i*3]=c.r;col[i*3+1]=c.g;col[i*3+2]=c.b;
+    }
+    const geometry=new THREE.BufferGeometry();
+    geometry.setAttribute('position',new THREE.BufferAttribute(pos,3));
+    geometry.setAttribute('color',new THREE.BufferAttribute(col,3));
+    const material=new THREE.PointsMaterial({size:.45,transparent:true,opacity:.8,depthWrite:false,vertexColors:true,sizeAttenuation:true,blending:THREE.AdditiveBlending});
+    const starfield=new THREE.Points(geometry,material);starfield.name='high_quality_suspended_aether_dust';
+    highAtmosphere.add(starfield);
+  }
+  // A circular ground beam does not require custom shaders / bloom postprocessing.
+  const beamPulse=horizontalRing(animated,'tower_awakened_pulse',39,.32,.74,m.halo,96);
+  beamPulse.visible=false;
+  // Visual-only ornament stones, transformed with parent.
+  const mobileFloat=[];
+  for(let i=0;i<18;i++){
+    const a=TAU*i/18,r=48+(i%3)*2;
+    const gem=mesh(detail,'floating_civic_runestone',gOct(1.45),i%2?m.glow:m.gold,
+      Math.cos(a)*r,8+(i%4)*1.9,Math.sin(a)*r);
+    mobileFloat.push({o:gem,y:gem.position.y,amplitude:.4,speed:1.05,phase:a});
+  }
+  floating.push(...mobileFloat);
+
+  // Offline static batching: the 4 gates and 4 pavilion kits share meshes and
+  // materials. Collapse repeated static meshes to InstancedMeshes for mobile.
+  // Dynamic sigils and the rotating crowns are intentionally excluded.
+  const dynamicSet=new Set([...floating.map(f=>f.o),...energyNodes.map(n=>n.guard)]);
+  function batchStatic(holder,name){
+    root.updateMatrixWorld(true);
+    const inverse=new THREE.Matrix4().copy(holder.matrixWorld).invert();
+    const buckets=new Map();
+    holder.traverse(o=>{
+      if(!o.isMesh||o.isInstancedMesh||dynamicSet.has(o)||!o.geometry||!o.material||Array.isArray(o.material))return;
+      const key=o.geometry.uuid+'|'+o.material.uuid;
+      if(!buckets.has(key))buckets.set(key,[]);
+      buckets.get(key).push(o);
+    });
+    for(const group of buckets.values()){
+      if(group.length<3)continue;
+      const batched=new THREE.InstancedMesh(group[0].geometry,group[0].material,group.length);
+      batched.name=name+'_'+group[0].name;
+      batched.frustumCulled=false;
+      group.forEach((original,i)=>{
+        batched.setMatrixAt(i,new THREE.Matrix4().multiplyMatrices(inverse,original.matrixWorld));
+        original.parent.remove(original);
+      });
+      batched.instanceMatrix.needsUpdate=true;
+      holder.add(batched);
+    }
+  }
+  batchStatic(base,'mobile_static_batch');
+  batchStatic(detail,'high_static_batch');
+
+  function setQuality(mode) {
+    if(disposed)return quality.mode;
+    quality.mode=mode === 'high' ? 'high' : 'lite';
+    const h=quality.mode==='high';detail.visible=h;highAtmosphere.visible=h;
+    return quality.mode;
+  }
+  function update(dt, context={}){
+    if(disposed)return;
+    const d=Math.max(0,Math.min(Number.isFinite(dt)?dt:0,.06));
+    elapsed += d;
+    for(const {obj,speed} of dynamicRings) obj.rotation.y += speed*d;
+    for(const item of floating){
+      item.o.position.y=item.y+Math.sin(elapsed*item.speed+item.phase)*item.amplitude;
+      item.o.rotation.y += d*.19;
+    }
+    for(const node of energyNodes){
+      node.guard.rotation.z += d*(node.activated?.85:.24);
+      node.guard.material=m.glow;
+      node.crystal.scale.setScalar(node.activated?1.25+.06*Math.sin(elapsed*2):1);
+    }
+    if(awakened){
+      beamPulse.visible=true;
+      const scale=1+(.2+elapsed*.07)%1.6;
+      beamPulse.scale.setScalar(scale);
+      beamPulse.material.opacity=.35;
+      crownCrystal.scale.setScalar(1.1+.12*Math.sin(elapsed*2));
+    }
+    const player=context.playerPosition;
+    if(player&&typeof player.x==='number'){
+      // Optional context for hosts. Interaction itself remains an explicit call.
+      root.userData.lastPlayerLocalPosition={x:player.x,y:player.y,z:player.z};
+    }
+  }
+  const pavilionCenters=[[-67,-66],[67,-66],[67,66],[-67,66]];
+  function getFloorHeight(x,z,currentY=GROUND){
+    const r=Math.hypot(x,z);
+    if(currentY>32 && r<24.2) return DECK;
+    if(currentY<32){
+      if(r<40)return .68;
+      for(const [cx,cz] of pavilionCenters){if(Math.hypot(x-cx,z-cz)<11.2)return .98;}
+    }
+    return GROUND;
+  }
+  // Basic collision with solid central tower. The skybridge deck edge is guarded in demo.
+  function resolveHorizontal(x,z,previousX=x,previousZ=z,currentY=GROUND){
+    const radius=Math.hypot(x,z);
+    const minRadius=currentY>32 ? 9.2 : 22.1;
+    if(radius<minRadius){
+      const a=Math.atan2(Math.abs(x)+Math.abs(z)>1e-5?z:previousZ, Math.abs(x)+Math.abs(z)>1e-5?x:(previousX||1));
+      x=Math.cos(a)*minRadius;z=Math.sin(a)*minRadius;
+    }
+    if(currentY<=32){
+      for(const [cx,cz] of pavilionCenters){
+        const px=x-cx,pz=z-cz,dist=Math.hypot(px,pz);
+        if(dist<4.5){
+          const a=Math.atan2(pz||.0001,px||.0001);
+          x=cx+Math.cos(a)*4.5;z=cz+Math.sin(a)*4.5;
+        }
+      }
+    }
+    if(currentY>32){
+      const maxR=23.4,rr=Math.hypot(x,z);
+      if(rr>maxR){x*=maxR/rr;z*=maxR/rr;}
+    } else {
+      const rr=Math.hypot(x,z),maxR=134;
+      if(rr>maxR){x*=maxR/rr;z*=maxR/rr;}
+    }
+    return {x,z};
+  }
+  function getNearbyInteraction(position,range=5){
+    if(!position)return null;
+    let nearest=null,best=Infinity;
+    for(const item of interactables){
+      const dx=item.position.x-position.x,dz=item.position.z-position.z;
+      const dy=Math.abs(item.position.y-position.y);
+      const d=Math.hypot(dx,dz);
+      if(d>range||dy>4.3||d>=best)continue;
+      nearest=item;best=d;
+    }
+    return nearest?{...nearest,distance:best}:null;
+  }
+  function interact(id){
+    const target=interactables.find(e=>e.id===id);
+    if(!target)return {ok:false,message:'不明なエリア操作'};
+    if(target.type==='sigil'){
+      const node=energyNodes.find(e=>e.id===id);
+      if(node.activated)return {ok:true,changed:false,message:'この共鳴碑はすでに起動している。'};
+      node.activated=true;
+      target.state='active';
+      node.crystal.material=m.goldLight;
+      const n=energyNodes.filter(e=>e.activated).length;
+      if(n===3){awakened=true;return {ok:true,changed:true,type:'awakening',activated:n,message:'3つの共鳴碑が同期した。エーテルタワーの冠が目覚めた。'};}
+      return {ok:true,changed:true,type:'sigil',activated:n,message:`${target.label}を起動した。共鳴碑 ${n}/3`};
+    }
+    if(id==='lift-up')return {ok:true,type:'warp',warpTo:{x:18.5,y:DECK,z:0},message:'展望環へ転移。地上約64m。'};
+    if(id==='lift-down')return {ok:true,type:'warp',warpTo:{x:29.2,y:GROUND,z:0},message:'中央広場へ帰還。'};
+    if(id==='observatory')return {ok:true,type:'lore',message:'観測記録：塔の最上部は、都市上空のエーテル潮流を集める羅針盤。かつて9つの浮島が、この塔の共鳴でつながっていた。'};
+    if(id==='archive')return {ok:true,type:'lore',message:'碑文：古代の魔法陣は、機械文明の動力学と一つの言語になった。この中央広場は、その最初の実験跡地だという。'};
+    return {ok:true,message:target.label};
+  }
+  function getState(){return {quality:quality.mode,activated:energyNodes.filter(e=>e.activated).length,awakened,area:'AETHER CROWN - Central Civic Core'};}
+  function getPointsOfInterest(){return [
+    {id:'aether-spire',name:'Aether Spire',x:0,y:0,z:0,radius:22},
+    {id:'north-interface',name:'Sky Transit Gateway',x:0,y:0,z:-112,radius:11},
+    {id:'east-interface',name:'Forge Gateway',x:112,y:0,z:0,radius:11},
+    {id:'south-interface',name:'Arrival Gateway',x:0,y:0,z:112,radius:11},
+    {id:'west-interface',name:'Archive Gateway',x:-112,y:0,z:0,radius:11},
+    ...interactables.map(o=>({id:o.id,name:o.label,...o.position}))
+  ];}
+  function dispose(){
+    if(disposed)return;
+    disposed=true;
+    const geometrySet=new Set(),materialSet=new Set();
+    root.traverse(o=>{
+      if(o.geometry)geometrySet.add(o.geometry);
+      if(o.material){for(const mat of (Array.isArray(o.material)?o.material:[o.material]))materialSet.add(mat);}
+    });
+    for(const mat of Object.values(m))materialSet.add(mat);
+    for(const geo of geoCache.values())geometrySet.add(geo);
+    geometrySet.forEach(v=>v.dispose?.());
+    materialSet.forEach(v=>v.dispose?.());
+    disposables.forEach(v=>v.dispose?.());
+    root.clear();
+    if(root.parent)root.parent.remove(root);
+  }
+  setQuality(options.quality || 'lite');
+  root.userData.moduleId='AETHER_FRONTIER_TEAM_01';
+  root.userData.coordinateSystem='Y_UP_FORWARD_NEGATIVE_Z_METERS';
+  root.userData.integrationZones=getPointsOfInterest().filter(p=>p.id.endsWith('interface'));
+  return {root,update,setQuality,dispose,getFloorHeight,resolveHorizontal,getNearbyInteraction,interact,getState,getPointsOfInterest};
+}
