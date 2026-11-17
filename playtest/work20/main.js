@@ -1,4 +1,6 @@
 import {createSword} from './sword.js';
+import {createAetherRidingModule} from '../../integration/updates/2026-11-17/no13/aether-riding.js';
+import {createVhalkorVisualUpgrade} from '../../integration/updates/2026-11-17/no13/aether-visual-upgrade.js';
 import {captureModuleProgress,restoreModuleProgress} from './module-progress.js';
 import * as THREE from './vendor/three.module.js';
 import {createWorld,V,cityStart,shipBerth,islandOffset,vaultOffset,arena,arenaSpawn} from './world.js';
@@ -88,6 +90,7 @@ async function boot(renderer) {
     if(saved&&typeof saved==='object') {
       progress={unlocked:saved.unlocked===true,beacons:Array.isArray(saved.beacons)?saved.beacons.filter(id=>islands.metadata.beaconIds.includes(id)):[],vaultCleared:saved.vaultCleared===true,won:saved.won===true,golem:saved.golem===true,aegis:saved.aegis===true};
       for(const id of progress.beacons)islands.activateBeacon(id);
+      if(saved.no01Walking)city.walking.setProgress(saved.no01Walking);
       if(saved.vault)vault.setState(saved.vault);
       if(saved.wilds)exploration.areas.get('wilds').module.instance.loadState(saved.wilds);
       if(saved.moduleStates){
@@ -106,14 +109,15 @@ async function boot(renderer) {
         ...progress,
         vault:vault.getState(),
         wilds:exploration.areas.get('wilds').module.instance.getState(),
-        moduleStates:captureModuleProgress(exploration.areas)
+        moduleStates:captureModuleProgress(exploration.areas),
+        no01Walking:city.walking.getState().discovered
       }));
     } catch {}
   }
   function saveOnHidden(){if(document.visibilityState==='hidden')save();}
   document.addEventListener('visibilitychange',saveOnHidden);
 
-  let playing=false,started=false,flying=false,driving=false,quality='lite',attackPressed=false;
+  let playing=false,started=false,flying=false,driving=false,dragonMounted=false,quality='lite',attackPressed=false;
   let prevInput={},health=100,noticeUntil=0,damageUntil=0;
   let lastTime=0,time=0,walkPhase=0,hudTimer=0;
   let droneHP=100,bossHP=360,droneTimer=2,bossTimer=2,bossPhase='idle';
@@ -132,6 +136,38 @@ async function boot(renderer) {
     return {mesh,velocity:V(),life:0,enemy:null,hostile:false};
   });
   dragon.root.position.copy(bossHome);
+  // No.13 additions attach to the legacy boss geometry. The world remains the
+  // sole owner of the renderer, camera, player health, and combat progression.
+  const dragonRider=createAetherRidingModule(THREE,dragon,{
+    quality:'lite',unlocked:progress.won,showPreviewRider:true,maxAltitude:220,
+    groundHeight:(x,z)=>{
+      const h=world.ground(x,z,dragon.root.position.y);
+      return Number.isFinite(h)?h:arena.y;
+    }
+  });
+  const dragonVisual=createVhalkorVisualUpgrade(THREE,dragon,{quality:'lite'});
+  const dragonSaddle=V(),dragonCameraOffset=V();
+  perf.registerClient('no13-riding',{setQuality:mode=>{
+    dragonRider.setQuality(mode==='high'?'high':'low');
+    dragonVisual.setQuality(mode==='high'?'high':'low');
+  }});
+  dragonRider.onEvent(event=>{
+    if(event.type==='mountComplete')notify('騎乗完了。E／離陸で飛び立てる');
+    else if(event.type==='takeoffComplete')notify('VHALKOR 飛行中。W/S加減速、A/D旋回、Space/Q昇降');
+    else if(event.type==='landingComplete')notify('着陸完了。F／降機で降りられる');
+    else if(event.type==='dismountComplete'){
+      // Put the human controller back onto a reachable foot-level surface.
+      dragonMounted=false;
+      point.set(5.4,0,-2.3).applyAxisAngle(THREE.Object3D.DEFAULT_UP,dragon.root.rotation.y).add(dragon.root.position);
+      const h=world.ground(point.x,point.z,dragon.root.position.y);
+      if(Number.isFinite(h))point.y=h;
+      else point.copy(dragon.root.position);
+      player.root.visible=true;player.setEnabled(true);
+      warp(point,-dragon.root.rotation.y);
+      updateButtons();notify('VHALKORから降りた');
+    }
+  });
+
   drone.root.position.copy(droneHome);
   ship.root.visible=true;
   ship.root.position.copy(shipParking);
@@ -142,7 +178,7 @@ async function boot(renderer) {
   for(const {key,label} of exploration.areas.values())destination.add(new Option(label,key));
   travel.addEventListener('submit',event=>{
     event.preventDefault();
-    if(!playing||flying||driving||player.root.position.distanceTo(exploration.hub)>5)return;
+    if(!playing||flying||driving||dragonMounted||player.root.position.distanceTo(exploration.hub)>5)return;
     const area=exploration.areas.get(destination.value);
     if(!area)return;
     warp(area.spawn);travel.hidden=true;notify(area.label);
@@ -151,6 +187,7 @@ async function boot(renderer) {
   const waypoints=[null,...Array.from(exploration.areas.values()).filter(area=>area.key!=='lab')];
   let waypointIndex=0;
   nav.addEventListener('click',()=>{
+    if(dragonMounted){if(!dragonRider.dismount())notify('着陸してから降機できる');return;}
     waypointIndex=(waypointIndex+1)%waypoints.length;
     nav.setAttribute('aria-label','航路目標 '+(waypoints[waypointIndex]?.label??'任務'));
   });
@@ -197,11 +234,11 @@ async function boot(renderer) {
   function updateButtons() {
     if(!mobileButtons)return;
     mobileButtons.hidden=!playing;
-    mobileButtons.querySelector('.jump').textContent=flying?'上昇':'ジャンプ';
-    mobileButtons.querySelector('.dash').textContent=flying?'下降':driving?'ドリフト':'ダッシュ';
-    mobileButtons.querySelector('.sprint').textContent=flying||driving?'加速':'走る';
-    mobileButtons.querySelector('.action').textContent=flying?'着陸':driving?'降りる':'調べる';
-    touchAttack.hidden=flying||driving;
+    mobileButtons.querySelector('.jump').textContent=flying||dragonMounted?'上昇':'ジャンプ';
+    mobileButtons.querySelector('.dash').textContent=flying||dragonMounted?'下降':driving?'ドリフト':'ダッシュ';
+    mobileButtons.querySelector('.sprint').textContent=flying||driving||dragonMounted?'加速':'走る';
+    mobileButtons.querySelector('.action').textContent=dragonMounted?(dragonRider.getState().state==='ready'?'離陸':'着陸'):flying?'着陸':driving?'降りる':'調べる';
+    touchAttack.hidden=flying||driving||dragonMounted;
   }
   function pause() {
     save();
@@ -230,7 +267,16 @@ async function boot(renderer) {
     if(playing&&event.pointerType==='mouse'&&event.button===0&&input.locked)attackPressed=true;
   });
   addEventListener('keydown',event=>{
-    if(event.code==='KeyR'&&!event.repeat&&playing)attackPressed=true;
+    if(event.code==='KeyR'&&!event.repeat&&playing&&!dragonMounted)attackPressed=true;
+    if(event.code==='KeyF'&&!event.repeat&&playing){
+      if(dragonMounted){
+        if(!dragonRider.dismount())notify('着陸してから降機できる');
+      }else if(!flying&&!driving){
+        const pos=player.root.position;
+        const action=currentAction(pos,world.zoneAt(pos.x,pos.z,pos.y));
+        if(action?.label==='VHALKORに騎乗')action.run();
+      }
+    }
     if(event.code==='Escape'&&playing&&!input.locked&&touch)pause();
   });
   updateButtons();
@@ -283,9 +329,20 @@ async function boot(renderer) {
     ship.root.position.copy(shipParking);
   }
   function currentAction(pos,zone) {
-    if(flying||driving)return null;
+    if(flying||driving||dragonMounted)return null;
     const near=(p,r=4.5)=>p.distanceToSquared(pos)<r*r;
     if(zone==='city'&&near(exploration.hub,5))return {label:'探索ゲートを開く',run:()=>{travel.hidden=!travel.hidden;}};
+    if(progress.won&&dragonRider.getState().state==='grounded'&&
+       pos.distanceToSquared(dragon.root.position)<29*29){
+      return {label:'VHALKORに騎乗',run:()=>{
+        dragonRider.unlock();
+        if(dragonRider.mount()){
+          health=Math.max(health,1);
+          dragonMounted=true;player.setEnabled(false);player.root.visible=false;
+          clearBolts();updateButtons();notify('VHALKOR騎乗中。自動で背中へ移動する');
+        }
+      }};
+    }
     const vehicleAction=vehicles.action(pos,zone);
     if(vehicleAction)return vehicleAction;
     if(zone==='wilds'&&near(vehicles.rover.root.position,5))return {label:'RIFT HOUNDに乗る',run:()=>{
@@ -402,7 +459,7 @@ async function boot(renderer) {
       }else if(zone==='arena'){
         const damage=bossPhase==='recover'?Math.round(amount*1.5):amount;
         bossHP=Math.max(0,bossHP-damage);bossFlinch=.25;
-        if(!bossHP){progress.won=true;save();dragon.setPhase('land');notify('VHALKOR撃破。空環航路を確保した',8);}
+        if(!bossHP){progress.won=true;dragonRider.unlock();save();dragon.setPhase('land');notify('VHALKOR撃破。近づいてE／Fで騎乗できる！',8);}
         else notify('VHALKOR 命中 '+damage+(bossPhase==='recover'?'　硬直中':''),
           bossPhase==='charge'?.8:1.2);
       }else{
@@ -419,7 +476,7 @@ async function boot(renderer) {
     for(let i=bolts.length-1;i>=0;i--){
       const b=bolts[i];b.life-=dt;
       b.mesh.position.addScaledVector(b.velocity,dt);
-      if(b.hostile&&!flying&&b.mesh.position.distanceToSquared(scratch.copy(pos).add(playerEye.set(0,1,0)))<1.1){
+      if(b.hostile&&!flying&&!dragonMounted&&b.mesh.position.distanceToSquared(scratch.copy(pos).add(playerEye.set(0,1,0)))<1.1){
         hurt(13);b.life=0;
       }
       if(b.life<=0){b.life=0;b.mesh.visible=false;bolts.splice(i,1);}
@@ -442,10 +499,10 @@ async function boot(renderer) {
         emitBolt(drone.root.position,direction,16,true);
       }
     }
-    const active=zone==='arena';
+    const active=zone==='arena'||dragonMounted||(progress.won&&pos.distanceToSquared(dragon.root.position)<180*180);
     dragon.root.visible=active;
     bossWarning.visible=active&&bossHP>0&&(bossPhase==='charge'||bossPhase==='breath');
-    if(active){
+    if(active&&!dragonMounted){
       if(bossHP>0&&!flying) {
         bossTimer-=dt;
         if(bossTimer<=0){
@@ -526,7 +583,7 @@ async function boot(renderer) {
     const area=exploration.areas.get(zone);
     const waypoint=flying?waypoints[waypointIndex]:null;
     const target=waypoint?.spawn??(area?null:primaryTarget);
-    nav.hidden=!flying;
+    nav.hidden=!flying&&!dragonMounted;nav.textContent=dragonMounted?'降機':'航路';
     ui.region.textContent=labels[zone];
     ui.chapter.textContent='0'+(chapter+1)+' / 05';
     const v=vault.getProgress();
@@ -558,10 +615,11 @@ async function boot(renderer) {
     if(extra&&enemy===extra){const status=encounters.hud(extra);ui.enemyName.textContent=status.name;ui.enemyHP.value=status.ratio*100;}
     else if(enemy){ui.enemyName.textContent=enemy==='boss'?'VHALKOR':'SERAPH-11 / 防衛機';ui.enemyHP.value=enemy==='boss'?bossHP/3.6:droneHP;}
     ui.health.value=health;
-    ui.flight.hidden=!flying&&!driving;
+    ui.flight.hidden=!flying&&!driving&&!dragonMounted;
+    if(dragonMounted)ui.flight.textContent='VHALKOR · '+Math.round(dragonRider.getState().speed*3.6)+' km/h · '+Math.round(dragonRider.getState().altitude)+'m';
     if(driving)ui.flight.textContent=Math.round(Math.abs(vehicles.driver.state.speed)*3.6)+' km/h  ·  RIFT HOUND';
     if(flying)ui.flight.textContent=Math.round(flight.speed*3.6)+' km/h  ·  高度 '+Math.round(flight.position.y)+' m  ·  Tier '+flight.tier;
-    const hint=driving?'停止して降りる':flying?(landingCandidate()?'着陸可能':'Space / Q  上昇・下降'):action?.label||'';
+    const hint=dragonMounted?(dragonRider.getState().state==='ready'?'E／離陸、F／降機':dragonRider.getState().state==='flying'?'E／着陸、WASD／操縦':'VHALKOR騎乗モーション中'):driving?'停止して降りる':flying?(landingCandidate()?'着陸可能':'Space / Q  上昇・下降'):action?.label||'';
     if(hint!==currentHint) {
       currentHint=hint;ui.prompt.hidden=!hint;
       ui.prompt.textContent=hint?(!touch&&action?'E  ·  ':'')+(touch&&hint.startsWith('Space')?'上昇・下降で高度調整':hint):'';
@@ -636,7 +694,29 @@ async function boot(renderer) {
       time+=dt;
       const actionEdge=controls.action&&!prevInput.action;
       if(controls.toggleView&&!prevInput.toggleView)toggleView();
-      if(flying){
+      if(dragonMounted){
+        const ridingState=dragonRider.getState().state;
+        dragonRider.setInput({forward:controls.moveY,turn:controls.moveX,
+          climb:(controls.jump?1:0)-(controls.dash?1:0),
+          pitch:THREE.MathUtils.clamp(-(controls.lookY||0)*5,-1,1),boost:controls.sprint});
+        if(actionEdge){
+          if(ridingState==='ready')dragonRider.takeoff();
+          else if(ridingState==='flying'){
+            const h=world.ground(dragon.root.position.x,dragon.root.position.z,dragon.root.position.y);
+            if(Number.isFinite(h))dragonRider.land();
+            else notify('歩ける地面の上で着陸してくれ');
+          }
+        }
+        dragonRider.update(dt);
+        pos=dragonRider.getMountWorldPosition(dragonSaddle);
+        const fps=player.getMode()==='fps';
+        dragonCameraOffset.set(0,fps?.9:8.5,fps?-1.9:23).applyEuler(dragon.root.rotation);
+        camera.position.copy(pos).add(dragonCameraOffset);
+        dragonCameraOffset.set(0,fps?.3:1,fps?-45:-22).applyEuler(dragon.root.rotation);
+        flightFocus.copy(pos).add(dragonCameraOffset);
+        camera.lookAt(flightFocus);
+        weaponPivot.visible=false;
+      }else if(flying){
         pos=updateFlight(dt,controls);
         if(actionEdge){land();if(!flying)pos=player.root.position;}
       } else if(driving){
@@ -664,18 +744,19 @@ async function boot(renderer) {
       }
       prevInput=controls;
       let zone=world.zoneAt(pos.x,pos.z,pos.y);
-      if(!flying&&zone!=='air')safeZone=zone;
+      if(!flying&&!dragonMounted&&zone!=='air')safeZone=zone;
       if(attackPressed){attack();attackPressed=false;}
-      if(!flying&&!driving)slash(dt,zone,pos);
+      if(!flying&&!driving&&!dragonMounted)slash(dt,zone,pos);
       else sword.reset();
       combat(dt,zone,pos);
-      encounters.update(dt,pos,zone,!flying&&!driving,quality);
+      if(dragon.root.visible)dragonVisual.update(dt,{riderState:dragonRider.getState(),boost:dragonMounted&&controls.sprint});
+      encounters.update(dt,pos,zone,!flying&&!driving&&!dragonMounted,quality);
       if(health<=0||(!flying&&pos.y< -9)){
         resetEncounter(safeZone);pos=player.root.position;zone=world.zoneAt(pos.x,pos.z,pos.y);
       }
       if(time>noticeUntil&&ui.notice.textContent)ui.notice.textContent='';
       if(time>damageUntil&&ui.damage.style.opacity!=='0')ui.damage.style.opacity='0';
-      world.updateVisibility(pos,zone,flying,quality==='high');
+      world.updateVisibility(pos,zone,flying||dragonMounted,quality==='high');
       if(city.root.visible)city.update(dt,{playerPosition:pos});
       if(district.root.visible)district.update(dt);
       if(islands.root.visible)islands.update(dt);
@@ -691,7 +772,7 @@ async function boot(renderer) {
       world.updateVisibility(pos,world.zoneAt(pos.x,pos.z,pos.y),flying,quality==='high');
       if(!started){city.update(dt);ship.update(dt,{flight:{landing:true,speed:0,throttle:0}});dragon.root.visible=false;drone.root.visible=false;}
     }
-    if(!playing||flying||pos.distanceTo(exploration.hub)>5)travel.hidden=true;
+    if(!playing||flying||dragonMounted||pos.distanceTo(exploration.hub)>5)travel.hidden=true;
     exploration.update(dt,pos,world.zoneAt(pos.x,pos.z,pos.y),quality,flying);
     vehicles.update(dt,world.zoneAt(pos.x,pos.z,pos.y),quality);
     atmosphere.update(dt,camera,world.zoneAt(pos.x,pos.z,pos.y),quality,world.ambient,world.sun);
@@ -702,13 +783,13 @@ async function boot(renderer) {
   }
   // Read-only diagnostics for repeatable input and rendering checks in the browser.
   window.aetherStatus=()=>{
-    const position=flying?flight.position:driving?vehicles.rover.root.position:player.root.position;
+    const position=dragonMounted?dragonRider.getMountWorldPosition(dragonSaddle):flying?flight.position:driving?vehicles.rover.root.position:player.root.position;
     return {position:position.toArray(),zone:world.zoneAt(position.x,position.z,position.y),
-      flying,driving,robot:vehicles.robot.instance.getState().form,view:player.getMode(),quality,
+      flying,driving,dragonMounted,dragonState:dragonRider.getState().state,robot:vehicles.robot.instance.getState().form,view:player.getMode(),quality,
       ...progress,beacons:[...progress.beacons],vault:vault.getProgress(),
       weather:atmosphere.module.instance.getState().weather,health,bossHP,droneHP,metrics:perf.getMetrics()};
   };
-  if(progress.won){bossHP=0;dragon.setPhase('land');}
+  if(progress.won){bossHP=0;dragon.setPhase('land');dragonRider.unlock();}
   setQuality('lite');
   addEventListener('pagehide',event=>{
     save();
@@ -718,6 +799,7 @@ async function boot(renderer) {
     removeEventListener('resize',resize);
     input.dispose();
     perf.dispose();
+    dragonVisual.dispose();dragonRider.dispose();
     for(const part of [city,district,islands,ship,drone,dragon,vault,player,weapon])part.dispose();
     exploration.dispose();vehicles.dispose();encounters.dispose();atmosphere.dispose();
     audio?.close().catch(()=>{});

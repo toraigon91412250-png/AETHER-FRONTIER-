@@ -1,0 +1,49 @@
+{
+  "date": "2026-11-17",
+  "new_modules": {
+    "01": {
+      "zip_name": "AETHER_01_WALKING_CITY_V1_1_SOURCE(1).zip",
+      "zip_sha256": "77aa45d98b5f2648e7fe490cb6364cc527ede35454459dbd2fd04d44109ceb02",
+      "versioned_source_path": "integration/updates/2026-11-17/no01/"
+    },
+    "10": {
+      "zip_name": "AETHER_FRONTIER_No10_Refinement_v2_Source(1).zip",
+      "zip_sha256": "dcc5ce20d40c5ea12b43ae02a416d17d957f02bc90d2e836445e45f357167c73",
+      "versioned_source_path": "integration/updates/2026-11-17/no10/"
+    },
+    "11": {
+      "zip_name": "AETHER_FRONTIER_No11_SERAPH_11_V2_SOURCE(1).zip",
+      "zip_sha256": "b6f97c91e7dd24cc6c41ddfcfc67378524439444f01ccc6806e661d1c6c9e968",
+      "versioned_source_path": "integration/updates/2026-11-17/no11/"
+    },
+    "13": {
+      "zip_name": "AETHER_FRONTIER_No13_VHALKOR_RIFT_CROWN_V12_SOURCE(1).zip",
+      "zip_sha256": "f04153858282eff9cbf3aac0e36ace567cde711d78e4459d5de05f4ec4b0463b",
+      "versioned_source_path": "integration/updates/2026-11-17/no13/"
+    },
+    "16": {
+      "zip_name": "AETHER_FRONTIER_No16_Integration_v1.1(1).zip",
+      "zip_sha256": "a59d02e28f76f47bcad0664d953d0bae75abb6d5d51545b84290deb5055ba984",
+      "versioned_source_path": "integration/updates/2026-11-17/no16/"
+    },
+    "18": {
+      "zip_name": "AETHER_FRONTIER_No18_ETHERWEAVE_v1_1_SOURCE(1).zip",
+      "zip_sha256": "bb5f111026edd55a765bc630fbd7c18520e27f0dc00b954b21530e1f3e8bb02f",
+      "versioned_source_path": "integration/updates/2026-11-17/no18/"
+    }
+  },
+  "unchanged_upload_team_ids": [
+    "02",
+    "03",
+    "05",
+    "06",
+    "07",
+    "08",
+    "09",
+    "12",
+    "14",
+    "15",
+    "20"
+  ],
+  "notes": "No04,No17,No19 new revisions not uploaded; their original team modules remain."
+}

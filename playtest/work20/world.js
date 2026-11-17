@@ -5,10 +5,11 @@ import {addVehicles} from './vehicles.js';
 import {createExploration} from './exploration.js';
 import * as THREE from './vendor/three.module.js';
 import {createAetherModule as createCity} from './modules/city.js';
+import {enhanceCity} from '../../integration/updates/2026-11-17/no01/aether-walking-city.js';
 import {createAetherModule as createDistrict} from './modules/district.js';
 import {createAetherModule as createIslands} from './modules/islands.js';
 import {createAetherModule as createShip} from './modules/ship.js';
-import {createAetherModule as createDrone} from './modules/drone.js';
+import {createAetherModule as createDrone} from '../../integration/updates/2026-11-17/no11/aether-drone.js';
 import {createAetherModule as createDragon} from './modules/dragon.js';
 import {createAetherModule as createVault} from './modules/vault.js';
 
@@ -24,7 +25,7 @@ export async function createWorld(scene) {
   const exploration=await createExploration(THREE,scene);
   const vehicles=await addVehicles(THREE,scene,exploration);
   const encounters=await createEncounters(THREE,scene,exploration.areas.get('wilds'));
-  const city = createCity(THREE,{quality:'lite'});
+  const city = enhanceCity(THREE,createCity(THREE,{quality:'lite'}),{quality:'lite'});
   const atmosphere=await createAtmosphere(THREE,scene,city);
   const district = createDistrict(THREE,{quality:'low',origin:{x:0,y:.1,z:-214}});
   const islands = createIslands(THREE,{quality:'lite',includeSky:false});
