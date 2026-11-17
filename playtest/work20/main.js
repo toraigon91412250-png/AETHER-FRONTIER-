@@ -1,4 +1,5 @@
 import {createSword} from './sword.js';
+import {captureModuleProgress,restoreModuleProgress} from './module-progress.js';
 import * as THREE from './vendor/three.module.js';
 import {createWorld,V,cityStart,shipBerth,islandOffset,vaultOffset,arena,arenaSpawn} from './world.js';
 import {AetherFlightController} from './modules/flight.js';
@@ -89,13 +90,28 @@ async function boot(renderer) {
       for(const id of progress.beacons)islands.activateBeacon(id);
       if(saved.vault)vault.setState(saved.vault);
       if(saved.wilds)exploration.areas.get('wilds').module.instance.loadState(saved.wilds);
+      if(saved.moduleStates){
+        const restored=restoreModuleProgress(exploration.areas,saved.moduleStates);
+        if(restored.errors.length)console.warn('AETHER save restore:',restored.errors);
+      }
     }
   } catch {}
   encounters.restore(progress);
   encounters.setHandlers({damage:hurt,report:notify,defeated(id){progress[id]=true;save();notify(id==='golem'?'VESTIGE-Ω 撃破':'AEGIS-IX 撃破',5);}});
+  let resettingProgress=false;
   function save() {
-    try {localStorage.setItem(progressKey,JSON.stringify({...progress,vault:vault.getState(),wilds:exploration.areas.get('wilds').module.instance.getState()}));} catch {}
+    if(resettingProgress)return;
+    try {
+      localStorage.setItem(progressKey,JSON.stringify({
+        ...progress,
+        vault:vault.getState(),
+        wilds:exploration.areas.get('wilds').module.instance.getState(),
+        moduleStates:captureModuleProgress(exploration.areas)
+      }));
+    } catch {}
   }
+  function saveOnHidden(){if(document.visibilityState==='hidden')save();}
+  document.addEventListener('visibilitychange',saveOnHidden);
 
   let playing=false,started=false,flying=false,driving=false,quality='lite',attackPressed=false;
   let prevInput={},health=100,noticeUntil=0,damageUntil=0;
@@ -188,6 +204,7 @@ async function boot(renderer) {
     touchAttack.hidden=flying||driving;
   }
   function pause() {
+    save();
     playing=false;input.setEnabled(false);attackPressed=false;
     document.body.classList.remove('playing');
     ui.cover.hidden=false;ui.start.textContent='探索に戻る';ui.reset.hidden=false;
@@ -204,7 +221,9 @@ async function boot(renderer) {
     if(!started){started=true;warp(cityStart,-.10);notify('金色のマーカーで飛行艇解放。右手の探索ゲートで各地へ',5);}
   });
   ui.reset.addEventListener('click',()=>{
-    try {localStorage.removeItem(progressKey);} catch {}
+    // Store a deliberate blank Work20 save instead of reviving a legacy save.
+    resettingProgress=true;
+    try {localStorage.setItem(progressKey,JSON.stringify(defaults()));} catch {}
     location.reload();
   });
   ui.world.addEventListener('pointerdown',event=>{
@@ -692,7 +711,9 @@ async function boot(renderer) {
   if(progress.won){bossHP=0;dragon.setPhase('land');}
   setQuality('lite');
   addEventListener('pagehide',event=>{
+    save();
     if(event.persisted)return;
+    document.removeEventListener('visibilitychange',saveOnHidden);
     cancelAnimationFrame(animationFrame);
     removeEventListener('resize',resize);
     input.dispose();
