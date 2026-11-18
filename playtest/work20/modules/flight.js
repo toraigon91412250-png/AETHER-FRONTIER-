@@ -11,12 +11,13 @@ export class AetherFlightController {
     this.quaternion=new THREE.Quaternion();
     this.euler=new THREE.Euler(0,0,0,'YXZ');
     this.yaw=0;this.pitch=0;this.bank=0;
-    this.speed=0;this.throttle=.32;this.liftVelocity=0;
+    this.speed=0;this.throttle=.32;this.liftVelocity=0;this.boosting=false;
     this.energy=100;this.tier=1;this.travelled=0;
     this.minAltitude=options.minAltitude??5;
-    this.maxAltitude=options.maxAltitude??230;
-    this.maxRange=options.maxRange??850;
-    this.maxSpeedByTier=options.maxSpeedByTier||[27,38,52];
+    this.maxAltitude=options.maxAltitude??280;
+    this.maxRange=options.maxRange??1600;
+    this.maxSpeedByTier=options.maxSpeedByTier||[160,200,240];
+    this.boostMultiplier=options.boostMultiplier??2.35;
     this._move=new THREE.Vector3();
     this._forward=new THREE.Vector3();
     this._right=new THREE.Vector3();
@@ -26,7 +27,7 @@ export class AetherFlightController {
   reset(position=[0,18,40]){
     this.position.set(...position);this.yaw=0;this.pitch=0;this.bank=0;
     this.euler.set(0,0,0,'YXZ');this.quaternion.setFromEuler(this.euler);
-    this.speed=0;this.throttle=.32;this.liftVelocity=0;
+    this.speed=0;this.throttle=.32;this.liftVelocity=0;this.boosting=false;
     this.energy=100;this.tier=1;this.travelled=0;
   }
   setTier(tier){this.tier=Math.max(1,Math.min(this.maxSpeedByTier.length,Math.round(tier)||1));}
@@ -37,37 +38,46 @@ export class AetherFlightController {
     const yaw=clamp(input.yaw||0,-1,1), pitch=clamp(input.pitch||0,-1,1);
     const lift=clamp(input.lift||0,-1,1), th=clamp(input.throttle||0,-1,1);
     const strafe=clamp(input.strafe||0,-1,1);
-    this.throttle=clamp(this.throttle+th*dt*.46,0,1);
-    const boost=!!input.boost && this.energy>1 && this.throttle>.10 && !input.brake;
-    const limit=this.maxSpeed*(boost?1.55:1);
-    const target=input.brake?0:this.throttle*limit;
-    const response=input.brake?4.5:1.65;
-    this.speed+=(target-this.speed)*Math.min(1,dt*response);
-    this.energy=clamp(this.energy+dt*(boost?-21:9.5),0,100);
-    const steerRate=.78+.017*this.speed;
+    const braking=!!input.brake;
+    // Airbrake snaps throttle to idle so the craft does not automatically accelerate.
+    this.throttle=braking?0:clamp(this.throttle+th*dt*1.20,0,1);
+    this.boosting=!!input.boost&&this.throttle>.10&&!braking;
+    const limit=this.maxSpeed*(this.boosting?this.boostMultiplier:1);
+    const target=braking?0:this.throttle*limit;
+    const response=braking?7:2.35;
+    this.speed+=(target-this.speed)*(1-Math.exp(-dt*response));
+    if(this.speed<.015)this.speed=0;
+    this.energy=100; // Legacy telemetry preserved; hyperdrive is unlimited.
+    // Yaw slows smoothly with speed; old controller spun faster at high velocity.
+    const steerRate=.26+1.30/(1+this.speed/125);
     this.yaw-=yaw*dt*steerRate;
-    this.pitch=clamp(this.pitch+pitch*dt*.70,-.50,.53);
-    if(Math.abs(pitch)<.04)this.pitch*=Math.max(0,1-dt*.09);
-    const bankGoal=-yaw*.52-strafe*.2;
-    this.bank+=(bankGoal-this.bank)*Math.min(1,dt*3.4);
+    this.pitch=clamp(this.pitch+pitch*dt*.68,-.32,.34);
+    if(Math.abs(pitch)<.04)this.pitch*=Math.max(0,1-dt*.11);
+    const bankGoal=-yaw*.45-strafe*.18;
+    this.bank+=(bankGoal-this.bank)*(1-Math.exp(-dt*3.6));
     this.euler.set(this.pitch,this.yaw,this.bank,'YXZ');
     this.quaternion.setFromEuler(this.euler);
     this._forward.set(0,0,-1).applyQuaternion(this.quaternion);
     this._right.set(1,0,0).applyQuaternion(this.quaternion);
     this._move.copy(this._forward).multiplyScalar(this.speed*dt);
-    this._move.addScaledVector(this._right,strafe*dt*7);
-    const verticalTarget=lift*12.5;
-    this.liftVelocity+=(verticalTarget-this.liftVelocity)*Math.min(1,dt*3.3);
-    this._move.y+=this.liftVelocity*dt;
+    this._move.addScaledVector(this._right,strafe*dt*16);
+    const verticalTarget=lift*42;
+    this.liftVelocity+=(verticalTarget-this.liftVelocity)*(1-Math.exp(-dt*4.1));
+    this._move.y=clamp(this._move.y+this.liftVelocity*dt,-85*dt,85*dt);
     const travelled=this._move.length();this.position.add(this._move);this.travelled+=travelled;
     if(this.position.y<this.minAltitude){this.position.y=this.minAltitude;this.liftVelocity=Math.max(0,this.liftVelocity);this.pitch=Math.max(0,this.pitch);}
     if(this.position.y>this.maxAltitude){this.position.y=this.maxAltitude;this.liftVelocity=Math.min(0,this.liftVelocity);}
-    this.position.x=clamp(this.position.x,-this.maxRange,this.maxRange);
-    this.position.z=clamp(this.position.z,-this.maxRange,this.maxRange);
-    return this.telemetry(boost);
+    const newX=clamp(this.position.x,-this.maxRange,this.maxRange);
+    const newZ=clamp(this.position.z,-this.maxRange,this.maxRange);
+    if(newX!==this.position.x||newZ!==this.position.z){
+      this.speed=Math.min(this.speed,36);this.throttle=0;this.boosting=false;
+    }
+    this.position.x=newX;this.position.z=newZ;
+    return this.telemetry(this.boosting);
   }
   telemetry(boost=false){return {
     speed:this.speed,throttle:this.throttle,boost,energy:this.energy,
+    hyperdrive:this.boosting,hyperMaxSpeed:this.maxSpeed*this.boostMultiplier,
     altitude:this.position.y,heading:(this.yaw*180/Math.PI+360)%360,
     pitch:this.pitch,roll:this.bank,tier:this.tier,maxSpeed:this.maxSpeed,
     position:this.position,quaternion:this.quaternion,landing:this.speed<3&&this.position.y<9,

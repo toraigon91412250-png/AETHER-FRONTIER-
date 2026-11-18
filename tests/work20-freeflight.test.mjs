@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {test} from 'node:test';
+import * as THREE from '../playtest/work20/vendor/three.module.js';
+import {AetherFlightController} from '../playtest/work20/modules/flight.js';
+const mk=()=>new AetherFlightController(THREE,{maxRange:50000,maxAltitude:10000,minAltitude:0});
+const run=(f,n,input)=>{for(let i=0;i<n;i++)f.update(1/60,input);};
+test('boost tier3 exceeds 1800km/h',()=>{const f=mk();f.setTier(3);run(f,600,{throttle:1,boost:true});assert.ok(f.speed*3.6>1800);});
+test('cruising reaches tier3 240m/s',()=>{const f=mk();f.setTier(3);run(f,360,{throttle:1});assert.ok(f.speed>235);});
+test('S brakes and holds idle',()=>{const f=mk();f.setTier(3);run(f,400,{throttle:1,boost:true});run(f,45,{throttle:-1,brake:true});assert.ok(f.speed<18);assert.equal(f.throttle,0);run(f,60,{});assert.ok(f.speed<1);});
+test('steering does not increase uncontrollably with speed',()=>{const f=mk();f.setTier(3);run(f,400,{throttle:1,boost:true});const old=f.yaw;f.update(1/60,{yaw:1,boost:true});assert.ok(Math.abs(f.yaw-old)<.024);});
+test('bounds and altitude are enforced',()=>{const f=new AetherFlightController(THREE,{maxRange:200,maxAltitude:70,minAltitude:2});f.setTier(3);run(f,600,{throttle:1,boost:true,lift:1,pitch:1});assert.ok(f.position.y<=70&&f.position.y>=2);assert.ok(Math.abs(f.position.z)<=200);});
+test('legacy telemetry remains',()=>{const f=mk();const s=f.update(1/60,{throttle:1});for(const k of ['speed','throttle','energy','altitude','heading','distance','maxSpeed','position','quaternion'])assert.ok(k in s);});

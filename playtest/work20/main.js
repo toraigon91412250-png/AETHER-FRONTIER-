@@ -14,7 +14,7 @@ import {createAetherModule as createWeapon} from './modules/weapon.js';
 const $=id=>document.getElementById(id);
 const ui=Object.fromEntries(['world','region','view','quality','help','chapter','objective','distance','enemy','enemyName','enemyHP','prompt','notice','flight','health','metrics','damage','cover','start','controls','reset'].map(id=>[id,$(id)]));
 const touch=matchMedia('(pointer: coarse)').matches;
-ui.controls.textContent=touch?'左スティックで移動。右側をスワイプで視点操作。飛行中はスティック上下で加減速、上昇・下降ボタンで高度調整。':'WASD 移動 ／ マウス 視点 ／ Shift 走る ／ Space ジャンプ ／ Q ダッシュ ／ E 調べる ／ V 視点 ／ クリック・R 攻撃。飛行中は W/S 加減速、A/D 旋回、Space/Q 上昇・下降。';
+ui.controls.textContent=touch?'自由探索！左スティックで移動。飛行艇は前進で加速、後退で急減速、加速ボタンで超高速。':'自由探索！WASD 移動、マウス 視点、E 調べる、V 視点、R 攻撃。飛行艇はW加速／Sエアブレーキ／Shift超高速／A-D旋回／Space-Q昇降。';
 let renderer;
 try {
   renderer=new THREE.WebGLRenderer({canvas:ui.world,antialias:false});
@@ -75,7 +75,7 @@ async function boot(renderer) {
   const player=createPlayer(THREE,{camera,scene,avatar,position:cityStart,mode:'tps',yaw:-.10,sprintSpeed:11.8,moveSpeed:6.5,orbitDistance:5.6});
   const input=createAetherInputAdapter({domElement:ui.world,showTouch:touch});
   input.setEnabled(false);
-  const flight=new AetherFlightController(THREE,{minAltitude:1.65,maxAltitude:160,maxSpeedByTier:[46,58,69]});
+  const flight=new AetherFlightController(THREE,{minAltitude:1.65,maxAltitude:260,maxRange:1600,maxSpeedByTier:[160,200,240],boostMultiplier:2.35});
   const perf=createPerformance(THREE,{renderer,camera,quality:'lite',adaptive:true,managePixelRatio:true});
   for (const [id,part] of Object.entries({city,district,islands,ship,drone,dragon,vault,player,weapon})) {
     perf.registerClient(id,{setQuality:mode=>part.setQuality(mode==='lite'&&id!=='city'?'low':mode)});
@@ -83,13 +83,13 @@ async function boot(renderer) {
   for(const {module} of exploration.areas.values())perf.registerClient(module.id,module);
   for(const module of [vehicles.robot,vehicles.rover,...encounters.modules,atmosphere.module])perf.registerClient(module.id,module);
   const progressKey='aether-frontier-work20-v1';
-  const defaults=()=>({unlocked:false,beacons:[],vaultCleared:false,won:false,golem:false,aegis:false});
+  const defaults=()=>({unlocked:true,beacons:[],vaultCleared:false,won:false,golem:false,aegis:false});
   let progress=defaults();
   try {
     // Prefer the new save, but import original-game progress when upgrading.
     const saved=JSON.parse(localStorage.getItem(progressKey) ?? localStorage.getItem('aether-frontier-00-v01') ?? 'null');
     if(saved&&typeof saved==='object') {
-      progress={unlocked:saved.unlocked===true,beacons:Array.isArray(saved.beacons)?saved.beacons.filter(id=>islands.metadata.beaconIds.includes(id)):[],vaultCleared:saved.vaultCleared===true,won:saved.won===true,golem:saved.golem===true,aegis:saved.aegis===true};
+      progress={unlocked:true,beacons:Array.isArray(saved.beacons)?saved.beacons.filter(id=>islands.metadata.beaconIds.includes(id)):[],vaultCleared:saved.vaultCleared===true,won:saved.won===true,golem:saved.golem===true,aegis:saved.aegis===true};
       for(const id of progress.beacons)islands.activateBeacon(id);
       if(saved.no01Walking)city.walking.setProgress(saved.no01Walking);
       if(saved.vault)vault.setState(saved.vault);
@@ -186,14 +186,24 @@ async function boot(renderer) {
     warp(area.spawn);travel.hidden=true;notify(area.label);
   });
   const nav=document.getElementById('nav');
-  const waypoints=[null,...Array.from(exploration.areas.values()).filter(area=>area.key!=='lab')];
+  const waypoints=[null,{key:'city',label:'中央都市',spawn:shipBerth},{key:'islands',label:'天空浮遊島',spawn:world.dock},...Array.from(exploration.areas.values()).filter(area=>area.key!=='lab')];
   let waypointIndex=0;
   nav.addEventListener('click',()=>{
     if(dragonMounted){if(!dragonRider.dismount())notify('着陸してから降機できる');return;}
     waypointIndex=(waypointIndex+1)%waypoints.length;
-    nav.setAttribute('aria-label','航路目標 '+(waypoints[waypointIndex]?.label??'任務'));
+    nav.setAttribute('aria-label','航路 '+(waypoints[waypointIndex]?.label??'自由航行'));
+    notify(waypoints[waypointIndex]?'航路：'+waypoints[waypointIndex].label:'自由航行モード',1.8);
   });
-  const missionNames=['飛行艇を起動する','浮遊島で共鳴碑を1基起動する','星環遺構を開く','VHALKORを撃破する','航路を確保した'];
+  const explorationHints={
+    city:'都市を自由に歩く・南の発着場から飛び立つ',
+    district:'市場・住宅街・裏道を探索',bridge:'立体通路を歩く',
+    islands:'浮遊島へ着陸して探索',vault:'古代遺構の仕掛けを探す',
+    arena:'機械竜の闘技場で腕試し',carrier:'空中戦艦の甲板・格納庫を探索',
+    air:'自由飛行中・航路ボタンで行き先を選ぶ',
+    temple:'神殿の封印と隠し通路を探す',
+    lab:'地下研究施設の記録を調べる',plant:'稼働する工場を探索',
+    wilds:'荒野の記憶・遺構・強敵を探索'
+  };
   const mobileButtons=input.ui;
   let touchAttack=null;
   if(mobileButtons) {
@@ -258,7 +268,7 @@ async function boot(renderer) {
     }
     playing=true;ui.cover.hidden=true;document.body.classList.add('playing');
     input.setEnabled(true);prevInput={};updateButtons();
-    if(!started){started=true;warp(cityStart,-.10);notify('金色のマーカーで飛行艇解放。右手の探索ゲートで各地へ',5);}
+    if(!started){started=true;warp(cityStart,-.10);notify('自由探索開始！ 南の発着場で飛行艇に乗れる',5);}
   });
   ui.reset.addEventListener('click',()=>{
     // Store a deliberate blank Work20 save instead of reviving a legacy save.
@@ -298,10 +308,10 @@ async function boot(renderer) {
     const {yaw}=player.getState();
     const p=ship.root.position;
     flight.reset([p.x,p.y,p.z]);flight.yaw=-yaw;
-    flight.throttle=.24;
-    flight.setTier(progress.vaultCleared?3:progress.beacons.length?2:1);
+    flight.throttle=.34;
+    flight.setTier(3); // Free exploration: highest speed from first flight.
     player.setEnabled(false);player.root.visible=false;
-    updateButtons();notify('飛行艇に乗った。E／着陸で降りる');
+    updateButtons();notify('W加速・Shift超高速・Sエアブレーキ。地面付近でE着陸',4);
   }
   function landingCandidate() {
     const p=flight.position;
@@ -314,7 +324,7 @@ async function boot(renderer) {
     return flight.speed<18;
   }
   function land() {
-    if(!landingCandidate()){notify('地面に近づき、減速してから着陸',2.5);return;}
+    if(!landingCandidate()){notify('地面近くでSを押して減速、Eで着陸',2.5);return;}
     const yaw=-flight.yaw;
     flying=false;shipParking.copy(landPoint).y+=1.26;
     ship.root.position.copy(shipParking);ship.root.rotation.set(0,flight.yaw,0);
@@ -547,7 +557,7 @@ async function boot(renderer) {
       throttle:controls.moveY,yaw:THREE.MathUtils.clamp(controls.moveX+(controls.lookX||0)*8,-1,1),
       pitch:THREE.MathUtils.clamp(-(controls.lookY||0)*7,-1,1),
       lift:(controls.jump?1:0)-(controls.dash?1:0)+(updraft?.45:0),
-      boost:controls.sprint,brake:controls.moveY<-.65&&flight.throttle<.09
+      boost:controls.sprint,brake:controls.moveY<-.50
     });
     const zone=world.zoneAt(p.x,p.z,p.y);
     const ground=world.ground(p.x,p.z,p.y);
@@ -556,49 +566,24 @@ async function boot(renderer) {
     ship.root.position.copy(p);ship.root.quaternion.copy(data.quaternion);
     ship.update(dt,{flight:data,...data});
     const fps=player.getMode()==='fps';
-    flightEye.set(0,fps?1.10:4.1,fps?-1.35:12.5).applyQuaternion(flight.quaternion).add(p);
-    flightFocus.set(0,fps?.4:1,fps?-30:-16).applyQuaternion(flight.quaternion).add(p);
+    flightEye.set(0,fps?1.10:4.1,fps?-1.35:12.5+Math.min(17,flight.speed*.033)).applyQuaternion(flight.quaternion).add(p);
+    flightFocus.set(0,fps?.4:1,fps?-30:-16-Math.min(22,flight.speed*.042)).applyQuaternion(flight.quaternion).add(p);
     if(!flightCameraReady||fps)camera.position.copy(flightEye);
     else camera.position.lerp(flightEye,1-Math.exp(-8*dt));
     camera.lookAt(flightFocus);flightCameraReady=true;
     return p;
   }
-  function currentMission(zone,pos) {
-    if(progress.won)return [4,null];
-    if(zone==='arena')return [3,dragon.anchors.core.getWorldPosition(bossAim)];
-    if(zone==='vault'){
-      if(progress.vaultCleared)return [3,world.vaultExit];
-      const p=vault.getProgress();
-      const entries=vault.getInteractables();
-      const target=entries.find(entry=>entry.id===(!p.coreDocked?(p.coreHeld?'socket':'cell'):'gate_main'));
-      return [2,p.coreDocked&&p.aligned<p.total?null:target?.position??null];
-    }
-    if(!progress.unlocked)return [0,world.launchRelay];
-    if(!progress.beacons.length) {
-      const beacon=islands.getBeacons().find(b=>b.id==='power');
-      const target=zone==='islands'||flying?point.set(beacon.x,beacon.y,beacon.z).add(islandOffset):shipParking;
-      return [1,target];
-    }
-    return [progress.vaultCleared?3:2,zone==='islands'||flying?world.dockRelay:shipParking];
-  }
+  // Navigation markers now require manual waypoint selection.
   let currentHint='';
   function renderHUD(zone,pos,action) {
-    const [chapter,primaryTarget]=currentMission(zone,pos);
     const area=exploration.areas.get(zone);
     const waypoint=flying?waypoints[waypointIndex]:null;
-    const target=waypoint?.spawn??(area?null:primaryTarget);
+    const target=waypoint?.spawn??null;
     nav.hidden=!flying&&!dragonMounted;nav.textContent=dragonMounted?'降機':'航路';
     ui.region.textContent=labels[zone];
-    ui.chapter.textContent='0'+(chapter+1)+' / 05';
-    const v=vault.getProgress();
-    const localObjective=zone==='wilds'?`星脈の記憶 ${area.module.instance.getState().progress}/5 · 北にゴーレム／西にAEGIS-IX`:
-      zone==='carrier'?'後部右舷のスロープから格納庫へ':
-      zone==='temple'?'東西の星印と中央の星核を起動':
-      zone==='plant'?'補助設備を3つ起動し、主制御盤へ':
-      area?.module.instance.getObjective?.();
-    ui.objective.textContent=waypoint?'航路目標 · '+waypoint.label:localObjective??(zone==='vault'&&!progress.vaultCleared
-      ?'星核と位相盤を揃える　'+v.aligned+'/'+v.total+'　'+(v.coreDocked?'星核接続済':v.coreHeld?'星核運搬中':'星核を回収')
-      :missionNames[chapter]);
+    ui.chapter.textContent='OPEN WORLD · 自由探索';
+    ui.objective.textContent=waypoint?'探索先：'+waypoint.label:
+      (explorationHints[zone]??area?.label??'気になる場所へ自由に探索');
     if(flying&&target){
       direction.copy(target).sub(pos);
       const relative=Math.atan2(direction.x,-direction.z)+flight.yaw;
@@ -622,7 +607,7 @@ async function boot(renderer) {
     ui.flight.hidden=!flying&&!driving&&!dragonMounted;
     if(dragonMounted)ui.flight.textContent='VHALKOR · '+Math.round(dragonRider.getState().speed*3.6)+' km/h · '+Math.round(dragonRider.getState().altitude)+'m';
     if(driving)ui.flight.textContent=Math.round(Math.abs(vehicles.driver.state.speed)*3.6)+' km/h  ·  RIFT HOUND';
-    if(flying)ui.flight.textContent=Math.round(flight.speed*3.6)+' km/h  ·  高度 '+Math.round(flight.position.y)+' m  ·  Tier '+flight.tier;
+    if(flying)ui.flight.textContent='LUMEN KESTREL · '+Math.round(flight.speed*3.6)+' km/h · 高度 '+Math.round(flight.position.y)+'m'+(flight.boosting?' · HYPER':'');
     // No permanent central guidance. Only display a nearby interaction.
     const hint=(!flying&&!driving&&!dragonMounted&&action?.label)||'';
     if(hint!==currentHint){
