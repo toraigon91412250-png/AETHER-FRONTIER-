@@ -1,4 +1,5 @@
 import {createSword} from './sword.js';
+import {createReadabilityMaterials} from './visual-clarity.js';
 import {createAetherRidingModule} from '../../integration/updates/2026-11-17/no13/aether-riding.js';
 import {createVhalkorVisualUpgrade} from '../../integration/updates/2026-11-17/no13/aether-visual-upgrade.js';
 import {captureModuleProgress,restoreModuleProgress} from './module-progress.js';
@@ -33,7 +34,7 @@ async function boot(renderer) {
   renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
   renderer.outputColorSpace=THREE.SRGBColorSpace;
   renderer.toneMapping=THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure=1.1;
+  renderer.toneMappingExposure=1.43;
   const scene=new THREE.Scene();
   const camera=new THREE.PerspectiveCamera(66,1,.09,1450);
   scene.add(camera);
@@ -146,6 +147,7 @@ async function boot(renderer) {
     }
   });
   const dragonVisual=createVhalkorVisualUpgrade(THREE,dragon,{quality:'lite'});
+  const readableMaterials=createReadabilityMaterials(scene);
   const dragonSaddle=V(),dragonCameraOffset=V();
   perf.registerClient('no13-riding',{setQuality:mode=>{
     dragonRider.setQuality(mode==='high'?'high':'low');
@@ -219,6 +221,7 @@ async function boot(renderer) {
   function setQuality(mode) {
     quality=mode;
     perf.setQuality(mode);
+    readableMaterials.setQuality(mode);
     resize();
     ui.quality.textContent=mode==='lite'?'軽量':'高品質';
     camera.far=mode==='lite'?1000:1450;camera.updateProjectionMatrix();
@@ -788,7 +791,7 @@ async function boot(renderer) {
     if(!playing||flying||dragonMounted||pos.distanceTo(exploration.hub)>5)travel.hidden=true;
     exploration.update(dt,pos,world.zoneAt(pos.x,pos.z,pos.y),quality,flying);
     vehicles.update(dt,world.zoneAt(pos.x,pos.z,pos.y),quality);
-    atmosphere.update(dt,camera,world.zoneAt(pos.x,pos.z,pos.y),quality,world.ambient,world.sun);
+    atmosphere.update(dt,camera,world.zoneAt(pos.x,pos.z,pos.y),quality,world.ambient,world.sun,renderer);
     if(playing||!started)perf.update(raw);
     perf.beginFrame();
     renderer.render(scene,camera);

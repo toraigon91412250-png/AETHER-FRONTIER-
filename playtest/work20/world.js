@@ -91,7 +91,7 @@ export async function createWorld(scene) {
   marker.add(markerMesh);
   ring(1.32,.055,V(),gold,marker);
   scene.add(marker);
-  scene.fog = new THREE.FogExp2(0x9ab6cf,.00265);
+  scene.fog = new THREE.FogExp2(0xa9c6d5,.00145);
   const ambient=new THREE.HemisphereLight(0xd6edff,0x5c5b80,2.1);
   scene.add(ambient);
   const sun = new THREE.DirectionalLight(0xffe7c6,2.1);
@@ -159,7 +159,7 @@ export async function createWorld(scene) {
     link.visible=outdoors&&Math.hypot(x,z)<380;
     vault.root.visible=zone==='vault';
     arenaGroup.visible=zone==='arena'||(flying&&Math.hypot(x-arena.x,z-arena.z)<480);
-    scene.fog.density=high?.00165:.00215;
+    // Atmospheric visibility owns fog density; do not overwrite its adaptive fog here.
   }
   return {exploration,vehicles,encounters,atmosphere,ambient,sun,city,district,islands,ship,drone,dragon,vault,marker,markerMesh,zoneAt,ground,resolve,updateVisibility,
     dock,dockRelay,launchRelay,recoveryRelay,vaultExit,vaultReturn};
