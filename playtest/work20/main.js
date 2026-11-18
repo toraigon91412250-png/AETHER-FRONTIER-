@@ -439,8 +439,9 @@ async function boot(renderer) {
     tone.start();tone.stop(start+.15);
   }
   function attack(){
-    if(flying||driving||!sword.start())return;
-    weapon.playAction('slash');swordSound(false);
+    if(flying||driving||dragonMounted||!sword.start())return;
+    // The weapon is attached to the wrist and follows sword.pose exclusively.
+    swordSound(false);
   }
   function slash(dt,zone,pos){
     const active=encounters.active(pos,zone);
@@ -619,10 +620,11 @@ async function boot(renderer) {
     if(dragonMounted)ui.flight.textContent='VHALKOR · '+Math.round(dragonRider.getState().speed*3.6)+' km/h · '+Math.round(dragonRider.getState().altitude)+'m';
     if(driving)ui.flight.textContent=Math.round(Math.abs(vehicles.driver.state.speed)*3.6)+' km/h  ·  RIFT HOUND';
     if(flying)ui.flight.textContent=Math.round(flight.speed*3.6)+' km/h  ·  高度 '+Math.round(flight.position.y)+' m  ·  Tier '+flight.tier;
-    const hint=dragonMounted?(dragonRider.getState().state==='ready'?'E／離陸、F／降機':dragonRider.getState().state==='flying'?'E／着陸、WASD／操縦':'VHALKOR騎乗モーション中'):driving?'停止して降りる':flying?(landingCandidate()?'着陸可能':'Space / Q  上昇・下降'):action?.label||'';
-    if(hint!==currentHint) {
+    // No permanent central guidance. Only display a nearby interaction.
+    const hint=(!flying&&!driving&&!dragonMounted&&action?.label)||'';
+    if(hint!==currentHint){
       currentHint=hint;ui.prompt.hidden=!hint;
-      ui.prompt.textContent=hint?(!touch&&action?'E  ·  ':'')+(touch&&hint.startsWith('Space')?'上昇・下降で高度調整':hint):'';
+      ui.prompt.textContent=hint?(!touch?'E  ·  ':'')+hint:'';
     }
     const m=perf.getMetrics();
     ui.metrics.textContent=m.samples>1?Math.round(m.fps)+' FPS · '+m.p95Ms.toFixed(1)+' ms P95':'';
@@ -653,6 +655,9 @@ async function boot(renderer) {
   }
   const weaponPivot=new THREE.Group();
   const elbow=arms[1].userData.elbow;
+  // Forearm ends 0.32m below the elbow. Keep the grip at the actual hand.
+  const wrist=new THREE.Group();wrist.name='RightWristWeaponGrip';
+  wrist.position.set(0,-.33,0);elbow.add(wrist);
   camera.add(weaponPivot);weaponPivot.add(weapon.root);
   let lastWeaponMode='';
   function animatePlayer(dt,state) {
@@ -664,21 +669,26 @@ async function boot(renderer) {
     const mode=player.getMode();
     if(mode!==lastWeaponMode){
       lastWeaponMode=mode;
-      (mode==='fps'?camera:elbow).add(weaponPivot);
+      (mode==='fps'?camera:wrist).add(weaponPivot);
       weapon.root.scale.setScalar(mode==='fps'?.29:.94);
-      weapon.root.position.z=-.57*weapon.root.scale.z;
+      // VESPER PRISM's handgrip is centered 0.57m behind its pivot.
+      weapon.root.position.set(0,0,-.57*weapon.root.scale.z);
     }
     weaponPivot.visible=true;
-    const {yaw,pitch}=sword.pose;
+    const pose=sword.pose;
     if(mode==='fps'){
-      const bob=moving?Math.cos(walkPhase)*.019:0;
-      weaponPivot.position.set(.34+yaw*.21,-.42+pitch*.15+bob,-.66);
-      weaponPivot.rotation.set(-.35-pitch,.22-yaw*.76,-.21-yaw*.36,'YXZ');
+      const bob=moving?Math.cos(walkPhase)*.013:0;
+      weaponPivot.position.set(.37+pose.yaw*.055,-.36+pose.pitch*.045+bob,-.73);
+      weaponPivot.rotation.set(-.18-pose.pitch*.80,-pose.yaw*.92,-.07+pose.roll*.65,'YXZ');
     }else{
-      arms[1].rotation.set(-1.2-pitch+stride*.10,-yaw,.12,'YXZ');
-      elbow.rotation.x=-.36-Math.abs(yaw)*.27;
-      weaponPivot.position.set(0,-.31,0);
-      weaponPivot.rotation.set(1.54-1.2-pitch+elbow.rotation.x,0,.08);
+      // One coherent chain: shoulder leads, forearm follows, wrist aims the blade.
+      // The weapon root itself never receives a second slash animation.
+      arms[1].rotation.set(
+        .24+pose.windup*.18+pose.stroke*.34-pose.pitch*.12+stride*.07,
+        -pose.yaw*.40,.10+pose.roll*.25,'YXZ');
+      elbow.rotation.set(.45+pose.windup*.16+pose.stroke*.18-pose.pitch*.18,0,0);
+      weaponPivot.position.set(0,0,0);
+      weaponPivot.rotation.set(-.78-pose.pitch*.78,-pose.yaw*.60,pose.roll*.35,'YXZ');
     }
     weapon.update(dt,{form:progress.beacons.length?'awakened':'sealed'});
   }
@@ -690,6 +700,7 @@ async function boot(renderer) {
     const dt=Math.min(raw,.045);
     const controls=input.sample();
     let pos=player.root.position;
+    let playerAnimState=null;
     if(playing) {
       time+=dt;
       const actionEdge=controls.action&&!prevInput.action;
@@ -740,14 +751,16 @@ async function boot(renderer) {
       } else {
         const state=player.update(dt,{...movement,input:{...controls,toggleView:false,action:false}});
         if(actionEdge)currentAction(pos,world.zoneAt(pos.x,pos.z,pos.y))?.run();
-        animatePlayer(dt,state);
+        playerAnimState=state;
       }
       prevInput=controls;
       let zone=world.zoneAt(pos.x,pos.z,pos.y);
       if(!flying&&!dragonMounted&&zone!=='air')safeZone=zone;
       if(attackPressed){attack();attackPressed=false;}
-      if(!flying&&!driving&&!dragonMounted)slash(dt,zone,pos);
-      else sword.reset();
+      if(!flying&&!driving&&!dragonMounted){
+        slash(dt,zone,pos);
+        if(playerAnimState)animatePlayer(dt,playerAnimState);
+      }else sword.reset();
       combat(dt,zone,pos);
       if(dragon.root.visible)dragonVisual.update(dt,{riderState:dragonRider.getState(),boost:dragonMounted&&controls.sprint});
       encounters.update(dt,pos,zone,!flying&&!driving&&!dragonMounted,quality);
